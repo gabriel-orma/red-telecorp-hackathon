@@ -44,9 +44,10 @@
         "EN_EVALUACION",
         "INCIDENCIA_CONFIRMADA",
         "SERVICIO_RESTABLECIDO",
-        "CERRADO"
+        "CERRADO",
+        "REQUIERE_ATENCION"
       ],
-      "description": "Cada estado dispara su notificación a los afectados"
+      "description": "Cada estado dispara su notificación a los afectados. REQUIERE_ATENCION: el monitoreo se agotó o el flujo falló; lo gestiona una persona (la zona queda libre para nuevas detecciones)"
     },
     "usuariosAfectados": {
       "type": "array",
@@ -115,11 +116,13 @@
         "RESUMIR",
         "CONFIRMAR",
         "NOTIFICAR_CONFIRMADA",
+        "NOTIFICAR_SIN_FALLA",
         "ALERTAR_OPERADOR",
         "MONITOREAR",
         "RESTABLECER",
         "NOTIFICAR_RESTABLECIDO",
-        "CERRADO"
+        "CERRADO",
+        "ATENCION_MANUAL"
       ],
       "description": "Paso actual del flujo de Step Functions (para el diagrama)"
     },
