@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { ListChecks, Map, Radio, Smartphone, WifiOff } from "lucide-react";
+import { ListChecks, Map, Radio, Siren, Smartphone, WifiOff } from "lucide-react";
 import { enlace, useRuta } from "../lib/router";
 import { cn, haceCuanto, horaLima } from "../lib/utils";
 
 const SECCIONES = [
   { ruta: "/", etiqueta: "Mapa en vivo", icono: Map },
   { ruta: "/incidencias", etiqueta: "Incidencias", icono: ListChecks },
+  { ruta: "/colectivos", etiqueta: "Colectivos", icono: Siren },
   { ruta: "/portal", etiqueta: "Portal usuario", icono: Smartphone },
 ];
 
-export function Encabezado({ ultimaCarga, error }: { ultimaCarga: number | null; error: string | null }) {
-  const ruta = useRuta();
+export function Encabezado({ ultimaCarga, error, colectivosActivos = 0 }: { ultimaCarga: number | null; error: string | null; colectivosActivos?: number }) {
+  const ruta = useRuta().split("?")[0];
   const [ahora, setAhora] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setAhora(Date.now()), 1000);
@@ -41,8 +42,11 @@ export function Encabezado({ ultimaCarga, error }: { ultimaCarga: number | null;
             )}
             title={etiqueta}
           >
-            <Icono className="size-3.5" />
+            <Icono className={cn("size-3.5", r === "/colectivos" && colectivosActivos > 0 && "text-caida")} />
             <span className="hidden lg:inline">{etiqueta}</span>
+            {r === "/colectivos" && colectivosActivos > 0 && (
+              <span className="cifra latido grid min-w-4 place-items-center rounded-full bg-caida px-1 text-[10px] font-bold text-white">{colectivosActivos}</span>
+            )}
           </a>
         ))}
       </nav>

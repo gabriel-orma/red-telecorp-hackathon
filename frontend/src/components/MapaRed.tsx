@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { GeoJSONSource, Map as MapaML, MapLayerMouseEvent, MapMouseEvent } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
-import type { Antena, EstadoAntena, Incidencia, Zona } from "../lib/api";
-import { ESTADO, TIPO_ZONA } from "../lib/estados";
+import type { Antena, Colectivo, EstadoAntena, Incidencia, Zona } from "../lib/api";
+import { ESTADO, PRIORIDAD, TIPO_ZONA } from "../lib/estados";
 import { CENTRO_LIMA, ESTILO_OSCURO as ESTILO, circulo, maplibregl } from "../lib/mapa";
 
 // Expresión de color por estado (misma paleta que el resto del panel).
@@ -35,13 +35,16 @@ const geoAntenas = (antenas: Antena[], seleccion: string | null): FeatureCollect
   })),
 });
 
-const geoZonas = (zonas: Zona[]): FeatureCollection => ({
+const geoZonas = (zonas: Zona[], colectivos: Colectivo[] = []): FeatureCollection => ({
   type: "FeatureCollection",
-  features: zonas.map((z) => ({
-    type: "Feature",
-    geometry: { type: "Polygon", coordinates: [circulo(z.centro.lng, z.centro.lat, z.radioM)] },
-    properties: { zonaId: z.zonaId, estado: z.estado },
-  })),
+  features: zonas.map((z) => {
+    const c = colectivos.find((x) => x.zonaId === z.zonaId && x.estado !== "CERRADO");
+    return {
+      type: "Feature",
+      geometry: { type: "Polygon", coordinates: [circulo(z.centro.lng, z.centro.lat, z.radioM)] },
+      properties: { zonaId: z.zonaId, estado: z.estado, colectivo: !!c, colorColectivo: c ? PRIORIDAD[c.prioridad].color : "#000" },
+    };
+  }),
 });
 
 /** Puntos del mapa de calor: ubicación del reporte o, si no la dio, un punto estable dentro de su zona. */
@@ -65,13 +68,14 @@ const geoReportes = (reportes: Incidencia[], zonas: Zona[]): FeatureCollection =
 interface Props {
   antenas: Antena[];
   zonas: Zona[];
+  colectivos: Colectivo[];
   reportes: Incidencia[];
   seleccion: string | null;
   onSeleccionar: (antenaId: string | null) => void;
   enfocarZona: Zona | null;
 }
 
-export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, enfocarZona }: Props) {
+export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona }: Props) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaML | null>(null);
   const listo = useRef(false);
@@ -123,6 +127,15 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
           "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.6, 14, 1.1],
         },
       });
+      // Zonas con incidente colectivo abierto: relleno y borde que laten (visibles a cualquier zoom).
+      m.addLayer({
+        id: "zonas-colectivo-relleno", type: "fill", source: "zonas", filter: ["==", ["get", "colectivo"], true],
+        paint: { "fill-color": ["get", "colorColectivo"], "fill-opacity": 0.12 },
+      });
+      m.addLayer({
+        id: "zonas-colectivo-borde", type: "line", source: "zonas", filter: ["==", ["get", "colectivo"], true],
+        paint: { "line-color": ["get", "colorColectivo"], "line-width": 2, "line-opacity": 0.9, "line-blur": 1 },
+      });
       m.addLayer({
         id: "reportes-calor", type: "heatmap", source: "reportes",
         paint: {
@@ -171,6 +184,12 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
       const animar = (t: number) => {
         const fase = (t % 1600) / 1600;
         const visible = Math.min(1, Math.max(0, (m.getZoom() - ZOOM_ANTENAS) / (ZOOM_ANTENAS_PLENO - ZOOM_ANTENAS)));
+        if (m.getLayer("zonas-colectivo-borde")) {
+          const latido = 0.5 + 0.5 * Math.sin((t / 900) * Math.PI);
+          m.setPaintProperty("zonas-colectivo-borde", "line-width", 1.5 + latido * 4);
+          m.setPaintProperty("zonas-colectivo-borde", "line-opacity", 0.35 + latido * 0.6);
+          m.setPaintProperty("zonas-colectivo-relleno", "fill-opacity", 0.06 + latido * 0.14);
+        }
         if (m.getLayer("antenas-pulso")) {
           m.setPaintProperty("antenas-pulso", "circle-radius", 8 + fase * 26);
           m.setPaintProperty("antenas-pulso", "circle-opacity", 0.55 * (1 - fase) * visible);
@@ -198,12 +217,12 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
     if (!m) return;
     const aplicar = () => {
       (m.getSource("antenas") as GeoJSONSource | undefined)?.setData(geoAntenas(antenas, seleccion));
-      (m.getSource("zonas") as GeoJSONSource | undefined)?.setData(geoZonas(zonas));
+      (m.getSource("zonas") as GeoJSONSource | undefined)?.setData(geoZonas(zonas, colectivos));
       (m.getSource("reportes") as GeoJSONSource | undefined)?.setData(geoReportes(reportes, zonas));
     };
     if (listo.current) aplicar();
     else pendiente.current = aplicar;
-  }, [antenas, zonas, reportes, seleccion]);
+  }, [antenas, zonas, colectivos, reportes, seleccion]);
 
   // Etiquetas HTML de zona (nombre + tipo), recreadas solo si cambia el catálogo.
   const claveZonas = zonas.map((z) => z.zonaId).join();

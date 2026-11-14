@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Megaphone } from "lucide-react";
 import type { EstadoIncidencia, EventoHistorial } from "../lib/api";
 import { ESTADO_INCIDENCIA, EVENTO, ORDEN_INCIDENCIA } from "../lib/estados";
 import { cn, haceCuanto } from "../lib/utils";
@@ -49,6 +49,7 @@ export function Historial({ eventos }: { eventos: EventoHistorial[] }) {
   return (
     <ul className="relative space-y-3 border-l border-borde pl-4">
       {orden.map((e, i) => {
+        if (e.tipoEvento === "NOTIFICACION_ENVIADA") return <Aviso key={e.ocurridoEn + i} e={e} />;
         const Icono = EVENTO[e.tipoEvento]?.icono ?? EVENTO.CAMBIO_ESTADO.icono;
         const estado = e.estadoNuevo as EstadoIncidencia | null;
         const color = estado && ESTADO_INCIDENCIA[estado] ? ESTADO_INCIDENCIA[estado].color : "#64748b";
@@ -68,6 +69,31 @@ export function Historial({ eventos }: { eventos: EventoHistorial[] }) {
         );
       })}
     </ul>
+  );
+}
+
+/** Aviso enviado al usuario (detalle JSON con asunto, mensaje y canales). */
+function Aviso({ e }: { e: EventoHistorial }) {
+  let d: { asunto?: string; mensaje?: string; canales?: Record<string, string> } = {};
+  try { d = JSON.parse(e.detalle); } catch { d = { mensaje: e.detalle }; }
+  return (
+    <motion.li initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="relative">
+      <span className="absolute -left-[25px] top-0.5 grid size-[17px] place-items-center rounded-full bg-acento ring-4 ring-panel">
+        <Megaphone className="size-2.5 text-fondo" />
+      </span>
+      <div className="rounded-xl rounded-tl-sm bg-acento/10 px-3 py-2 ring-1 ring-acento/25">
+        <div className="text-xs font-semibold text-acento">{d.asunto ?? "Aviso"}</div>
+        <div className="mt-0.5 text-xs text-texto/90">{d.mensaje}</div>
+        {d.canales && (
+          <div className="mt-1 flex gap-1.5">
+            {Object.entries(d.canales).map(([canal, r]) => (
+              <span key={canal} className="cifra rounded bg-fondo/60 px-1.5 text-[9px] uppercase text-tenue" title={r}>{canal}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="cifra mt-0.5 text-[10px] text-tenue">{fecha(e.ocurridoEn)} · {haceCuanto(e.ocurridoEn)}</div>
+    </motion.li>
   );
 }
 

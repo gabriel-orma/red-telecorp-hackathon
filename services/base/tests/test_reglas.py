@@ -74,3 +74,22 @@ def test_ubicar_por_coordenadas():
     z = zonas.zona("ZONA-02")  # Miraflores
     assert zonas.ubicar(z["centro"]["lat"], z["centro"]["lng"])["zonaId"] == "ZONA-02"
     assert zonas.ubicar(-13.5, -71.9) is None  # Cusco: fuera de cobertura
+
+
+# ---------------- E3 ----------------
+def test_umbral_colectivo():
+    assert not reglas.es_colectivo(9) and reglas.es_colectivo(10)
+
+
+def test_entra_en_falla_solo_al_cambiar():
+    assert reglas.entra_en_falla("NORMAL", "CAIDA")
+    assert reglas.entra_en_falla(None, "INHABILITADA")
+    assert not reglas.entra_en_falla("CAIDA", "INHABILITADA")  # ya estaba en falla
+    assert not reglas.entra_en_falla("NORMAL", "SATURADA")
+
+
+def test_prioridad_sube_con_criticidad_y_antenas():
+    cfg = {"pesoAfectado": 1, "pesoAntenaEnFalla": 10, "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}}
+    assert reglas.calcular_prioridad(10, 1, 0, cfg) == (10, "BAJA")        # 10 vecinos en zona residencial
+    assert reglas.calcular_prioridad(10, 5, 0, cfg)[1] == "ALTA"            # mismos 10 en un hospital
+    assert reglas.calcular_prioridad(10, 5, 1, cfg)[1] == "CRITICA"         # hospital + antena caída

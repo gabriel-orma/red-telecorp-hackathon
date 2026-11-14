@@ -33,6 +33,7 @@ export function Portal() {
   const [tipo, setTipo] = useState<TipoProblema | null>(null);
   const [cuando, setCuando] = useState(ahoraLocal);
   const [descripcion, setDescripcion] = useState("");
+  const [avisarPorEmail, setAvisarPorEmail] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [errores, setErrores] = useState<string[]>([]);
   const historialLocal = misReportes();
@@ -80,6 +81,7 @@ export function Portal() {
       fechaHoraIncidente: new Date(cuando).toISOString(),
       tipo,
       descripcion,
+      avisarPorEmail: avisarPorEmail && !!datos.email,
     };
     try {
       const r = await apiIncidencias.reportar(reporte);
@@ -168,6 +170,10 @@ export function Portal() {
             <Campo etiqueta="Celular para avisos" inputMode="tel" placeholder="+51 9XX XXX XXX" {...campo("telefonoContacto")} />
             <div className="sm:col-span-2"><Campo etiqueta="Correo para avisos" type="email" {...campo("email")} /></div>
           </div>
+          <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-xl bg-fondo/60 px-3 py-2.5 text-xs">
+            <input type="checkbox" checked={avisarPorEmail} onChange={(e) => setAvisarPorEmail(e.target.checked)} className="mt-0.5 accent-[#22d3ee]" />
+            <span>Avisarme por correo sobre esta falla <span className="text-tenue">(te llegará un correo de AWS para confirmar la suscripción)</span></span>
+          </label>
           <p className="mt-2 flex items-center gap-1.5 text-[11px] text-tenue"><ShieldCheck className="size-3.5" /> Solo usamos tus datos para avisarte sobre esta incidencia.</p>
         </Paso>
 

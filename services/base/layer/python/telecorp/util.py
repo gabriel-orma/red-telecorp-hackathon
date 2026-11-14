@@ -27,6 +27,10 @@ def hace_iso(**delta) -> str:
     return iso(ahora() - timedelta(**delta))
 
 
+def parse_iso(texto: str) -> datetime:
+    return datetime.fromisoformat(texto.replace("Z", "+00:00"))
+
+
 def nuevo_id(prefijo: str) -> str:
     """Id ordenable por tiempo: <PREFIJO>-<ms en base 36><aleatorio>."""
     ms, b36 = int(time.time() * 1000), ""

@@ -16,7 +16,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
-from telecorp import db, historial, http, reglas, util, zonas
+from telecorp import db, historial, http, notificador, reglas, util, zonas
 
 _sqs = boto3.client("sqs")
 VENTANA_DEDUP_HORAS = 24
@@ -84,13 +84,22 @@ def crear_reporte(event, context):
         return http.ok({"incidenciaId": previa.get("incidenciaId"), "duplicado": True,
                         "mensaje": "Ya tienes un reporte activo en esta zona; te mostramos su seguimiento."})
 
+    # Avisos por correo (opt-in): SNS envía al usuario un correo para confirmar la suscripción.
+    suscripcion = None
+    if reporte.get("avisarPorEmail") and reporte.get("email"):
+        try:
+            suscripcion = "pendiente" if notificador.suscribir_email(reporte["email"], reporte["usuarioId"]) else None
+        except Exception as e:  # noqa: BLE001 - el reporte no debe fallar por el canal de email
+            print(f"No se pudo suscribir el email: {e!r}")
+
     mensaje = {"incidenciaId": incidencia_id, "creadaEn": util.ahora_iso(), "reporte": reporte}
     try:
         _sqs.send_message(QueueUrl=os.environ["COLA_REPORTES_URL"], MessageBody=json.dumps(mensaje))
     except Exception:
         db.tabla("dedup").delete_item(Key={"clave": clave})  # no bloquear al usuario si no se encoló
         raise
-    return http.respuesta(202, {"incidenciaId": incidencia_id, "estado": "REGISTRADA", "duplicado": False})
+    return http.respuesta(202, {"incidenciaId": incidencia_id, "estado": "REGISTRADA", "duplicado": False,
+                                "avisoEmail": suscripcion})
 
 
 def _clave_dedup(usuario_id: str, zona_id: str) -> str:
@@ -168,7 +177,16 @@ def obtener(event, context):
     antenas = db.tabla("antenas")
     estados_antenas = [antenas.get_item(Key={"antenaId": a["antenaId"]}).get("Item", {}).get("estado", "SIN_DATOS")
                        for a in zona.get("antenas", [])]
+    colectivo = None
+    if item.get("incidenteColectivoId"):
+        c = db.tabla("colectivos").get_item(Key={"incidenteColectivoId": item["incidenteColectivoId"]}).get("Item")
+        if c:
+            colectivo = {k: c.get(k) for k in ("incidenteColectivoId", "estado", "pasoActual", "prioridad", "detectadoEn",
+                                               "resueltoEn", "origen", "resumenIA")}
+            colectivo["afectados"] = len(c.get("usuariosAfectados", []))
+            colectivo["antenasEnFalla"] = len(c.get("antenasEnFalla", []))
     return http.ok({
+        "colectivo": colectivo,
         "incidencia": _publica(item, completa=True),
         "historial": _historial(incidencia_id),
         "zona": {

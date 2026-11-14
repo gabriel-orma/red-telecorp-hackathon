@@ -28,7 +28,7 @@ while True:
 EOF
 }
 
-for servicio in api antenas base; do
+for servicio in workflows api antenas base; do
   pila="telecorp-$servicio-$STAGE"
   if ! aws cloudformation describe-stacks --stack-name "$pila" >/dev/null 2>&1; then
     echo "· $pila no existe, se omite"; continue
@@ -38,6 +38,7 @@ for servicio in api antenas base; do
       --query "StackResourceSummaries[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" --output text); do
     vaciar_bucket "$recurso"
   done
-  (cd "$RAIZ/services/$servicio" && "$SLS" remove --stage "$STAGE" 2>&1 | grep -v "allowed values\|Invalid configuration\|Learn more about configuration\|^$")
+  dir="$RAIZ/services/$servicio"; [ "$servicio" = workflows ] && dir="$RAIZ/workflows"
+  (cd "$dir" && "$SLS" remove --stage "$STAGE" 2>&1 | grep -v "allowed values\|Invalid configuration\|Learn more about configuration\|^$")
 done
 echo "✔ Stage $STAGE eliminado"

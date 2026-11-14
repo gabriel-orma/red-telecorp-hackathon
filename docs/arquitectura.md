@@ -79,4 +79,10 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Simulador + programación | AWS Lambda + EventBridge Scheduler | `telecorp-<stage>-simulador` | antenas | Apagado por defecto |
 | Clasificador | AWS Lambda (SQS) | `telecorp-<stage>-clasificador` | antenas | Respuesta parcial de lote |
 | HTTP API | AWS API Gateway v2 | `telecorp-<stage>-api` | api | `/api/*` + frontend |
+| Tabla `dedup`: también el candado `COLECTIVO#zona` | AWS DynamoDB | `telecorp-<stage>-dedup` | base / workflows | Un solo colectivo abierto por zona |
+| Tópicos `avisos` y `alertas-operador` | AWS SNS | `telecorp-<stage>-{avisos,alertas-operador}` | base | Email a usuarios (FilterPolicy) y alertas del NOC |
+| Parámetro de reglas | AWS SSM | `/telecorp/<stage>/reglas` | base | Umbral colectivo, ventana, espera, pesos de prioridad (D7) |
+| DLQ del detector | AWS SQS | `telecorp-<stage>-detector-dlq` | base | `onFailure` de los streams |
+| Detector | AWS Lambda (DynamoDB Streams ×2) | `telecorp-<stage>-detector` | workflows | Filtro: INSERT de incidencias; antenas en CAIDA/INHABILITADA |
+| Step Function `incidente-colectivo` | AWS Step Functions (Standard) | `telecorp-<stage>-incidente-colectivo` | workflows | Map, Choice, Wait, Retry, Catch, SNS directo |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |

@@ -81,3 +81,31 @@ def enmascarar_email(email):
         return email
     usuario, dominio = email.split("@", 1)
     return f"{usuario[:1]}***@{dominio}"
+
+
+# ---------------- Incidentes colectivos (E3) ----------------
+ESTADOS_COLECTIVO_ABIERTOS = {"EN_EVALUACION", "INCIDENCIA_CONFIRMADA"}
+ESTADOS_ANTENA_FALLA = {"INHABILITADA", "CAIDA"}  # disparan detección proactiva
+
+
+def es_colectivo(usuarios_distintos: int, umbral: int = 10) -> bool:
+    """≥ umbral usuarios distintos (la ventana de <24 h la aplica la consulta)."""
+    return usuarios_distintos >= umbral
+
+
+def entra_en_falla(estado_anterior, estado_nuevo) -> bool:
+    return estado_nuevo in ESTADOS_ANTENA_FALLA and estado_anterior not in ESTADOS_ANTENA_FALLA
+
+
+def calcular_prioridad(afectados: int, criticidad: int, antenas_en_falla: int, cfg: dict) -> tuple:
+    """(puntaje, prioridad). TODO(D7): fórmula y pesos provisionales; se ajustan en SSM sin tocar código.
+
+    puntaje = (afectados × pesoAfectado + antenasEnFalla × pesoAntenaEnFalla) × criticidad de la zona
+    """
+    puntaje = (afectados * cfg.get("pesoAfectado", 1) + antenas_en_falla * cfg.get("pesoAntenaEnFalla", 10)) * criticidad
+    umbrales = cfg.get("umbrales", {"MEDIA": 20, "ALTA": 50, "CRITICA": 100})
+    prioridad = "BAJA"
+    for nivel in ("MEDIA", "ALTA", "CRITICA"):
+        if puntaje >= umbrales[nivel]:
+            prioridad = nivel
+    return round(puntaje, 1), prioridad
