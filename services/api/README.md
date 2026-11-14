@@ -18,6 +18,10 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 | `GET /api/incidencias?zonaId=&estado=&horas=` | `incidencias.listar` | Lista con datos personales enmascarados |
 | `GET /api/incidencias/{id}` | `incidencias.obtener` | Detalle + historial + `transicionesPermitidas` + estado de la zona |
 | `PATCH /api/incidencias/{id}/estado` | `incidencias.cambiar_estado` | `{estado, comentario}`; valida la transición (409 si no se permite) y libera la clave de deduplicación al resolverse |
+| `GET /api/escenarios` | `escenarios.obtener` | Estado del escenario de demo (oleada, reportes, antenas) |
+| `POST /api/escenarios` | `escenarios.lanzar` | `{tipo: TORMENTA o CORTE_ENERGIA, zonaId}` arranca la Step Function `escenario` (409 si ya hay uno en curso) |
+| `POST /api/escenarios/reiniciar` | `escenarios.reiniciar` | Reiniciar demo: detiene el escenario, quita fallas, restablece y reanuda incidentes |
+| `POST /api/colectivos/reanudar` | `colectivos.reanudar` | Reanuda incidentes cuya Step Function se detuvo (p. ej. al apagarse el lab) |
 | `GET /`, `GET /{proxy+}` | `web.handler` | Frontend desde S3 privado (gzip + caché en memoria) |
 
 **Ciclo de vida de una incidencia**: `REGISTRADA → EN_REVISION → EN_ATENCION → SOLUCIONADA → CERRADA`. Se pueden saltar pasos hacia adelante; la única vuelta atrás es reabrir (`SOLUCIONADA → EN_ATENCION`). La regla vive en `telecorp.reglas.transicion_valida`. Cada cambio queda en el historial inmutable.

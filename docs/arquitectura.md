@@ -89,4 +89,6 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Tabla `estadisticas` (TTL 35 d, PITR) | AWS DynamoDB | `telecorp-<stage>-estadisticas` | base | D10: contadores de 15 min |
 | GSI `usuario-fecha` en `incidencias` | AWS DynamoDB | — | base | "Mis reportes" |
 | Autorizador JWT (Cognito) | AWS API Gateway v2 | `cognito` | api | Protege `POST /api/reportes` y `/api/mis-reportes` |
+| Step Function `escenario` | AWS Step Functions (Standard) | `telecorp-<stage>-escenario` | workflows | E5: tormenta o corte de energía en oleadas (Map secuencial + Wait) |
+| Parámetro del escenario en curso | AWS SSM | `/telecorp/<stage>/escenario` | base | Estado visible en el panel |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |

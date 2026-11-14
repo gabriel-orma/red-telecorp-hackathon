@@ -5,10 +5,17 @@ GET  /api/colectivos/{id}             → detalle + historial + zona + incidenci
 POST /api/colectivos/{id}/restablecer → el operador marca el servicio como restablecido; la Step Function
                                         lo detecta en su próxima re-verificación y cierra el ciclo.
 """
+import json
+import os
+import time
+
+import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
 from telecorp import db, historial, http, reglas, util, zonas
+
+_sfn = boto3.client("stepfunctions")
 
 _OCULTOS = {"taskToken"}
 
@@ -66,3 +73,33 @@ def restablecer(event, context):
                         detalle="El operador marcó el servicio como restablecido")
     return http.ok({"incidenteColectivoId": cid, "restablecimientoSolicitado": True,
                     "mensaje": "La Step Function cerrará el incidente en su próxima verificación."})
+
+
+def reanudar_huerfanos() -> list:
+    """Incidentes abiertos cuya Step Function ya no corre (falló o se detuvo, p. ej. al apagarse el Learner Lab):
+    arranca una ejecución nueva en modo `reanudar`, que entra directo al monitoreo. Devuelve los ids reanudados."""
+    abiertos = db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+    reanudados = []
+    for c in abiertos:
+        arn = c.get("ejecucionArn")
+        try:
+            if arn and _sfn.describe_execution(executionArn=arn)["status"] == "RUNNING":
+                continue
+        except _sfn.exceptions.ExecutionDoesNotExist:
+            pass
+        cid = c["incidenteColectivoId"]
+        nueva = _sfn.start_execution(
+            stateMachineArn=os.environ["MAQUINA_COLECTIVO"], name=f"{cid}-r{int(time.time())}",
+            input=json.dumps({"colectivoId": cid, "reanudar": True, "esperaSegundos": 10, "monitoreo": {"iteracion": 0},
+                              "prioridad": {"afectados": len(c.get("usuariosAfectados", []))}}))
+        db.tabla("colectivos").update_item(Key={"incidenteColectivoId": cid}, UpdateExpression="SET ejecucionArn = :a",
+                                           ExpressionAttributeValues={":a": nueva["executionArn"]})
+        historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "SISTEMA",
+                            detalle="Monitoreo reanudado (la ejecución anterior se había detenido)")
+        reanudados.append(cid)
+    return reanudados
+
+
+def reanudar(event, context):
+    """POST /api/colectivos/reanudar → reanuda los incidentes huérfanos (ver reanudar_huerfanos)."""
+    return http.ok({"reanudados": reanudar_huerfanos()})

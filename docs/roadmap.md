@@ -68,17 +68,7 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 ## Rediseño de la UI (D11) ✅
 > Estilo neumórfico oscuro aprobado por el equipo, aplicado a todas las pantallas (#28).
 
-## E4: Segunda nube + IA (requiere D2) ⬜
-> **Sin 2 nubes no se corrige el proyecto**, y la IA vale 3 puntos. Por eso va antes que lo vistoso. Si D2 no está decidida a tiempo, se intercambia con E5.
-- Servicio en la 2.ª nube, invocado por HTTPS con la API key en **Secrets Manager**:
-  - **reporte en lenguaje natural → la IA rellena el formulario**;
-  - **resumen del incidente** (tarjeta de IA);
-  - **mensajes de notificación redactados por la IA**;
-  - apoyo a la prioridad según el tipo de zona.
-- **Réplica del histórico**: al cerrarse un incidente → S3 (versionado) + almacén analítico en la 2.ª nube.
-- **Probar**: escribir "no tengo internet hace una hora en San Isidro" y ver el formulario lleno; ver la tarjeta de IA.
-
-## E5: Simulación de tormenta + resiliencia ⬜
+## E5: Simulación de tormenta + resiliencia 🧪
 - **Step Function `escenario`** ("tormenta" y "corte de energía" por zona): genera reportes y caídas escalonadas durante ~60 s.
 - Botones **"Simular tormenta"** y **"Reiniciar demo"** (datos semilla).
 - **Propagación animada** desde la antena caída (círculo del área afectada) y **contadores animados**: afectados, antenas caídas, tiempo promedio de detección.
@@ -104,6 +94,17 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - **Bot de Telegram** para reportar.
 - **PWA** instalable + notificaciones push.
 - Multiidioma (ES/EN).
+
+## E4: Segunda nube + IA (requiere D2) ⬜ — **movida al final** (decisión del equipo, 2026-11-14)
+> **Orden actualizado:** primero la app completa en AWS (E5–E8) y al final se "traduce" a la 2.ª nube. Mientras tanto, cada función de IA queda detrás de un enchufe con implementación provisional, el histórico se exporta a S3 y la API key ya tiene su secreto. **Conseguir la cuenta de la 2.ª nube desde ya.**
+> **Sin 2 nubes no se corrige el proyecto**, y la IA vale 3 puntos. Por eso va antes que lo vistoso. Si D2 no está decidida a tiempo, se intercambia con E5.
+- Servicio en la 2.ª nube, invocado por HTTPS con la API key en **Secrets Manager**:
+  - **reporte en lenguaje natural → la IA rellena el formulario**;
+  - **resumen del incidente** (tarjeta de IA);
+  - **mensajes de notificación redactados por la IA**;
+  - apoyo a la prioridad según el tipo de zona.
+- **Réplica del histórico**: al cerrarse un incidente → S3 (versionado) + almacén analítico en la 2.ª nube.
+- **Probar**: escribir "no tengo internet hace una hora en San Isidro" y ver el formulario lleno; ver la tarjeta de IA.
 
 ## E9: Demo y entrega ⬜
 - Diagrama de arquitectura final (una flecha por flujo).

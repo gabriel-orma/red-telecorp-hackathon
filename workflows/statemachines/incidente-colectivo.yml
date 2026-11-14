@@ -1,8 +1,20 @@
 # Ciclo de vida de un incidente colectivo (Red TeleCorp).
 # Entrada: {"colectivoId": "COL-...", "esperaSegundos": 30, "monitoreo": {"iteracion": 0}}
+# Reanudar (p. ej. tras detenerse el Learner Lab): {..., "reanudar": true, "prioridad": {"afectados": N}} → directo al monitoreo.
 Comment: Incidente colectivo - evaluar, verificar la red, priorizar, avisar, monitorear y cerrar
-StartAt: PrepararAvisoEvaluacion
+StartAt: EsReanudacion
 States:
+  EsReanudacion:
+    Type: Choice
+    Choices:
+      - And:
+          - Variable: $.reanudar
+            IsPresent: true
+          - Variable: $.reanudar
+            BooleanEquals: true
+        Next: Monitorear
+    Default: PrepararAvisoEvaluacion
+
   # 1. Aviso a todos los afectados: "estamos evaluando"
   PrepararAvisoEvaluacion:
     Type: Task

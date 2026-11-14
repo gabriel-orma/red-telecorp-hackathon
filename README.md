@@ -36,6 +36,16 @@ python scripts/demo/historico.py dev-tualias
 python scripts/demo/reportar.py https://<id>.execute-api.us-east-1.amazonaws.com --zona ZONA-05 --n 12
 ```
 
+Después de cada Start Lab del Learner Lab (AWS desactiva las colas al detener la sesión):
+```bash
+bash scripts/reactivar-lab.sh dev-tualias
+```
+
+Prueba de carga (cientos de reportes por el camino real; verifica 0 pérdidas y DLQ vacía):
+```bash
+python scripts/demo/carga.py https://<id>.execute-api.us-east-1.amazonaws.com --stage dev-tualias
+```
+
 Pruebas unitarias:
 ```bash
 python -m pytest

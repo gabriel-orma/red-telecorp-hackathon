@@ -79,6 +79,14 @@ functions:
   cerrar: { handler: src/pasos.cerrar }
   sinResolver: { handler: src/pasos.sin_resolver }
 
+  # Escenarios de demo (E5)
+  escenarioPreparar: { handler: src/escenario.preparar }
+  escenarioOleada:
+    handler: src/escenario.aplicar_oleada
+    environment:
+      COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
+  escenarioFinalizar: { handler: src/escenario.finalizar }
+
 stepFunctions:
   validate: true
   stateMachines:
@@ -87,6 +95,11 @@ stepFunctions:
       name: ${self:custom.prefijo}-incidente-colectivo
       role: arn:aws:iam::${aws:accountId}:role/LabRole
       definition: ${file(./statemachines/incidente-colectivo.yml)}
+    escenario:
+      id: MaquinaEscenario
+      name: ${self:custom.prefijo}-escenario
+      role: arn:aws:iam::${aws:accountId}:role/LabRole
+      definition: ${file(./statemachines/escenario.yml)}
 
 resources:
   Outputs:

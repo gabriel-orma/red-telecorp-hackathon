@@ -202,6 +202,13 @@ resources:
         Type: String
         Description: "Simulador de antenas. fallas = {antenaId: GB/min forzado}"
         Value: '{"fallas": {}, "probSaturacion": 0.03, "muestrasPorMinuto": 4}'
+    ParametroEscenario:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /telecorp/${sls:stage}/escenario
+        Type: String
+        Description: "Estado del escenario de demo en curso (E5)"
+        Value: '{"activo": false}'
     ParametroReglas:
       Type: AWS::SSM::Parameter
       Properties:

@@ -1,0 +1,52 @@
+# Escenario de demo (E5): tormenta o corte de energía en oleadas.
+# Entrada: {"tipo": "TORMENTA" | "CORTE_ENERGIA", "zonaId": "ZONA-05"}
+Comment: Escenario de demo - fallas de antenas y reportes de vecinos en oleadas
+StartAt: Preparar
+States:
+  Preparar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [escenarioPreparar, Arn] }
+    Parameters:
+      "tipo.$": "$.tipo"
+      "zonaId.$": "$.zonaId"
+      "ejecucionArn.$": "$$.Execution.Id"
+    ResultPath: $.plan
+    Retry: &reintentos
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException]
+        IntervalSeconds: 2
+        MaxAttempts: 3
+        BackoffRate: 2
+    Catch: &alFallar
+      - ErrorEquals: [States.ALL]
+        ResultPath: $.error
+        Next: Finalizar
+    Next: Oleadas
+
+  # Map secuencial: cada oleada espera su turno y luego se aplica (la tormenta "avanza").
+  Oleadas:
+    Type: Map
+    ItemsPath: $.plan.oleadas
+    MaxConcurrency: 1
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: Esperar
+      States:
+        Esperar:
+          Type: Wait
+          SecondsPath: $.esperaSegundos
+          Next: AplicarOleada
+        AplicarOleada:
+          Type: Task
+          Resource: { "Fn::GetAtt": [escenarioOleada, Arn] }
+          Retry: *reintentos
+          End: true
+    ResultPath: null
+    Catch: *alFallar
+    Next: Finalizar
+
+  Finalizar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [escenarioFinalizar, Arn] }
+    ResultPath: $.resultado
+    Retry: *reintentos
+    End: true
