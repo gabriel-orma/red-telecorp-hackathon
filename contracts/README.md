@@ -10,6 +10,7 @@ Definen la forma de los datos que cruzan entre módulos. **Programa contra estos
 | Incidencia (estado y gestión) | [`schemas/incidencia.schema.json`](schemas/incidencia.schema.json) | API ↔ panel, detector, workflows |
 | Evento de historial | [`schemas/evento-historial.schema.json`](schemas/evento-historial.schema.json) | Cualquier cambio de estado → historial, analítica |
 | Métrica de antena | [`schemas/metrica-antena.schema.json`](schemas/metrica-antena.schema.json) | Simulador → clasificador |
+| Estado actual de antena | [`schemas/antena-estado.schema.json`](schemas/antena-estado.schema.json) | Clasificador → detector, correlación, API |
 | Incidente colectivo | [`schemas/incidente-colectivo.schema.json`](schemas/incidente-colectivo.schema.json) | Detector → Step Functions → notificaciones, analítica |
 | Catálogo de zonas y antenas | [`zonas.json`](zonas.json) | Referencia para todos |
 
