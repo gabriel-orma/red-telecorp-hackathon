@@ -10,6 +10,7 @@ import { FlujoColectivo, FlujoMini } from "../components/FlujoColectivo";
 import { Anticipacion } from "./MapaNeu";
 import { Reproduccion } from "../components/neu/Reproduccion";
 import { ChipEstado, Historial } from "../components/LineaTiempo";
+import { TarjetaIA } from "../components/neu/TarjetaIA";
 
 const ORIGEN = { REPORTES_USUARIOS: "Reportes de usuarios", METRICAS_ANTENA: "Detección proactiva (antena)", AMBOS: "Usuarios + antenas" };
 
@@ -122,13 +123,6 @@ function Detalle({ id }: { id: string }) {
 
           <Anticipacion minutos={c.deteccionAnticipadaMin} proactivo={c.origen === "METRICAS_ANTENA"} grande />
 
-          {c.resumenIA && (
-            <div className="mt-3 rounded-xl bg-fondo/60 p-3 text-sm">
-              <div className="mb-1 text-[10px] text-tenue">Resumen para el operador</div>
-              {c.resumenIA}
-            </div>
-          )}
-
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {abierto && (
               <button onClick={restablecer} disabled={enviando || c.restablecimientoSolicitado}
@@ -145,6 +139,9 @@ function Detalle({ id }: { id: string }) {
             {aviso && <span className="text-[11px] text-tenue">{aviso}</span>}
           </div>
         </div>
+
+        {/* Análisis de IA (con procedencia honesta: IA o reglas) */}
+        <TarjetaIA colectivo={c} />
 
         {/* Antenas e incidencias */}
         <div className="grid gap-3 md:grid-cols-2">

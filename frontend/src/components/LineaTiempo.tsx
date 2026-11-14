@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Check, Megaphone } from "lucide-react";
-import type { EstadoIncidencia, EventoHistorial } from "../lib/api";
+import { Check, Mail, Megaphone, Smartphone, type LucideIcon } from "lucide-react";
+import type { CanalAviso, EstadoIncidencia, EventoHistorial } from "../lib/api";
 import { ESTADO_INCIDENCIA, EVENTO, ORDEN_INCIDENCIA } from "../lib/estados";
 import { cn, haceCuanto } from "../lib/utils";
 
@@ -72,10 +72,21 @@ export function Historial({ eventos }: { eventos: EventoHistorial[] }) {
   );
 }
 
+const CANAL: Record<CanalAviso, { texto: string; icono: LucideIcon }> = {
+  AZURE_EMAIL: { texto: "Te avisamos por correo · Azure", icono: Mail },
+  SNS_EMAIL: { texto: "Te avisamos por correo · AWS", icono: Mail },
+  APP: { texto: "Aviso en la app", icono: Smartphone },
+};
+const esCanalConocido = (c: string): c is CanalAviso => c in CANAL;
+
 /** Aviso enviado al usuario (detalle JSON con asunto, mensaje y canales). */
 function Aviso({ e }: { e: EventoHistorial }) {
-  let d: { asunto?: string; mensaje?: string; canales?: Record<string, string> } = {};
+  let d: { asunto?: string; mensaje?: string; canales?: Record<string, string>; canal?: string } = {};
   try { d = JSON.parse(e.detalle); } catch { d = { mensaje: e.detalle }; }
+  // El canal puede venir en el evento o dentro del detalle; solo se muestran los conocidos (nunca direcciones ni ids).
+  const candidatos = [e.canal, d.canal, ...Object.keys(d.canales ?? {})].map((c) => c?.toUpperCase()).filter((c): c is string => !!c);
+  const conocidos = [...new Set(candidatos.filter(esCanalConocido))];
+  const otros = Object.entries(d.canales ?? {}).filter(([canal]) => !esCanalConocido(canal.toUpperCase()));
   return (
     <motion.li initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="relative">
       <span className="absolute -left-[25px] top-0.5 grid size-[17px] place-items-center rounded-full bg-acento ring-4 ring-panel">
@@ -84,9 +95,17 @@ function Aviso({ e }: { e: EventoHistorial }) {
       <div className="rounded-xl rounded-tl-sm bg-acento/10 px-3 py-2 ring-1 ring-acento/25">
         <div className="text-xs font-semibold text-acento">{d.asunto ?? "Aviso"}</div>
         <div className="mt-0.5 text-xs text-texto/90">{d.mensaje}</div>
-        {d.canales && (
-          <div className="mt-1 flex gap-1.5">
-            {Object.entries(d.canales).map(([canal, r]) => (
+        {(conocidos.length > 0 || otros.length > 0) && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {conocidos.map((c) => {
+              const { texto, icono: Icono } = CANAL[c];
+              return (
+                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-fondo/70 px-2 py-0.5 text-[10px] font-medium text-texto ring-1 ring-acento/40">
+                  <Icono className="size-3 text-acento" aria-hidden />{texto}
+                </span>
+              );
+            })}
+            {otros.map(([canal, r]) => (
               <span key={canal} className="cifra rounded bg-fondo/60 px-1.5 text-[9px] uppercase text-tenue" title={r}>{canal}</span>
             ))}
           </div>

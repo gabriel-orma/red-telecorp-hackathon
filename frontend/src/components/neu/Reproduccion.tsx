@@ -8,6 +8,14 @@ const DURACION_MS = 12_000; // la reproducción completa dura 12 s, sin importar
 const hora = (t: number) => new Date(t).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /** Reproducción del historial: un deslizador de tiempo que muestra cómo evolucionó el incidente. */
+/** Texto legible de un evento. El detalle de un aviso enviado es JSON ({asunto, mensaje, canales}): se muestra el asunto. */
+function textoDeEvento(e: { tipoEvento: string; detalle: string }): string {
+  if (e.tipoEvento === "NOTIFICACION_ENVIADA") {
+    try { const d = JSON.parse(e.detalle); if (d?.asunto) return `Aviso enviado: ${d.asunto}`; } catch { /* detalle en texto plano */ }
+  }
+  return e.detalle || e.tipoEvento.toLowerCase().replace(/_/g, " ");
+}
+
 export function Reproduccion({ detalle }: { detalle: DetalleColectivo }) {
   const c = detalle.colectivo;
   const reportes = useMemo(() => detalle.incidencias.map((i) => Date.parse(i.creadaEn)).sort((a, b) => a - b), [detalle.incidencias]);
@@ -82,7 +90,7 @@ export function Reproduccion({ detalle }: { detalle: DetalleColectivo }) {
       </div>
 
       <div className={cn("mt-3 min-h-9 rounded-xl px-3 py-2 text-xs", ultimo ? "neu-hundido" : "")}>
-        {ultimo ? <><span className="text-tenue">{hora(Date.parse(ultimo.ocurridoEn))} · </span>{ultimo.detalle || ultimo.tipoEvento.toLowerCase().replace(/_/g, " ")}{ultimo.estadoNuevo && ` → ${ultimo.estadoNuevo.toLowerCase().replace(/_/g, " ")}`}</>
+        {ultimo ? <><span className="text-tenue">{hora(Date.parse(ultimo.ocurridoEn))} · </span>{textoDeEvento(ultimo)}{ultimo.estadoNuevo && ` → ${ultimo.estadoNuevo.toLowerCase().replace(/_/g, " ")}`}</>
           : <span className="text-tenue">Arrastra el deslizador o pulsa play para ver cómo evolucionó el incidente.</span>}
       </div>
     </div>
