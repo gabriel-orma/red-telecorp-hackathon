@@ -43,6 +43,20 @@ Definición: [`statemachines/escenario.yml`](statemachines/escenario.yml). Entra
 - **Reiniciar demo** (`POST /api/escenarios/reiniciar`): detiene el escenario, quita las fallas y marca como restablecidos los incidentes abiertos; sus Step Functions los cierran en segundos.
 - **Modo reanudar** de `incidente-colectivo`: `{reanudar: true}` entra directo al monitoreo. Lo usan `POST /api/colectivos/reanudar` y `scripts/reactivar-lab.sh`.
 
+## Step Function `telecorp-<stage>-recurrencia` (E6)
+Definición: [`statemachines/recurrencia.yml`](statemachines/recurrencia.yml). Se ejecuta **todos los días a las 06:00 (America/Lima)** con EventBridge Scheduler, y a pedido desde la analítica (`POST /api/recurrencia`).
+
+| Estado | Tipo | Qué hace |
+|---|---|---|
+| ContarFallas | Task | Por antena, cuenta las entradas en falla (caída o inhabilitada) en la ventana según el historial; desmarca las que ya no superan el umbral |
+| HayEstructurales | **Choice** | ¿Alguna supera el umbral? |
+| MarcarEstructurales | **Map** (5 en paralelo) | Marca `estructural` en la antena; si es nueva: historial `MARCADO_ESTRUCTURAL` + alerta SNS al NOC |
+| Resumen | Task | Guarda la última ejecución en SSM |
+
+Umbral provisional (TODO D7): **3 fallas en 7 días**, en SSM `/telecorp/<stage>/reglas` → `recurrencia`.
+
+**Prioridad con tiempo activo (E6)**: el paso de re-verificación recalcula el puntaje en cada vuelta (`afectados × criticidad × (1 + 0,25 × horas activo)` + antenas en falla). Solo deja historial cuando cambia el nivel.
+
 ## Probar
 ```bash
 python scripts/demo/reportar.py $URL --zona ZONA-05 --n 12        # → colectivo por reportes

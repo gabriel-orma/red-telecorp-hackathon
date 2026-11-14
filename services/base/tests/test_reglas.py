@@ -118,3 +118,28 @@ def test_reporte_sin_gps_usa_la_zona_de_la_cuenta():
 def test_perfil_desde_claims():
     p = reglas.perfil_desde_claims({"email": "a@b.com", "name": "Ana", "custom:dni": "70123456", "custom:zonaId": "ZONA-02"})
     assert p["dni"] == "70123456" and p["zonaId"] == "ZONA-02" and p["avisosEmail"] == "0"
+
+
+# ---------------- E6 ----------------
+def test_prioridad_sube_con_el_tiempo_activo():
+    cfg = {"pesoAfectado": 1, "pesoAntenaEnFalla": 10, "pesoHora": 0.25, "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}}
+    assert reglas.calcular_prioridad(10, 2, 0, cfg) == (20, "MEDIA")
+    assert reglas.calcular_prioridad(10, 2, 0, cfg, horas_activo=6) == (50, "ALTA")  # 20 × (1 + 6 × 0,25)
+
+
+def test_deteccion_anticipada():
+    assert reglas.deteccion_anticipada_min("2026-11-14T10:00:00Z", "2026-11-14T10:07:30Z") == 7.5
+    assert reglas.deteccion_anticipada_min("2026-11-14T10:05:00Z", "2026-11-14T10:00:00Z") == -5.0  # los usuarios fueron primero
+    assert reglas.deteccion_anticipada_min(None, "2026-11-14T10:00:00Z") is None
+
+
+def test_recurrencia_cuenta_solo_entradas_en_falla():
+    eventos = [
+        {"tipoEvento": "CAMBIO_ESTADO", "ocurridoEn": "2026-11-10T01:00:00Z", "estadoAnterior": "NORMAL", "estadoNuevo": "CAIDA"},
+        {"tipoEvento": "CAMBIO_ESTADO", "ocurridoEn": "2026-11-10T01:05:00Z", "estadoAnterior": "CAIDA", "estadoNuevo": "INHABILITADA"},  # sigue en falla
+        {"tipoEvento": "CAMBIO_ESTADO", "ocurridoEn": "2026-11-11T01:00:00Z", "estadoAnterior": "NORMAL", "estadoNuevo": "INHABILITADA"},
+        {"tipoEvento": "CAMBIO_ESTADO", "ocurridoEn": "2026-11-12T01:00:00Z", "estadoAnterior": "NORMAL", "estadoNuevo": "SATURADA"},  # no es falla
+        {"tipoEvento": "CAMBIO_ESTADO", "ocurridoEn": "2026-11-01T01:00:00Z", "estadoAnterior": "NORMAL", "estadoNuevo": "CAIDA"},  # fuera de ventana
+    ]
+    assert reglas.contar_fallas(eventos, "2026-11-07T00:00:00Z") == 2
+    assert not reglas.es_estructural(2, {}) and reglas.es_estructural(3, {"umbralFallas": 3})

@@ -53,9 +53,7 @@ def priorizar(event, context):
     cid = event["colectivoId"]
     cc.marcar_paso(cid, "PRIORIZAR")
     col = cc.obtener(cid)
-    cfg = config.leer("reglas").get("prioridad", {})
-    puntaje, prioridad = reglas.calcular_prioridad(
-        len(col.get("usuariosAfectados", [])), zonas.criticidad(col["zonaId"]), len(col.get("antenasEnFalla", [])), cfg)
+    puntaje, prioridad = _calcular(col)
     cc.actualizar(cid, prioridad=prioridad, puntajePrioridad=puntaje)
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "PRIORIDAD_ASIGNADA", "STEP_FUNCTION",
                         detalle=f"{prioridad} (puntaje {puntaje})")
@@ -109,8 +107,7 @@ def reverificar(event, context):
               if e in reglas.ESTADOS_ANTENA_FALLA]
     antes = len(col.get("antenasEnFalla", []))
     cc.agregar_antenas(col, nuevas)  # fallas que aparecieron durante el monitoreo
-    if len(col.get("antenasEnFalla", [])) != antes or len(col.get("usuariosAfectados", [])) != int(event.get("afectados", -1)):
-        _repriorizar(col)
+    _repriorizar(col)  # el tiempo activo sube el puntaje en cada vuelta del monitoreo
     afectadas = [a["antenaId"] for a in col.get("antenasEnFalla", [])]
     if afectadas and all(estados.get(a) not in reglas.ESTADOS_ANTENA_FALLA for a in afectadas):
         return {"restablecido": True, "via": "AUTOMATICO", "iteracion": iteracion, "agotado": False}
@@ -118,18 +115,27 @@ def reverificar(event, context):
             "afectados": len(col.get("usuariosAfectados", []))}
 
 
+def _calcular(col: dict) -> tuple:
+    """Puntaje con afectados, criticidad de la zona, antenas en falla y horas activo (TODO D7: pesos en SSM)."""
+    cfg = config.leer("reglas").get("prioridad", {})
+    horas = (util.ahora() - util.parse_iso(col["detectadoEn"])).total_seconds() / 3600
+    return reglas.calcular_prioridad(len(col.get("usuariosAfectados", [])), zonas.criticidad(col["zonaId"]),
+                                     len(col.get("antenasEnFalla", [])), cfg, horas_activo=horas)
+
+
 def _repriorizar(col: dict) -> None:
-    """Recalcula la prioridad si cambió el alcance; si escala a CRÍTICA, alerta al NOC."""
+    """Recalcula el puntaje (sube con el tiempo). Solo deja historial si cambia el NIVEL; si escala a CRÍTICA, alerta al NOC."""
     import os
     import boto3
-    cfg = config.leer("reglas").get("prioridad", {})
-    puntaje, prioridad = reglas.calcular_prioridad(
-        len(col.get("usuariosAfectados", [])), zonas.criticidad(col["zonaId"]), len(col.get("antenasEnFalla", [])), cfg)
+    puntaje, prioridad = _calcular(col)
     previa = col.get("prioridad")
-    if prioridad == previa and puntaje == float(col.get("puntajePrioridad", 0)):
+    if puntaje == float(col.get("puntajePrioridad", 0)):
         return
     col.update(prioridad=prioridad, puntajePrioridad=puntaje)
-    cc.actualizar(col["incidenteColectivoId"], prioridad=prioridad, puntajePrioridad=puntaje, resumenIA=_texto_resumen(col))
+    cc.actualizar(col["incidenteColectivoId"], prioridad=prioridad, puntajePrioridad=puntaje,
+                  **({"resumenIA": _texto_resumen(col)} if prioridad != previa else {}))
+    if prioridad == previa:
+        return
     historial.registrar(col["incidenteColectivoId"], "INCIDENTE_COLECTIVO", "PRIORIDAD_ASIGNADA", "STEP_FUNCTION",
                         detalle=f"Re-priorizado: {previa} → {prioridad} (puntaje {puntaje})")
     if prioridad == "CRITICA" and previa != "CRITICA" and os.environ.get("TOPICO_ALERTAS"):

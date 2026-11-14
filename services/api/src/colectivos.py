@@ -25,6 +25,7 @@ def _publico(c: dict) -> dict:
     salida = {k: v for k, v in c.items() if k not in _OCULTOS}
     salida["zona"] = {k: zona.get(k) for k in ("nombre", "tipo", "centro", "radioM", "clientesEstimados")}
     salida["afectados"] = len(c.get("usuariosAfectados", []))
+    salida["deteccionAnticipadaMin"] = reglas.deteccion_anticipada_min(c.get("primeraFallaEn"), c.get("primerReporteEn"))
     salida.pop("usuariosAfectados", None)  # datos personales: solo el conteo
     return salida
 

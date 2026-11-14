@@ -136,6 +136,19 @@ functions:
     handler: src/colectivos.restablecer
     events:
       - httpApi: POST /api/colectivos/{colectivoId}/restablecer
+  # ---------- Analítica operativa (E6) ----------
+  analitica:
+    handler: src/analitica.analitica
+    memorySize: 512
+    timeout: 25
+    events:
+      - httpApi: GET /api/analitica
+  ejecutarRecurrencia:
+    handler: src/analitica.ejecutar_recurrencia
+    environment:
+      MAQUINA_RECURRENCIA: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-recurrencia
+    events:
+      - httpApi: POST /api/recurrencia
   # ---------- Escenarios de demo (E5) ----------
   escenarioObtener:
     handler: src/escenarios.obtener

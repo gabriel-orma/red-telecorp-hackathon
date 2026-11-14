@@ -18,6 +18,7 @@ interface Props {
 const PAGINAS = [
   { ruta: "/incidencias", etiqueta: "Ir a incidencias" },
   { ruta: "/colectivos", etiqueta: "Ir a incidentes colectivos" },
+  { ruta: "/analitica", etiqueta: "Ir a analítica operativa" },
   { ruta: "/portal", etiqueta: "Ir al estado público" },
 ];
 

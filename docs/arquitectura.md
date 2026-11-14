@@ -91,4 +91,6 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Autorizador JWT (Cognito) | AWS API Gateway v2 | `cognito` | api | Protege `POST /api/reportes` y `/api/mis-reportes` |
 | Step Function `escenario` | AWS Step Functions (Standard) | `telecorp-<stage>-escenario` | workflows | E5: tormenta o corte de energía en oleadas (Map secuencial + Wait) |
 | Parámetro del escenario en curso | AWS SSM | `/telecorp/<stage>/escenario` | base | Estado visible en el panel |
+| Step Function `recurrencia` + programación diaria | AWS Step Functions + EventBridge Scheduler | `telecorp-<stage>-recurrencia` | workflows | E6: cron 06:00 America/Lima; Choice + Map |
+| Parámetro de la última recurrencia | AWS SSM | `/telecorp/<stage>/recurrencia` | base | |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |

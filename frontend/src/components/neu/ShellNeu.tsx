@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ChartArea, ListChecks, Map, Search, Siren, Smartphone } from "lucide-react";
+import { BarChart3, ChartArea, ListChecks, Map, Search, Siren, Smartphone } from "lucide-react";
 import { enlace, useRuta } from "../../lib/router";
 import { cn, horaLima } from "../../lib/utils";
 
@@ -7,6 +7,7 @@ const SECCIONES = [
   { ruta: "/", etiqueta: "Mapa en vivo", icono: Map },
   { ruta: "/incidencias", etiqueta: "Incidencias", icono: ListChecks },
   { ruta: "/colectivos", etiqueta: "Colectivos", icono: Siren },
+  { ruta: "/analitica", etiqueta: "Analítica", icono: BarChart3 },
   { ruta: "/portal", etiqueta: "Estado público", icono: ChartArea },
   { ruta: "/portal/reportar", etiqueta: "Portal usuario", icono: Smartphone },
 ];
