@@ -11,11 +11,11 @@ import type { EstadoAntena, TipoZona } from "./api";
 
 // Presentación de los estados. Las reglas (umbrales) viven en el backend; aquí solo color y texto.
 export const ESTADO: Record<EstadoAntena, { etiqueta: string; color: string; rango: string }> = {
-  NORMAL: { etiqueta: "Normal", color: "#22c55e", rango: "60–129 GB/min" },
-  SATURADA: { etiqueta: "Saturada", color: "#f59e0b", rango: "> 129 GB/min" },
-  CAIDA: { etiqueta: "Caída", color: "#ef4444", rango: "< 60 GB/min" },
-  INHABILITADA: { etiqueta: "Inhabilitada", color: "#94a3b8", rango: "0 GB/min" },
-  SIN_DATOS: { etiqueta: "Sin datos", color: "#475569", rango: "sin lecturas" },
+  NORMAL: { etiqueta: "Normal", color: "#2dd4bf", rango: "60–129 GB/min" },
+  SATURADA: { etiqueta: "Saturada", color: "#f5a524", rango: "> 129 GB/min" },
+  CAIDA: { etiqueta: "Caída", color: "#f0506e", rango: "< 60 GB/min" },
+  INHABILITADA: { etiqueta: "Inhabilitada", color: "#9a9aa6", rango: "0 GB/min" },
+  SIN_DATOS: { etiqueta: "Sin datos", color: "#4a4a55", rango: "sin lecturas" },
 };
 
 export const ORDEN_ESTADOS: EstadoAntena[] = ["NORMAL", "SATURADA", "CAIDA", "INHABILITADA"];
@@ -41,9 +41,9 @@ import type { EstadoIncidencia, TipoProblema } from "./api";
 export const ESTADO_INCIDENCIA: Record<EstadoIncidencia, { etiqueta: string; color: string; icono: LucideIcon; ayuda: string }> = {
   REGISTRADA: { etiqueta: "Registrada", color: "#60a5fa", icono: FileText, ayuda: "Recibimos tu reporte" },
   EN_REVISION: { etiqueta: "En revisión", color: "#a78bfa", icono: SearchCheck, ayuda: "Un operador lo está revisando" },
-  EN_ATENCION: { etiqueta: "Siendo atendida", color: "#f59e0b", icono: Wrench, ayuda: "Un equipo técnico está trabajando" },
-  SOLUCIONADA: { etiqueta: "Solucionada", color: "#22c55e", icono: CheckCircle2, ayuda: "El problema fue resuelto" },
-  CERRADA: { etiqueta: "Cerrada", color: "#94a3b8", icono: Archive, ayuda: "Caso cerrado" },
+  EN_ATENCION: { etiqueta: "Siendo atendida", color: "#f5a524", icono: Wrench, ayuda: "Un equipo técnico está trabajando" },
+  SOLUCIONADA: { etiqueta: "Solucionada", color: "#2dd4bf", icono: CheckCircle2, ayuda: "El problema fue resuelto" },
+  CERRADA: { etiqueta: "Cerrada", color: "#9a9aa6", icono: Archive, ayuda: "Caso cerrado" },
 };
 export const ORDEN_INCIDENCIA: EstadoIncidencia[] = ["REGISTRADA", "EN_REVISION", "EN_ATENCION", "SOLUCIONADA", "CERRADA"];
 
@@ -73,16 +73,16 @@ import type { EstadoColectivo, PasoColectivo, Prioridad } from "./api";
 
 export const ESTADO_COLECTIVO: Record<EstadoColectivo, { etiqueta: string; color: string }> = {
   EN_EVALUACION: { etiqueta: "En evaluación", color: "#a78bfa" },
-  INCIDENCIA_CONFIRMADA: { etiqueta: "Incidencia confirmada", color: "#ef4444" },
-  SERVICIO_RESTABLECIDO: { etiqueta: "Servicio restablecido", color: "#22c55e" },
-  CERRADO: { etiqueta: "Cerrado", color: "#94a3b8" },
+  INCIDENCIA_CONFIRMADA: { etiqueta: "Incidencia confirmada", color: "#f0506e" },
+  SERVICIO_RESTABLECIDO: { etiqueta: "Servicio restablecido", color: "#2dd4bf" },
+  CERRADO: { etiqueta: "Cerrado", color: "#9a9aa6" },
 };
 
 export const PRIORIDAD: Record<Prioridad, { etiqueta: string; color: string }> = {
   BAJA: { etiqueta: "Baja", color: "#60a5fa" },
-  MEDIA: { etiqueta: "Media", color: "#f59e0b" },
+  MEDIA: { etiqueta: "Media", color: "#f5a524" },
   ALTA: { etiqueta: "Alta", color: "#f97316" },
-  CRITICA: { etiqueta: "Crítica", color: "#ef4444" },
+  CRITICA: { etiqueta: "Crítica", color: "#f0506e" },
 };
 
 /** Pasos de la Step Function `incidente-colectivo`, en orden (para el diagrama). */
@@ -106,7 +106,7 @@ import { CheckCircle2 as Ok, AlertTriangle as Atencion, XOctagon } from "lucide-
 import type { NivelRed } from "./api";
 
 export const NIVEL_RED: Record<NivelRed, { titulo: string; corto: string; color: string; icono: LucideIcon }> = {
-  SIN_PROBLEMAS: { titulo: "Sin problemas en Red TeleCorp", corto: "Normal", color: "#22c55e", icono: Ok },
-  POSIBLES_PROBLEMAS: { titulo: "Posibles problemas en Red TeleCorp", corto: "Posibles problemas", color: "#f59e0b", icono: Atencion },
-  PROBLEMAS: { titulo: "Problemas en Red TeleCorp", corto: "Problemas", color: "#ef4444", icono: XOctagon },
+  SIN_PROBLEMAS: { titulo: "Sin problemas en Red TeleCorp", corto: "Normal", color: "#2dd4bf", icono: Ok },
+  POSIBLES_PROBLEMAS: { titulo: "Posibles problemas en Red TeleCorp", corto: "Posibles problemas", color: "#f5a524", icono: Atencion },
+  PROBLEMAS: { titulo: "Problemas en Red TeleCorp", corto: "Problemas", color: "#f0506e", icono: XOctagon },
 };

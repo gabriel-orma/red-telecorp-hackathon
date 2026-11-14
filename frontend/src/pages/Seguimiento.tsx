@@ -73,7 +73,7 @@ export function Seguimiento({ incidenciaId }: { incidenciaId: string }) {
         <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
           className="mt-3 rounded-2xl p-4 ring-1"
           style={{ background: `${ESTADO_COLECTIVO[colectivo.estado].color}14`, ["--tw-ring-color" as string]: `${ESTADO_COLECTIVO[colectivo.estado].color}55` }}>
-          <div className="text-[11px] uppercase tracking-wider" style={{ color: ESTADO_COLECTIVO[colectivo.estado].color }}>
+          <div className="text-[11px]" style={{ color: ESTADO_COLECTIVO[colectivo.estado].color }}>
             {colectivo.estado === "CERRADO" || colectivo.estado === "SERVICIO_RESTABLECIDO" ? "Falla en tu zona · resuelta" : "Falla detectada en tu zona"}
           </div>
           <div className="mt-1 text-sm font-semibold">{ESTADO_COLECTIVO[colectivo.estado].etiqueta}</div>
@@ -87,7 +87,7 @@ export function Seguimiento({ incidenciaId }: { incidenciaId: string }) {
 
       {/* Estado de la zona */}
       <section className="panel mt-3 p-4">
-        <div className="mb-3 text-[11px] uppercase tracking-wider text-tenue">Tu zona · {zona.nombre} · {TIPO_ZONA[zona.tipo]?.etiqueta}</div>
+        <div className="mb-3 text-[11px] text-tenue">Tu zona · {zona.nombre} · {TIPO_ZONA[zona.tipo]?.etiqueta}</div>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-xl bg-fondo/60 p-3">
             <Radio className="mx-auto mb-1 size-4" style={{ color: redColor }} />
@@ -112,7 +112,7 @@ export function Seguimiento({ incidenciaId }: { incidenciaId: string }) {
 
       {/* Historial */}
       <section className="panel mt-3 p-4">
-        <div className="mb-3 text-[11px] uppercase tracking-wider text-tenue">Historial</div>
+        <div className="mb-3 text-[11px] text-tenue">Historial</div>
         <Historial eventos={historial} />
       </section>
     </PortalLayout>

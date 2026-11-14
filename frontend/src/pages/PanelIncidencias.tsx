@@ -22,7 +22,7 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
   const nombreZona = (id: string) => zonas.find((z) => z.zonaId === id)?.nombre ?? id;
 
   return (
-    <main className="flex min-h-0 flex-1 gap-3 p-3">
+    <main className="flex min-h-0 flex-1 gap-5">
       <section className="panel flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2 border-b border-borde p-3">
@@ -146,7 +146,7 @@ function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void;
         </div>
 
         <div>
-          <div className="mb-1.5 text-[11px] uppercase tracking-wider text-tenue">Cambiar estado</div>
+          <div className="mb-1.5 text-[11px] text-tenue">Cambiar estado</div>
           {d.incidencia.transicionesPermitidas.length === 0
             ? <div className="text-xs text-tenue">La incidencia está cerrada.</div>
             : (<>
@@ -167,7 +167,7 @@ function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void;
         </div>
 
         <div>
-          <div className="mb-2 text-[11px] uppercase tracking-wider text-tenue">Historial</div>
+          <div className="mb-2 text-[11px] text-tenue">Historial</div>
           <Historial eventos={d.historial} />
         </div>
       </>)}

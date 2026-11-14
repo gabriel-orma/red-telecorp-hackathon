@@ -116,7 +116,7 @@ export function EstadoPublico() {
             <span className="flex items-center gap-1"><span className="w-4 border-t-2 border-dashed border-texto/80" /> Lo normal</span>
           </div>
         </div>
-        {d ? <GraficoReportes serie={d.serie} color={d.nivel === "SIN_PROBLEMAS" ? "#22d3ee" : NIVEL_RED[d.nivel].color} />
+        {d ? <GraficoReportes serie={d.serie} color={d.nivel === "SIN_PROBLEMAS" ? "#a78bfa" : NIVEL_RED[d.nivel].color} />
            : <div className="grid h-56 place-items-center"><Loader2 className="size-5 animate-spin text-tenue" /></div>}
         <p className="mt-2 text-[11px] text-tenue">
           Cada punto suma los reportes de 15 minutos. La línea punteada es el promedio de los últimos 7 días a la misma hora:
@@ -180,7 +180,7 @@ export function EstadoPublico() {
 
       {/* Llamado a la acción */}
       <a {...enlace("/portal/reportar")}
-        className="sticky bottom-4 mt-5 flex items-center justify-center gap-2 rounded-2xl bg-acento py-4 text-sm font-semibold text-fondo shadow-[0_10px_40px_#22d3ee55] transition hover:brightness-110">
+        className="sticky bottom-4 mt-5 flex items-center justify-center gap-2 rounded-2xl bg-acento py-4 text-sm font-semibold text-fondo shadow-[0_10px_40px_#7c5cff55] transition hover:brightness-110">
         <Megaphone className="size-4" /> Tengo un problema
       </a>
     </PortalLayout>

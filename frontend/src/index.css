@@ -3,22 +3,22 @@
 
 /* Paleta del centro de control. Los colores de estado son la fuente única para mapa, chips y gráficos. */
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 
-  --color-fondo: #060912;
-  --color-panel: #0b1222;
-  --color-panel-2: #101a30;
-  --color-borde: #1c2a45;
-  --color-texto: #e6edf7;
-  --color-tenue: #8796b0;
-  --color-acento: #22d3ee;
+  --color-fondo: #16161a;
+  --color-panel: #1c1c21;
+  --color-panel-2: #232329;
+  --color-borde: #2a2a31;
+  --color-texto: #ececf1;
+  --color-tenue: #8b8b97;
+  --color-acento: #a78bfa;
 
-  --color-normal: #22c55e;
-  --color-saturada: #f59e0b;
-  --color-caida: #ef4444;
-  --color-inhabilitada: #94a3b8;
-  --color-sindatos: #475569;
+  --color-normal: #2dd4bf;
+  --color-saturada: #f5a524;
+  --color-caida: #f0506e;
+  --color-inhabilitada: #9a9aa6;
+  --color-sindatos: #4a4a55;
 }
 
 html,
@@ -34,8 +34,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Fondo con rejilla sutil tipo sala de operaciones */
-.fondo-rejilla {
+/* (Obsoleto desde el rediseño #28: el tema neumórfico no usa rejilla) */
+.fondo-rejilla-antigua {
   background-image:
     radial-gradient(ellipse at 20% -10%, rgba(34, 211, 238, 0.08), transparent 50%),
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
@@ -78,3 +78,58 @@ body {
   50% { opacity: 0.35; }
 }
 .latido { animation: latido 1.6s ease-in-out infinite; }
+
+/* ===================== Tema neumórfico (rediseño, issue #28) =====================
+   Acotado a .tema-neu mientras el equipo lo aprueba página por página.
+   Redefine las mismas variables que usan las utilidades de Tailwind (text-tenue, bg-panel…). */
+.tema-neu {
+  --color-fondo: #16161a;
+  --color-panel: #1c1c21;
+  --color-panel-2: #232329;
+  --color-borde: #2a2a31;
+  --color-texto: #ececf1;
+  --color-tenue: #8b8b97;
+  --color-acento: #a78bfa;
+  --color-normal: #2dd4bf;
+  --color-saturada: #f5a524;
+  --color-caida: #f0506e;
+  --color-inhabilitada: #9a9aa6;
+  --color-sindatos: #4a4a55;
+  --neu-sombra: 6px 6px 16px #0a0a0c, -5px -5px 12px #25252b;
+  --neu-sombra-chica: 3px 3px 8px #0a0a0c, -3px -3px 7px #25252b;
+  --neu-hundido: inset 4px 4px 9px #0d0d10, inset -3px -3px 8px #26262c;
+  --degradado: linear-gradient(120deg, #7c5cff, #e05ab0);
+  font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+.tema-neu .cifra { font-family: inherit; font-variant-numeric: tabular-nums; }
+.tema-neu .neu { background: var(--color-panel); border-radius: 22px; box-shadow: var(--neu-sombra); }
+.tema-neu .neu-chico { background: var(--color-panel); border-radius: 14px; box-shadow: var(--neu-sombra-chica); }
+.tema-neu .neu-hundido { background: var(--color-fondo); border-radius: 16px; box-shadow: var(--neu-hundido); }
+.tema-neu .degradado { background-image: var(--degradado); }
+.tema-neu .texto-degradado { background-image: var(--degradado); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tema-neu .boton-neu {
+  background: var(--color-panel); border-radius: 12px; box-shadow: var(--neu-sombra-chica);
+  transition: box-shadow 160ms ease-out, color 160ms ease-out, transform 120ms ease-out;
+}
+.tema-neu .boton-neu:hover { color: var(--color-texto); }
+.tema-neu .boton-neu:active, .tema-neu .boton-neu[data-activo="true"] { box-shadow: var(--neu-hundido); transform: scale(0.98); }
+.tema-neu .scroll-fino::-webkit-scrollbar-thumb { background: #2f2f37; }
+.tema-neu .maplibregl-ctrl-group { background: var(--color-panel); box-shadow: var(--neu-sombra-chica); border-radius: 12px; }
+.tema-neu .maplibregl-ctrl-group button + button { border-top-color: var(--color-borde); }
+.tema-neu .maplibregl-ctrl-icon { filter: invert(0.85); }
+.tema-neu .maplibregl-ctrl-attrib { background: rgba(22, 22, 26, 0.75) !important; }
+@media (prefers-reduced-motion: reduce) { .tema-neu .latido { animation: none; } }
+
+/* Paleta de comandos (cmdk) */
+.tema-neu [cmdk-item][data-selected="true"] { background: var(--color-panel-2); color: var(--color-texto); }
+
+/* Componentes previos al rediseño, adaptados al tema neumórfico */
+.tema-neu .panel { background: var(--color-panel); border: 0; border-radius: 22px; box-shadow: var(--neu-sombra); backdrop-filter: none; }
+.tema-neu .bg-acento { background-image: var(--degradado); }
+.tema-neu .bg-acento.text-fondo { color: #fff; }
+.tema-neu input:not([type="checkbox"]):not([cmdk-input]), .tema-neu textarea, .tema-neu select {
+  background: var(--color-fondo); border-color: transparent; box-shadow: var(--neu-hundido);
+}
+.tema-neu input:focus, .tema-neu textarea:focus, .tema-neu select:focus { border-color: #a78bfa80; }

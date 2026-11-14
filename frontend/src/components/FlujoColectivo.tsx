@@ -28,7 +28,7 @@ export function FlujoColectivo({ colectivo }: { colectivo: Colectivo }) {
             animate={{ opacity: hecho || enCurso ? 1 : 0.45 }}
             className={cn(
               "relative flex items-center gap-3 rounded-lg px-2.5 py-1.5",
-              enCurso && "bg-acento/10 ring-1 ring-acento/50 shadow-[0_0_20px_#22d3ee22]",
+              enCurso && "bg-acento/10 ring-1 ring-acento/50 shadow-[0_0_20px_#a78bfa22]",
             )}
           >
             {i < PASOS_FLUJO.length - 1 && (
@@ -49,7 +49,7 @@ export function FlujoColectivo({ colectivo }: { colectivo: Colectivo }) {
               <div className={cn("flex items-center gap-1.5 text-xs", enCurso ? "font-semibold text-texto" : "text-texto/90")}>
                 {p.etiqueta}
                 {p.tipo && (
-                  <span className="cifra rounded bg-panel-2 px-1 text-[9px] uppercase tracking-wider text-tenue">
+                  <span className="cifra rounded bg-panel-2 px-1 text-[9px] text-tenue">
                     {p.tipo === "map" ? "Map" : p.tipo === "choice" ? "Choice" : "Wait"}
                   </span>
                 )}

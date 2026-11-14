@@ -9,26 +9,26 @@ export function PortalLayout({ children }: { children: ReactNode }) {
   const ruta = useRuta().split("?")[0];
   const perfil = usePerfil();
   const item = (destino: string, etiqueta: string, Icono: typeof Activity) => (
-    <a {...enlace(destino)}
-      className={cn("flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition",
-        ruta === destino ? "bg-panel-2 text-texto ring-1 ring-borde" : "text-tenue hover:text-texto")}>
+    <a {...enlace(destino)} data-activo={ruta === destino}
+      className={cn("boton-neu flex items-center gap-1.5 px-3 py-2 text-xs font-medium",
+        ruta === destino ? "text-acento" : "text-tenue")}>
       <Icono className="size-3.5" /> <span>{etiqueta}</span>
     </a>
   );
   return (
-    <div className="fondo-rejilla min-h-full">
-      <header className="sticky top-0 z-20 border-b border-borde bg-fondo/85 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-2 px-4">
+    <div className="tema-neu min-h-full">
+      <header className="sticky top-0 z-20 bg-fondo/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-2 px-4">
           <a {...enlace("/portal")} className="flex shrink-0 items-center gap-2.5">
-            <div className="grid size-8 place-items-center rounded-lg bg-acento/10 ring-1 ring-acento/30">
-              <Radio className="size-4 text-acento" />
+            <div className="degradado grid size-9 place-items-center rounded-2xl text-white">
+              <Radio className="size-4" />
             </div>
             <div className="hidden leading-tight sm:block">
               <div className="text-sm font-semibold">Red TeleCorp</div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-tenue">Estado del servicio</div>
+              <div className="text-[11px] text-tenue">Estado del servicio</div>
             </div>
           </a>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-2">
             {item("/portal", "Estado", Activity)}
             {item("/portal/reportar", "Reportar", Megaphone)}
             {item("/portal/cuenta", perfil ? perfil.nombre.split(" ")[0] : "Ingresar", UserRound)}

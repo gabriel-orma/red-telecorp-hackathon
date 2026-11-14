@@ -106,7 +106,7 @@ function Acceso() {
           placeholder={modo === "registrar" ? "Mín. 8 caracteres, con minúsculas y números" : ""} {...campo("password")} />
         {modo === "registrar" && (
           <label className="flex cursor-pointer items-start gap-2 text-xs">
-            <input type="checkbox" checked={f.avisosEmail} onChange={(e) => setF({ ...f, avisosEmail: e.target.checked })} className="mt-0.5 accent-[#22d3ee]" />
+            <input type="checkbox" checked={f.avisosEmail} onChange={(e) => setF({ ...f, avisosEmail: e.target.checked })} className="mt-0.5 accent-[#a78bfa]" />
             <span>Avisarme por correo cuando haya una falla en mi zona <span className="text-tenue">(AWS te enviará un correo para confirmar)</span></span>
           </label>
         )}

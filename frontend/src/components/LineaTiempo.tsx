@@ -27,7 +27,7 @@ export function Progreso({ estado, compacto = false }: { estado: EstadoIncidenci
           <li key={e} className="relative z-10 flex w-16 flex-col items-center gap-1.5 text-center">
             <motion.div
               className={cn("grid size-8 place-items-center rounded-full ring-2", !hecho && !actual && "bg-panel ring-borde text-tenue")}
-              style={hecho || actual ? { background: actual ? color : `${color}33`, color: actual ? "#060912" : color, boxShadow: actual ? `0 0 18px ${color}99` : undefined, ["--tw-ring-color" as string]: color } : undefined}
+              style={hecho || actual ? { background: actual ? color : `${color}33`, color: actual ? "#16161a" : color, boxShadow: actual ? `0 0 18px ${color}99` : undefined, ["--tw-ring-color" as string]: color } : undefined}
               animate={actual ? { scale: [1, 1.12, 1] } : {}}
               transition={actual ? { repeat: Infinity, duration: 2 } : {}}
             >
@@ -52,7 +52,7 @@ export function Historial({ eventos }: { eventos: EventoHistorial[] }) {
         if (e.tipoEvento === "NOTIFICACION_ENVIADA") return <Aviso key={e.ocurridoEn + i} e={e} />;
         const Icono = EVENTO[e.tipoEvento]?.icono ?? EVENTO.CAMBIO_ESTADO.icono;
         const estado = e.estadoNuevo as EstadoIncidencia | null;
-        const color = estado && ESTADO_INCIDENCIA[estado] ? ESTADO_INCIDENCIA[estado].color : "#64748b";
+        const color = estado && ESTADO_INCIDENCIA[estado] ? ESTADO_INCIDENCIA[estado].color : "#8b8b97";
         return (
           <motion.li key={e.ocurridoEn + i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="relative">
             <span className="absolute -left-[25px] top-0.5 grid size-[17px] place-items-center rounded-full ring-4 ring-panel" style={{ background: color }}>
