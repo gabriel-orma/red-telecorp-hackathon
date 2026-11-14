@@ -148,6 +148,13 @@
     },
     "notificacionesEnviadas": {
       "type": "integer"
+    },
+    "deteccionAnticipadaMin": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Solo en el API: minutos entre la primera falla de antena y el primer reporte de usuario. Positivo = la red lo detectó antes"
     }
   }
 }
