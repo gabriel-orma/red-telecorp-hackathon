@@ -1,0 +1,22 @@
+name: Decisión técnica
+description: Proponer o cerrar una decisión (servicio, herramienta, patrón, cambio de arquitectura)
+labels: ["decision"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Qué problema hay que decidir
+    validations:
+      required: true
+  - type: textarea
+    id: opciones
+    attributes:
+      label: Opciones consideradas
+      description: Incluir costo, encaje serverless y puntaje en la rúbrica
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+    validations:
+      required: true

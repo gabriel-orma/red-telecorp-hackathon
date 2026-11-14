@@ -1,0 +1,33 @@
+name: Tarea
+description: Trabajo a realizar por una persona o agente
+labels: ["tarea"]
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Qué se construye y qué dolor del cliente resuelve (ver docs/mapa-dolores.md)
+    validations:
+      required: true
+  - type: textarea
+    id: zona
+    attributes:
+      label: Zona de archivos
+      description: Carpetas o archivos que esta tarea va a tocar. Otros agentes no deben editar aquí mientras esté en progreso.
+      placeholder: |
+        - services/reportes/
+        - workflows/incidente-colectivo.asl.json
+    validations:
+      required: true
+  - type: textarea
+    id: contratos
+    attributes:
+      label: Contratos involucrados
+      description: Archivos de contracts/ que se producen o consumen
+  - type: textarea
+    id: hecho
+    attributes:
+      label: Criterio de terminado
+      description: Cómo sabemos que está listo (prueba, comando, demo)
+    validations:
+      required: true

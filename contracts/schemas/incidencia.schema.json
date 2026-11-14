@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "incidencia.schema.json",
+  "title": "Incidencia (reporte de usuario ya registrado)",
+  "type": "object",
+  "required": ["incidenciaId", "estado", "creadaEn", "actualizadaEn", "reporte"],
+  "properties": {
+    "incidenciaId": { "type": "string", "pattern": "^INC-" },
+    "estado": { "$ref": "#/$defs/EstadoIncidencia" },
+    "creadaEn": { "type": "string", "format": "date-time" },
+    "actualizadaEn": { "type": "string", "format": "date-time" },
+    "reporte": { "$ref": "reporte.schema.json" },
+    "tipoIA": { "type": "string", "description": "Tipo sugerido por la IA a partir de la descripción (puede diferir del elegido por el usuario)" },
+    "incidenteColectivoId": { "type": ["string", "null"], "description": "Si fue agrupada en un incidente colectivo" },
+    "prioridad": { "$ref": "#/$defs/Prioridad" }
+  },
+  "$defs": {
+    "EstadoIncidencia": {
+      "type": "string",
+      "enum": ["REGISTRADA", "EN_REVISION", "EN_ATENCION", "SOLUCIONADA", "CERRADA"]
+    },
+    "Prioridad": {
+      "type": "string",
+      "enum": ["BAJA", "MEDIA", "ALTA", "CRITICA"]
+    }
+  }
+}

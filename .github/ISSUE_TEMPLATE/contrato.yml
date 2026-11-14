@@ -1,0 +1,31 @@
+name: Cambio de contrato
+description: Proponer un cambio en contracts/ (requiere OK de otra persona; si rompe compatibilidad, de todos)
+labels: ["contrato"]
+body:
+  - type: input
+    id: archivo
+    attributes:
+      label: Contrato
+      placeholder: contracts/schemas/incidencia.schema.json
+    validations:
+      required: true
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo de cambio
+      options:
+        - "Aditivo (campo opcional nuevo, nuevo contrato)"
+        - "Rompe compatibilidad (renombrar / borrar / cambiar tipo)"
+    validations:
+      required: true
+  - type: textarea
+    id: cambio
+    attributes:
+      label: Cambio propuesto y motivo
+    validations:
+      required: true
+  - type: textarea
+    id: afecta
+    attributes:
+      label: Módulos afectados
+      description: Quién produce o consume este contrato

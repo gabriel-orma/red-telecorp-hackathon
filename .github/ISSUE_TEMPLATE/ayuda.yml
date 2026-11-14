@@ -1,0 +1,42 @@
+name: Pedido de ayuda
+description: Necesito algo fuera de mi zona de archivos (para otro agente o persona)
+labels: ["ayuda"]
+body:
+  - type: textarea
+    id: necesito
+    attributes:
+      label: Qué se necesita
+      description: Concreto y verificable (entradas, salidas, endpoint, recurso)
+    validations:
+      required: true
+  - type: textarea
+    id: contrato
+    attributes:
+      label: Contrato involucrado
+      description: Archivo de contracts/. Si hace falta uno nuevo, abre también un issue "contrato".
+  - type: textarea
+    id: zona
+    attributes:
+      label: Zona de archivos sugerida para quien lo tome
+      description: No debe cruzarse con la zona de quien pide ni con otras en progreso
+    validations:
+      required: true
+  - type: textarea
+    id: mientras
+    attributes:
+      label: Qué hago mientras tanto
+      description: Ej. mock que cumple el contrato, con TODO(#este-issue)
+  - type: input
+    id: origen
+    attributes:
+      label: Issue o rama de origen
+      placeholder: "#12 / feat/12-reportes"
+  - type: dropdown
+    id: urgencia
+    attributes:
+      label: ¿Me bloquea?
+      options:
+        - "No, sigo con un mock"
+        - "Sí, estoy bloqueado (agregar label bloqueado)"
+    validations:
+      required: true

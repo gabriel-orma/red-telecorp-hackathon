@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "metrica-antena.schema.json",
+  "title": "Métrica de tráfico de una antena (por minuto)",
+  "type": "object",
+  "required": ["antenaId", "zonaId", "medidoEn", "gbPorMinuto"],
+  "properties": {
+    "antenaId": { "type": "string", "pattern": "^ANT-" },
+    "zonaId": { "type": "string" },
+    "medidoEn": { "type": "string", "format": "date-time" },
+    "gbPorMinuto": { "type": "number", "minimum": 0 },
+    "estado": {
+      "$ref": "#/$defs/EstadoAntena",
+      "description": "Lo agrega el clasificador: 0 → INHABILITADA; <60 → CAIDA; 60..129 → NORMAL; >129 → SATURADA"
+    }
+  },
+  "$defs": {
+    "EstadoAntena": {
+      "type": "string",
+      "enum": ["INHABILITADA", "CAIDA", "NORMAL", "SATURADA"]
+    }
+  }
+}

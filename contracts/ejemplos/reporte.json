@@ -1,0 +1,12 @@
+{
+  "usuarioId": "70123456",
+  "nombre": "Usuario de Prueba",
+  "numeroServicio": "+51999000111",
+  "email": "usuario.prueba@example.com",
+  "telefonoContacto": "+51999000111",
+  "zonaId": "ZONA-05",
+  "ubicacion": { "lat": -12.0464, "lng": -77.0428, "referencia": "Frente al hospital" },
+  "fechaHoraIncidente": "2026-11-13T22:45:00Z",
+  "tipo": "SIN_INTERNET",
+  "descripcion": "Desde hace 20 minutos no carga ninguna página y los datos móviles no funcionan."
+}

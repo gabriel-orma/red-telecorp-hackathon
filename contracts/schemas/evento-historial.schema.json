@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evento-historial.schema.json",
+  "title": "Evento de historial (un registro por cada cambio)",
+  "type": "object",
+  "required": ["entidadId", "entidadTipo", "ocurridoEn", "tipoEvento", "actor"],
+  "properties": {
+    "entidadId": { "type": "string", "description": "INC-..., COL-... o ANT-..." },
+    "entidadTipo": { "type": "string", "enum": ["INCIDENCIA", "INCIDENTE_COLECTIVO", "ANTENA"] },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "tipoEvento": {
+      "type": "string",
+      "enum": ["CREADO", "CAMBIO_ESTADO", "AGRUPADO", "PRIORIDAD_ASIGNADA", "NOTIFICACION_ENVIADA", "MARCADO_ESTRUCTURAL", "COMENTARIO"]
+    },
+    "estadoAnterior": { "type": ["string", "null"] },
+    "estadoNuevo": { "type": ["string", "null"] },
+    "actor": { "type": "string", "description": "SISTEMA, STEP_FUNCTION, IA u operador:<id>" },
+    "detalle": { "type": "string" }
+  }
+}

@@ -1,0 +1,1 @@
+Las reglas de este repo están en [AGENTS.md](AGENTS.md). Léelo completo antes de hacer cualquier cambio y síguelo al pie de la letra (protocolo de sesión, documentación, contratos y coordinación por GitHub Issues).

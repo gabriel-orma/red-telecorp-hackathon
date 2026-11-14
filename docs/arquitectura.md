@@ -1,0 +1,66 @@
+# Arquitectura
+
+> **Estado: propuesta base.** Es el punto de partida acordado para que todos los agentes diseñen sobre lo mismo. Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
+
+## Vista general
+
+```
+                          ┌──────────────────────── AWS ─────────────────────────────────────────┐
+[Portal usuario] ──HTTPS──► API Gateway (HTTP API) ─► Lambda API ─► SQS reportes (+DLQ) ─► Lambda ─┐
+[Panel operador] ─────────►        │                                                               │
+                                   └─ consultas / cambios de estado ──────────────────────────────►│
+                                                                                                   ▼
+[Simulador antenas] ─ EventBridge Scheduler ─► Lambda ─► SQS métricas (+DLQ) ─► Lambda clasificador ─► DynamoDB
+                                                                                (PITR, on-demand, multi-AZ)
+                                                                                         │ DynamoDB Streams
+                                                                                         ▼
+                                                    Lambda detector (regla de 10 usuarios/zona/24 h,
+                                                                     antena caída o inhabilitada)
+                                                                                         ▼
+                                        Step Functions ─ Incidente colectivo:
+                                          correlacionar con antenas → priorizar → IA (resumen/clasificación)
+                                          → notificar (SNS SMS / SES email) → esperar técnico (task token)
+                                          → notificar "restablecido" → cerrar
+                                        Step Functions ─ Recurrencia (diaria, EventBridge Scheduler)
+                                                                                         │
+  Secrets Manager / SSM: API keys y credenciales de GCP                                  │
+                          └───────────────────────────────────────────────────────────────┼──────────┘
+                          ┌──────────────────────── GCP ───────────────────────────────── ▼ ────────┐
+                          │  Gemini (Vertex AI / API): clasificar el texto libre, resumir incidentes │
+                          │  BigQuery: histórico analítico (2.ª copia de los datos)                   │
+                          │  Looker Studio: dashboards de zonas, antenas, tipos y duración            │
+                          │  (opcional) Firebase Hosting para el frontend                             │
+                          └───────────────────────────────────────────────────────────────────────────┘
+```
+
+## Por qué así (relación con la rúbrica)
+
+| Decisión | Motivo |
+|---|---|
+| SQS + DLQ delante de todo lo que escribe | Absorbe picos sin perder registros; las Lambdas escalan solas |
+| DynamoDB on-demand + PITR | Serverless, multi-AZ por defecto, pago por uso, respaldo continuo |
+| DynamoDB Streams → detector | Reacción en tiempo casi real sin polling |
+| Step Functions | Flujos con estados, esperas y reintentos (incidente colectivo, recurrencia) |
+| GCP: BigQuery + Gemini | 2.ª nube con rol real: analítica e IA. Además, copia de los datos en otra nube |
+| Secrets Manager / SSM | Requisito explícito de la rúbrica |
+| EventBridge Scheduler | Simulador y tareas periódicas sin servidores encendidos |
+
+## Reglas de negocio (fuente de verdad)
+
+- **Clasificación de antena** por GB/min: `0` → `INHABILITADA`; `<60` → `CAIDA`; `60..129` → `NORMAL`; `>129` → `SATURADA`.
+- **Estados de incidencia**: `REGISTRADA → EN_REVISION → EN_ATENCION → SOLUCIONADA → CERRADA`. Cada transición genera un evento de historial.
+- **Incidente colectivo**: al menos 10 `usuarioId` distintos con reportes en la misma `zonaId` en una ventana de menos de 24 h.
+- **Prioridad**: función de los afectados, la criticidad de la zona (`contracts/zonas.json`) y las antenas en falla. La fórmula exacta va en `docs/decisiones/`.
+- **Recurrencia**: umbral pendiente de decisión (sugerencia: 3 o más incidentes de la misma antena en 7 días → `ESTRUCTURAL`).
+
+## Decisiones abiertas
+
+Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve solo**: van por un issue `decision`.
+
+## Inventario de recursos
+
+> Actualízalo en el mismo PR que crea el recurso. Formato: `telecorp-<stage>-<nombre>`.
+
+| Recurso | Nube / servicio | Nombre | Módulo | Notas |
+|---|---|---|---|---|
+| _(vacío)_ | | | | |

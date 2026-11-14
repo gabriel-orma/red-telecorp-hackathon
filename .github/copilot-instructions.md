@@ -1,0 +1,1 @@
+Las reglas de este repo están en [AGENTS.md](../AGENTS.md). Síguelas: sincroniza con `origin/main` antes de editar, trabaja solo en tu zona de archivos declarada en el issue, no cambies `contracts/` sin un issue `contrato` y documenta cada sesión en `docs/bitacora/`.

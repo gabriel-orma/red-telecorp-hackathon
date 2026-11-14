@@ -1,0 +1,33 @@
+# Secretos y credenciales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+gcp-sa*.json
+service-account*.json
+
+# Dependencias y builds
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+.aws-sam/
+.serverless/
+.terraform/
+*.tfstate
+*.tfstate.*
+.firebase/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code: la configuración personal no se comparte
+.claude/settings.local.json

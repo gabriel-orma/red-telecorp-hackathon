@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reporte.schema.json",
+  "title": "Reporte de usuario (lo que envía el portal)",
+  "type": "object",
+  "required": ["usuarioId", "numeroServicio", "zonaId", "fechaHoraIncidente", "tipo", "descripcion"],
+  "properties": {
+    "usuarioId": { "type": "string", "description": "Identificación del usuario (DNI u otro documento)" },
+    "nombre": { "type": "string" },
+    "numeroServicio": { "type": "string", "description": "Número de línea o servicio afectado" },
+    "email": { "type": "string", "format": "email" },
+    "telefonoContacto": { "type": "string", "description": "Para notificaciones por SMS (E.164, ej. +51999999999)" },
+    "zonaId": { "type": "string", "description": "Zona de contracts/zonas.json" },
+    "ubicacion": {
+      "type": "object",
+      "description": "Ubicación aproximada (opcional)",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "referencia": { "type": "string" }
+      }
+    },
+    "fechaHoraIncidente": { "type": "string", "format": "date-time" },
+    "tipo": { "$ref": "#/$defs/TipoProblema" },
+    "descripcion": { "type": "string", "maxLength": 2000 }
+  },
+  "$defs": {
+    "TipoProblema": {
+      "type": "string",
+      "enum": ["SIN_INTERNET", "INTERNET_LENTO", "SIN_LLAMADAS", "SIN_SMS", "SIN_SENAL", "INTERMITENCIA", "OTRO"]
+    }
+  }
+}

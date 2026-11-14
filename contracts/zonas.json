@@ -1,0 +1,19 @@
+{
+  "_nota": "Catálogo v0 de prueba. criticidad: 1 (baja) a 5 (máxima). Cambiar vía issue 'contrato'.",
+  "tiposZona": {
+    "RESIDENCIAL": 1,
+    "COMERCIAL": 2,
+    "INDUSTRIAL": 3,
+    "EDUCATIVA": 4,
+    "MEDICA": 5,
+    "SERVICIOS_CRITICOS": 5
+  },
+  "zonas": [
+    { "zonaId": "ZONA-01", "nombre": "Barranco Residencial", "tipo": "RESIDENCIAL", "antenas": ["ANT-001", "ANT-002"] },
+    { "zonaId": "ZONA-02", "nombre": "Centro Comercial Miraflores", "tipo": "COMERCIAL", "antenas": ["ANT-003", "ANT-004"] },
+    { "zonaId": "ZONA-03", "nombre": "Parque Industrial Callao", "tipo": "INDUSTRIAL", "antenas": ["ANT-005", "ANT-006"] },
+    { "zonaId": "ZONA-04", "nombre": "Campus Universitario", "tipo": "EDUCATIVA", "antenas": ["ANT-007"] },
+    { "zonaId": "ZONA-05", "nombre": "Hospital Central", "tipo": "MEDICA", "antenas": ["ANT-008", "ANT-009"] },
+    { "zonaId": "ZONA-06", "nombre": "Centro de Emergencias", "tipo": "SERVICIOS_CRITICOS", "antenas": ["ANT-010"] }
+  ]
+}
