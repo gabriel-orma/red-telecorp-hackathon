@@ -20,7 +20,7 @@
 - **Analítica** (`/analitica`, `GET /api/analitica?dias=`):
   - KPIs (incidentes, afectados, duración promedio, detectados primero por la red con mediana);
   - zonas (escalas independientes para incidentes y reportes), duración y alcance por incidente (escala raíz cuadrada), tipos, antenas con más fallas y botón "Analizar ahora".
-- 3 pruebas nuevas ( en total).
+- 3 pruebas nuevas (38 en total).
 
 ## Resultados en el lab
 - Recurrencia manual: SUCCEEDED, 36 antenas evaluadas, **ANT-013/014/015 (Hospital Rebagliati) marcadas estructurales** (6, 4 y 4 fallas por las pruebas anteriores).

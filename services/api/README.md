@@ -18,6 +18,8 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 | `GET /api/incidencias?zonaId=&estado=&horas=` | `incidencias.listar` | Lista con datos personales enmascarados |
 | `GET /api/incidencias/{id}` | `incidencias.obtener` | Detalle + historial + `transicionesPermitidas` + estado de la zona |
 | `PATCH /api/incidencias/{id}/estado` | `incidencias.cambiar_estado` | `{estado, comentario}`; valida la transición (409 si no se permite) y libera la clave de deduplicación al resolverse |
+| `wss://…/<stage>` | `tiempo_real.conectar / desconectar / mensaje` | WebSocket del panel. El servidor solo envía `{tipo: antenas, colectivos o incidencias}`; el panel vuelve a pedir esos datos |
+| *(DynamoDB Streams)* | `tiempo_real.difundir` | Un aviso por tipo y lote (antenas: máx. 1 cada 2 s); `GoneException` → borra la conexión |
 | `GET /api/analitica?dias=7` | `analitica.analitica` | KPIs, zonas, antenas más problemáticas, tipos, duración y alcance de incidentes, recurrencia (caché de 60 s) |
 | `POST /api/recurrencia` | `analitica.ejecutar_recurrencia` | Ejecuta ahora la Step Function de recurrencia |
 | `GET /api/escenarios` | `escenarios.obtener` | Estado del escenario de demo (oleada, reportes, antenas) |

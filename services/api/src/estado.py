@@ -104,4 +104,5 @@ def estado(event, context):
 
 def config(event, context):
     return http.ok({"region": os.environ.get("AWS_REGION", "us-east-1"),
-                    "userPoolId": os.environ["USER_POOL_ID"], "clientId": os.environ["USER_POOL_CLIENT_ID"]})
+                    "userPoolId": os.environ["USER_POOL_ID"], "clientId": os.environ["USER_POOL_CLIENT_ID"],
+                    "wsUrl": os.environ.get("WS_URL")})

@@ -41,14 +41,15 @@ const geoAntenas = (antenas: Antena[], seleccion: string | null): FeatureCollect
   })),
 });
 
-const geoZonas = (zonas: Zona[], colectivos: Colectivo[] = []): FeatureCollection => ({
+const geoZonas = (zonas: Zona[], colectivos: Colectivo[] = [], reportes: Incidencia[] = []): FeatureCollection => ({
   type: "FeatureCollection",
   features: zonas.map((z) => {
     const c = colectivos.find((x) => x.zonaId === z.zonaId && x.estado !== "CERRADO");
+    const nReportes = reportes.filter((r) => r.zonaId === z.zonaId).length;
     return {
       type: "Feature",
       geometry: { type: "Polygon", coordinates: [circulo(z.centro.lng, z.centro.lat, z.radioM)] },
-      properties: { zonaId: z.zonaId, estado: z.estado, colectivo: !!c, colorColectivo: c ? PRIORIDAD[c.prioridad].color : "#000" },
+      properties: { zonaId: z.zonaId, estado: z.estado, colectivo: !!c, colorColectivo: c ? PRIORIDAD[c.prioridad].color : "#000", nReportes },
     };
   }),
 });
@@ -80,9 +81,10 @@ interface Props {
   onSeleccionar: (antenaId: string | null) => void;
   enfocarZona: Zona | null;
   paleta?: PaletaMapa; // opcional: el mapa rediseñado usa su propia paleta
+  modo3d?: boolean; // E7: zonas extruidas según los reportes de 24 h
 }
 
-export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona, paleta = PALETA_BASE }: Props) {
+export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona, paleta = PALETA_BASE, modo3d = false }: Props) {
   const colorPorEstado = exprEstados(paleta);
   const colorZona = exprZonas(paleta);
   const contenedor = useRef<HTMLDivElement>(null);
@@ -134,6 +136,15 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
           "line-color": colorZona,
           "line-opacity": ["match", ["get", "estado"], ["CAIDA", "INHABILITADA"], 0.55, "SATURADA", 0.35, 0.2],
           "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.6, 14, 1.1],
+        },
+      });
+      // Vista 3D: cada zona es una columna cuya altura crece con los reportes de 24 h (oculta en 2D).
+      m.addLayer({
+        id: "zonas-3d", type: "fill-extrusion", source: "zonas", layout: { visibility: "none" },
+        paint: {
+          "fill-extrusion-color": ["case", ["get", "colectivo"], ["get", "colorColectivo"], "#a78bfa"],
+          "fill-extrusion-height": ["+", 60, ["*", ["get", "nReportes"], 45]],
+          "fill-extrusion-opacity": 0.55,
         },
       });
       // Zonas con incidente colectivo abierto: relleno y borde que laten (visibles a cualquier zoom).
@@ -240,7 +251,7 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
     if (!m) return;
     const aplicar = () => {
       (m.getSource("antenas") as GeoJSONSource | undefined)?.setData(geoAntenas(antenas, seleccion));
-      (m.getSource("zonas") as GeoJSONSource | undefined)?.setData(geoZonas(zonas, colectivos));
+      (m.getSource("zonas") as GeoJSONSource | undefined)?.setData(geoZonas(zonas, colectivos, reportes));
       (m.getSource("reportes") as GeoJSONSource | undefined)?.setData(geoReportes(reportes, zonas));
     };
     if (listo.current) aplicar();
@@ -275,6 +286,17 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
     actualizarEtiquetas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claveZonas]);
+
+  // Cambiar entre 2D y 3D: inclina la cámara y muestra las columnas.
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m) return;
+    const aplicar = () => {
+      if (m.getLayer("zonas-3d")) m.setLayoutProperty("zonas-3d", "visibility", modo3d ? "visible" : "none");
+      m.easeTo({ pitch: modo3d ? 55 : 0, bearing: modo3d ? -20 : 0, duration: 900 });
+    };
+    if (listo.current) aplicar(); else m.once("load", aplicar);
+  }, [modo3d]);
 
   useEffect(() => {
     if (enfocarZona && mapa.current) {
