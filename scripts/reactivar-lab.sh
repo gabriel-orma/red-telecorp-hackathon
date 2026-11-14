@@ -5,7 +5,7 @@
 #   bash scripts/reactivar-lab.sh <stage>
 set -euo pipefail
 STAGE="${1:?Uso: bash scripts/reactivar-lab.sh <stage>}"
-for funcion in "telecorp-$STAGE-clasificador" "telecorp-api-$STAGE-registrarReporte" "telecorp-$STAGE-detector"; do
+for funcion in "telecorp-$STAGE-clasificador" "telecorp-api-$STAGE-registrarReporte" "telecorp-$STAGE-detector" "telecorp-api-$STAGE-difusor"; do
   for uuid in $(aws lambda list-event-source-mappings --function-name "$funcion" \
       --query "EventSourceMappings[?State=='Disabled'].UUID" --output text 2>/dev/null); do
     aws lambda update-event-source-mapping --uuid "$uuid" --enabled >/dev/null

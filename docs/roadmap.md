@@ -75,14 +75,15 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - **Prueba de carga** (cientos de reportes en segundos): DLQ vacía, sin pérdidas.
 - **Probar**: presionar "Simular tormenta" y ver cómo se llena el mapa en vivo.
 
-## E6: Inteligencia operativa 🧪
+## E6: Inteligencia operativa ✅
 - **Correlación**: tarjeta "**detectado X min antes que el primer reporte**".
 - **Puntaje de prioridad** (afectados × criticidad × tiempo activo; D7) → **lista ordenada** con colores.
 - **Step Function `recurrencia`** (diaria): antenas con N fallas en 7 días → **problema estructural**.
 - **Analítica**: zonas con más incidentes, antenas más problemáticas, tipos más frecuentes, duración y afectados (Recharts).
 - **Probar**: el panel de analítica con datos de las entregas anteriores.
 
-## E7: Tiempo real y experiencia avanzada ⬜
+## E7: Tiempo real y experiencia avanzada 🧪
+> El asistente conversacional del operador pasa a E4 (necesita la IA de la 2.ª nube).
 - **WebSocket API** para el panel, con **polling de respaldo** y limpieza de conexiones caídas.
 - **Asistente conversacional** del operador ("¿qué zona atiendo primero?") con datos reales.
 - **Reproducción del historial** con un deslizador de tiempo.

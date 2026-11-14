@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Toaster } from "sonner";
 import { api, apiColectivos } from "./lib/api";
 import { navegar, useRuta } from "./lib/router";
+import { useAlCambiar, useConexionTiempoReal } from "./lib/tiempoReal";
 import { usePolling } from "./hooks/usePolling";
 import { PanelIncidencias } from "./pages/PanelIncidencias";
 import { EstadoPublico } from "./pages/EstadoPublico";
@@ -15,7 +16,9 @@ import { ShellNeu } from "./components/neu/ShellNeu";
 import { PaletaComandos } from "./components/neu/PaletaComandos";
 import { useAlertasColectivos } from "./components/neu/alertas";
 
-const POLLING_MS = 3000;
+// Con WebSocket los datos llegan al instante: el polling queda como respaldo lento. Sin WebSocket, polling rápido.
+const POLLING_RAPIDO_MS = 3000;
+const POLLING_RESPALDO_MS = 30_000;
 
 export default function App() {
   const ruta = useRuta().split("?")[0];
@@ -34,6 +37,8 @@ export default function App() {
 const TITULOS: Record<string, string> = { "/incidencias": "Incidencias", "/colectivos": "Incidentes colectivos", "/analitica": "Analítica operativa" };
 
 function Operador({ ruta }: { ruta: string }) {
+  const tiempoReal = useConexionTiempoReal();
+  const POLLING_MS = tiempoReal ? POLLING_RESPALDO_MS : POLLING_RAPIDO_MS;
   const red = usePolling(
     useCallback(async () => {
       const [a, z] = await Promise.all([api.antenas(), api.zonas()]);
@@ -43,6 +48,8 @@ function Operador({ ruta }: { ruta: string }) {
   );
   const colectivos = usePolling(useCallback(() => apiColectivos.listar().then((r) => r.colectivos), []), POLLING_MS);
   const [buscar, setBuscar] = useState(false);
+  useAlCambiar(["antenas"], red.refrescar);
+  useAlCambiar(["colectivos"], colectivos.refrescar);
   useAlertasColectivos(colectivos.datos ?? [], colectivos.datos !== null);
 
   const antenas = red.datos?.antenas ?? [];
