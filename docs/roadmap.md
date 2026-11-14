@@ -11,13 +11,13 @@ Leyenda: ⬜ pendiente · 🟨 en curso · 🧪 lista para probar · ✅ aprobad
 
 ---
 
-## E0: Verificación del Learner Lab 🧪
+## E0: Verificación del Learner Lab ✅
 > Resultados en [D1](decisiones/2026-11-13-aws-academy-us-east-1.md#verificación-del-lab-e0-2026-11-14-issue-8): CloudFront, SES, SMS, Bedrock y Comprehend bloqueados; el resto funciona.
 Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de construir encima.
 - Lambda (`python3.12`), HTTP API, **WebSocket API**, DynamoDB (Streams, PITR, TTL), SQS + DLQ, Step Functions, EventBridge Scheduler, SNS (email y SMS), SES, S3, **CloudFront**, Secrets Manager, SSM.
 - **Probar**: tabla de resultados ✅/❌ en la decisión D1, con una alternativa para cada servicio bloqueado.
 
-## E1: Mapa en vivo (primer vistazo del diseño) ⬜
+## E1: Mapa en vivo (primer vistazo del diseño) 🧪
 - Catálogo de **zonas reales de Lima** (centro y radio) y **~35 antenas con coordenadas**. Requiere un cambio de contrato.
 - Stack `base`: tablas, colas + DLQ, SSM, Secrets Manager y el layer común.
 - Stack `antenas`: simulador (EventBridge, **apagado por defecto**) y clasificador (0 / <60 / 60–129 / >129).

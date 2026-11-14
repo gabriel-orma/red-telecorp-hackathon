@@ -7,6 +7,39 @@ Plataforma **serverless y multinube (AWS + segunda nube por definir)** para Red 
 - Avance por dolor del cliente: [`docs/mapa-dolores.md`](docs/mapa-dolores.md)
 - **Roadmap por entregas**: [`docs/roadmap.md`](docs/roadmap.md)
 
+## Despliegue (replicable en cualquier cuenta)
+
+Requisitos: Node 20+, Python 3.12, AWS CLI v2 y **Git Bash** en Windows. Las credenciales del Learner Lab (*AWS Details*) van en `~/.aws/credentials`.
+
+Instala las dependencias (Serverless Framework v3 queda fijado en el repo):
+```bash
+npm ci
+```
+
+Despliega todo: base → antenas → api → frontend. La primera vez tarda unos 8 minutos.
+```bash
+bash scripts/deploy.sh dev-tualias
+```
+
+Al terminar imprime la URL HTTPS del centro de control. Para desplegar solo una parte: `bash scripts/deploy.sh dev-tualias frontend` (o `api`, `antenas`, `base`).
+
+Elimina todo cuando no lo uses, para no gastar el presupuesto del lab:
+```bash
+bash scripts/remove.sh dev-tualias
+```
+
+Pruebas unitarias:
+```bash
+python -m pytest
+```
+
+| Stack | Qué contiene |
+|---|---|
+| [`services/base`](services/base) | Tablas DynamoDB (PITR), colas SQS + DLQ, SSM, Secrets Manager, layer Python común |
+| [`services/antenas`](services/antenas) | Simulador (EventBridge Scheduler) y clasificador de métricas |
+| [`services/api`](services/api) | HTTP API: datos en `/api/*` y frontend por HTTPS en `/` |
+| [`frontend`](frontend) | Centro de control (React + MapLibre) |
+
 ## Cómo trabajamos (3 personas, cada una con su agente de IA)
 
 **Lee [`AGENTS.md`](AGENTS.md) antes de empezar.** En resumen:

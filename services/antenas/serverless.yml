@@ -1,0 +1,63 @@
+# Stack ANTENAS: simulador (EventBridge Scheduler → Lambda → SQS) y clasificador (SQS → DynamoDB).
+service: telecorp-antenas
+frameworkVersion: "3"
+
+custom:
+  base: telecorp-base-${sls:stage}
+  prefijo: telecorp-${sls:stage}
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  memorySize: 256
+  logRetentionInDays: 7
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+  layers:
+    - ${cf:${self:custom.base}.ComunLambdaLayerQualifiedArn}
+  environment:
+    STAGE: ${sls:stage}
+    TABLA_METRICAS: ${cf:${self:custom.base}.TablaMetricasNombre}
+    TABLA_ANTENAS: ${cf:${self:custom.base}.TablaAntenasNombre}
+    TABLA_HISTORIAL: ${cf:${self:custom.base}.TablaHistorialNombre}
+    COLA_METRICAS_URL: ${cf:${self:custom.base}.ColaMetricasUrl}
+
+package:
+  patterns: ["!**", "src/**"]
+
+functions:
+  simulador:
+    handler: src/simulador.handler
+    name: ${self:custom.prefijo}-simulador
+    timeout: 70
+  clasificador:
+    handler: src/clasificador.handler
+    name: ${self:custom.prefijo}-clasificador
+    timeout: 30
+    events:
+      - sqs:
+          arn: ${cf:${self:custom.base}.ColaMetricasArn}
+          batchSize: 36
+          maximumBatchingWindow: 1
+          functionResponseType: ReportBatchItemFailures
+
+resources:
+  Resources:
+    # Apagado por defecto (costo 0). Se enciende desde el panel: PUT /api/simulador {"activo": true}.
+    ProgramacionSimulador:
+      Type: AWS::Scheduler::Schedule
+      Properties:
+        Name: ${self:custom.prefijo}-simulador
+        Description: Dispara el simulador de antenas cada minuto
+        State: DISABLED
+        ScheduleExpression: rate(1 minute)
+        FlexibleTimeWindow: { Mode: "OFF" }
+        Target:
+          Arn: !GetAtt SimuladorLambdaFunction.Arn
+          RoleArn: arn:aws:iam::${aws:accountId}:role/LabRole
+          Input: "{}"
+          RetryPolicy: { MaximumRetryAttempts: 0 }
+  Outputs:
+    SimuladorFuncion: { Value: !Ref SimuladorLambdaFunction }
+    ProgramacionSimuladorNombre: { Value: !Ref ProgramacionSimulador }

@@ -31,3 +31,8 @@ Thumbs.db
 
 # Claude Code: la configuración personal no se comparte
 .claude/settings.local.json
+
+# Copia del catálogo que scripts/deploy.sh mete en el layer
+services/base/layer/python/telecorp/zonas.json
+.pytest_cache/
+*.tsbuildinfo

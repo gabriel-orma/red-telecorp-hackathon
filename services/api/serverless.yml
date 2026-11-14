@@ -1,0 +1,87 @@
+# Stack API: un único HTTP API (HTTPS) para el frontend y los datos.
+#   /api/*  → endpoints JSON
+#   /*      → frontend (S3 privado servido por Lambda; CloudFront bloqueado en Learner Lab, ver D1)
+# Mismo origen para web y API: sin CORS ni URLs que inyectar en el build.
+service: telecorp-api
+frameworkVersion: "3"
+
+custom:
+  base: telecorp-base-${sls:stage}
+  antenas: telecorp-antenas-${sls:stage}
+  prefijo: telecorp-${sls:stage}
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  memorySize: 256
+  timeout: 15
+  logRetentionInDays: 7
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+  layers:
+    - ${cf:${self:custom.base}.ComunLambdaLayerQualifiedArn}
+  httpApi:
+    name: ${self:custom.prefijo}-api
+  environment:
+    STAGE: ${sls:stage}
+    TABLA_METRICAS: ${cf:${self:custom.base}.TablaMetricasNombre}
+    TABLA_ANTENAS: ${cf:${self:custom.base}.TablaAntenasNombre}
+    TABLA_HISTORIAL: ${cf:${self:custom.base}.TablaHistorialNombre}
+
+package:
+  patterns: ["!**", "src/**"]
+
+functions:
+  antenas:
+    handler: src/antenas.listar_antenas
+    events:
+      - httpApi: GET /api/antenas
+  zonas:
+    handler: src/antenas.listar_zonas
+    events:
+      - httpApi: GET /api/zonas
+  metricasAntena:
+    handler: src/antenas.metricas_antena
+    events:
+      - httpApi: GET /api/antenas/{antenaId}/metricas
+  simuladorObtener:
+    handler: src/simulador.obtener
+    environment: &simulador
+      PROGRAMACION_SIMULADOR: ${cf:${self:custom.antenas}.ProgramacionSimuladorNombre}
+      FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
+    events:
+      - httpApi: GET /api/simulador
+  simuladorActualizar:
+    handler: src/simulador.actualizar
+    environment: *simulador
+    events:
+      - httpApi: PUT /api/simulador
+  web:
+    handler: src/web.handler
+    memorySize: 512
+    environment:
+      BUCKET_FRONTEND: !Ref BucketFrontend
+    events:
+      - httpApi: GET /
+      - httpApi: GET /{proxy+}
+
+resources:
+  Resources:
+    BucketFrontend:
+      Type: AWS::S3::Bucket
+      Properties:
+        VersioningConfiguration: { Status: Enabled }
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        LifecycleConfiguration:
+          Rules:
+            - Id: limpiar-versiones-viejas
+              Status: Enabled
+              NoncurrentVersionExpiration: { NoncurrentDays: 7 }
+  Outputs:
+    BucketFrontendNombre: { Value: !Ref BucketFrontend }
+    Url: { Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com" }

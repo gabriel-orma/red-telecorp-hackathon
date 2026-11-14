@@ -66,4 +66,16 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 
 | Recurso | Nube / servicio | Nombre | Módulo | Notas |
 |---|---|---|---|---|
-| _(vacío)_ | | | | |
+| Tabla `incidencias` (GSI `zona-fecha`, Stream, PITR) | AWS DynamoDB | `telecorp-<stage>-incidencias` | base | E1 crea; se usa desde E2 |
+| Tabla `historial` (PITR) | AWS DynamoDB | `telecorp-<stage>-historial` | base | Solo inserciones |
+| Tabla `metricas` (TTL 7 d, PITR) | AWS DynamoDB | `telecorp-<stage>-metricas` | base | Serie por antena |
+| Tabla `antenas` (Stream, PITR) | AWS DynamoDB | `telecorp-<stage>-antenas` | base | Estado actual |
+| Tabla `colectivos` (GSI `zona-estado`, PITR) | AWS DynamoDB | `telecorp-<stage>-colectivos` | base | Se usa desde E3 |
+| Colas `reportes`, `metricas` + DLQ | AWS SQS | `telecorp-<stage>-{reportes,metricas}[-dlq]` | base | 3 reintentos → DLQ (14 d) |
+| Parámetro del simulador | AWS SSM | `/telecorp/<stage>/simulador` | base | Fallas forzadas |
+| Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base | Placeholder hasta D2 |
+| Layer Python común | AWS Lambda | `telecorp-<stage>-comun` | base | `telecorp.*` |
+| Simulador + programación | AWS Lambda + EventBridge Scheduler | `telecorp-<stage>-simulador` | antenas | Apagado por defecto |
+| Clasificador | AWS Lambda (SQS) | `telecorp-<stage>-clasificador` | antenas | Respuesta parcial de lote |
+| HTTP API | AWS API Gateway v2 | `telecorp-<stage>-api` | api | `/api/*` + frontend |
+| Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |
