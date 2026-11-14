@@ -7,8 +7,8 @@
   "estado": "INCIDENCIA_CONFIRMADA",
   "usuariosAfectados": ["70123456", "70123457", "70123458", "70123459", "70123460", "70123461", "70123462", "70123463", "70123464", "70123465"],
   "incidencias": ["INC-01JCZ6A1", "INC-01JCZ6A2"],
-  "antenasEnFalla": [{ "antenaId": "ANT-008", "estado": "INHABILITADA" }],
+  "antenasEnFalla": [{ "antenaId": "ANT-013", "estado": "INHABILITADA" }],
   "prioridad": "CRITICA",
   "puntajePrioridad": 92,
-  "resumenIA": "10 usuarios sin Internet en la zona del Hospital Central desde las 22:44 UTC; la antena ANT-008 está inhabilitada (0 GB/min)."
+  "resumenIA": "10 usuarios sin Internet en la zona del Hospital Rebagliati desde las 22:44 UTC; la antena ANT-013 está inhabilitada (0 GB/min)."
 }
