@@ -24,7 +24,14 @@ Hackathon de Cloud Computing (UTEC). Cliente ficticio: **Red TeleCorp**, una tel
 Detalle completo: [`docs/reto.md`](docs/reto.md). Arquitectura: [`docs/arquitectura.md`](docs/arquitectura.md).
 
 ### Restricciones de la rúbrica (no negociables)
-- **2 nubes o más** (Vercel **no** cuenta). Base: AWS + GCP.
+- **2 nubes o más** (Vercel **no** cuenta). AWS es la nube principal. La segunda está **por definir** (decisión D2).
+
+### Stack decidido (ver [`docs/decisiones/`](docs/decisiones/README.md))
+- **AWS Academy Learner Lab** en **`us-east-1`**. No se pueden crear roles IAM: **todo usa `LabRole`**.
+- **Serverless Framework** como IaC, con un `serverless.yml` por servicio.
+- **Python** para todas las Lambdas.
+- **DynamoDB con tablas separadas** (incidencias, historial, métricas, incidentes colectivos).
+- Aún abiertas: segunda nube (D2), frontend (D5), fórmula de prioridad y umbral de recurrencia (D7). No las asumas.
 - **Todo serverless**: nada de EC2, VMs ni contenedores encendidos 24/7.
 - **Step Functions** para automatizar flujos.
 - **Secretos en un servicio de AWS** (Secrets Manager o SSM Parameter Store). **Nunca** en el código ni en el repo.
@@ -143,11 +150,15 @@ Cuando necesites algo que **está fuera de tu zona de archivos** o te bloquea, a
 
 ## 7. Cloud: reglas de despliegue
 
-- **Cada persona despliega en su propio stage** (`dev-<alias>`). Solo existe un stage compartido, `demo`, y se despliega desde `main`.
-- **Prefijo de recursos**: `telecorp-<stage>-<recurso>` (ej.: `telecorp-dev-gabo-reportes`).
-- **Región AWS** y **proyecto GCP**: ver `docs/decisiones/`. No los cambies sin una decisión.
+- **AWS Academy Learner Lab**: cada persona tiene su propia cuenta de laboratorio.
+  - **Nunca intentes crear roles IAM**: en Serverless, `provider.iam.role: arn:aws:iam::${aws:accountId}:role/LabRole`, y lo mismo en las Step Functions.
+  - Las credenciales caducan con cada sesión del lab: si un despliegue falla por credenciales, pide a tu humano que actualice `~/.aws/credentials` desde *AWS Details*.
+  - Detalles y servicios posiblemente restringidos (SES, SNS SMS…): [decisión D1](docs/decisiones/2026-11-13-aws-academy-us-east-1.md).
+- **Cada persona despliega en su propio stage** (`dev-<alias>`) en su propia cuenta. Solo existe un stage compartido, `demo`: se despliega desde `main` en una única cuenta, que está documentada en la decisión D1.
+- **Nombres**: tablas, colas y buckets se nombran explícitamente `telecorp-<stage>-<recurso>` (ej.: `telecorp-dev-gabo-incidencias`). Las Lambdas usan el nombre por defecto de Serverless (`telecorp-<dominio>-<stage>-<función>`).
+- **Región AWS**: `us-east-1`, fija. La 2.ª nube está por definir (D2).
 - **Secretos** (API keys de Gemini, credenciales de GCP, etc.) en **AWS Secrets Manager / SSM Parameter Store**, leídos en tiempo de ejecución. En local, `.env` (ignorado por git), siguiendo `.env.example`.
-- **Infraestructura como código**: todo recurso debe crearse por IaC (herramienta definida en `docs/decisiones/`). Nada de clics en la consola que no queden en código, salvo pasos documentados en el README del módulo.
+- **Infraestructura como código**: todo recurso se crea con **Serverless Framework**, un `serverless.yml` por servicio. Un recurso compartido lo crea **un solo** servicio y lo exporta como `Output`; los demás lo leen con `${cf:...}`. Nada de clics en la consola que no queden en código, salvo pasos documentados en el README del módulo.
 - **Cuidado con el costo**: nada de recursos con costo por hora sin una decisión (NAT Gateway, Kinesis con shards, RDS, OpenSearch, etc.). Destruye tus stages de prueba al terminar.
 
 ---
