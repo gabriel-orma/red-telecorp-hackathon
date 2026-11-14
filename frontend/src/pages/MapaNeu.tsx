@@ -9,6 +9,7 @@ import { cn, haceCuanto, numero } from "../lib/utils";
 import { MapaRed } from "../components/MapaRed";
 import { ShellNeu } from "../components/neu/ShellNeu";
 import { PaletaComandos } from "../components/neu/PaletaComandos";
+import { ControlEscenario } from "../components/neu/ControlEscenario";
 import { DetalleAntenaNeu } from "../components/neu/DetalleAntenaNeu";
 import { Anillo, Cifra, Interruptor, PasosColectivo } from "../components/neu/Piezas";
 import { COLOR_NEU, PALETA_MAPA_NEU } from "../components/neu/paleta";
@@ -57,7 +58,8 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
 
   return (
     <ShellNeu titulo="Centro de control" enVivo={enVivo} colectivosActivos={activos.length} onBuscar={() => setBuscar(true)}
-      acciones={
+      acciones={<>
+        <ControlEscenario zonas={zonas} zonaSugerida={zonaFoco?.zonaId ?? antenaSel?.zonaId} onCambio={refrescarRed} />
         <div className="neu-chico flex h-11 items-center gap-3 pl-4 pr-2">
           <Zap className="size-4 text-acento" />
           <div className="text-xs leading-tight">
@@ -71,7 +73,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
           <Interruptor etiqueta="Encender o apagar el simulador" activo={!!sim.datos?.activo} deshabilitado={!sim.datos || ocupado}
             onClick={() => cambiarSimulador({ activo: !sim.datos?.activo })} />
         </div>
-      }>
+      </>}>
       <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
         onZona={(z) => { setZonaFoco({ ...z }); setSeleccion(null); }}
         onAntena={(a) => { setSeleccion(a.antenaId); const z = zonas.find((x) => x.zonaId === a.zonaId); if (z) setZonaFoco({ ...z }); }} />

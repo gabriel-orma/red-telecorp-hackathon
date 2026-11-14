@@ -37,6 +37,12 @@ quiere antenas && desplegar antenas
 quiere api && desplegar api
 quiere workflows && desplegar workflows
 
+# El Learner Lab desactiva las conexiones SQS → Lambda al detenerse; un deploy sin cambios no las reactiva.
+if quiere antenas || quiere api || quiere workflows; then
+  paso "Verificando conexiones de colas (Learner Lab)"
+  bash "$RAIZ/scripts/reactivar-lab.sh" "$STAGE"
+fi
+
 URL="$(salida "telecorp-api-$STAGE" Url)"
 if quiere frontend && [ -f frontend/package.json ]; then
   paso "Compilando frontend"

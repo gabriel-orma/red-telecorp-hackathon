@@ -29,6 +29,20 @@ Definición: [`statemachines/incidente-colectivo.yml`](statemachines/incidente-c
 - Si el monitoreo supera `maxIteraciones`, el flujo termina en **Fail** (`MonitoreoAgotado`) para atención manual.
 - Cada paso actualiza `pasoActual` del colectivo: el panel dibuja el flujo con el paso en curso.
 
+## Step Function `telecorp-<stage>-escenario` (E5)
+Definición: [`statemachines/escenario.yml`](statemachines/escenario.yml). Entrada `{tipo: TORMENTA | CORTE_ENERGIA, zonaId}`.
+
+| Estado | Tipo | Qué hace |
+|---|---|---|
+| Preparar | Task | Planifica las oleadas (`telecorp.escenarios.planificar`), enciende el simulador y publica el estado en SSM |
+| Oleadas | **Map** secuencial (MaxConcurrency 1) | Por oleada: **Wait** de 12 s, luego fuerza fallas de antenas y envía reportes de vecinos ficticios por el mismo camino que un reporte real (candado de deduplicación + SQS) |
+| Finalizar | Task | Marca el escenario como terminado (también si algo falla, vía Catch) |
+
+- **Tormenta**: la zona elegida y sus vecinas (radio de 5,5 km); antenas caídas o saturadas.
+- **Corte de energía**: solo la zona; sus antenas se apagan (0 GB/min) una a una.
+- **Reiniciar demo** (`POST /api/escenarios/reiniciar`): detiene el escenario, quita las fallas y marca como restablecidos los incidentes abiertos; sus Step Functions los cierran en segundos.
+- **Modo reanudar** de `incidente-colectivo`: `{reanudar: true}` entra directo al monitoreo. Lo usan `POST /api/colectivos/reanudar` y `scripts/reactivar-lab.sh`.
+
 ## Probar
 ```bash
 python scripts/demo/reportar.py $URL --zona ZONA-05 --n 12        # → colectivo por reportes

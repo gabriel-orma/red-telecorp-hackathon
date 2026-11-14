@@ -157,6 +157,12 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
           ],
         },
       });
+      // Propagación: onda que se expande ~900 m desde cada antena caída (visible a cualquier zoom).
+      m.addLayer({
+        id: "antenas-onda", type: "circle", source: "antenas",
+        filter: ["in", ["get", "estado"], ["literal", ["CAIDA", "INHABILITADA"]]],
+        paint: { "circle-color": colorPorEstado, "circle-opacity": 0.06, "circle-stroke-color": colorPorEstado, "circle-stroke-width": 1.5, "circle-radius": 0 },
+      });
       m.addLayer({
         id: "antenas-pulso", type: "circle", source: "antenas", minzoom: ZOOM_ANTENAS,
         filter: ["in", ["get", "estado"], ["literal", ["CAIDA", "INHABILITADA"]]],
@@ -198,6 +204,14 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
           m.setPaintProperty("zonas-colectivo-borde", "line-width", 1.5 + latido * 4);
           m.setPaintProperty("zonas-colectivo-borde", "line-opacity", 0.35 + latido * 0.6);
           m.setPaintProperty("zonas-colectivo-relleno", "fill-opacity", 0.06 + latido * 0.14);
+        }
+        if (m.getLayer("antenas-onda")) {
+          const faseOnda = (t % 2800) / 2800;
+          const metrosPorPixel = (156543.03 * Math.cos((m.getCenter().lat * Math.PI) / 180)) / 2 ** m.getZoom();
+          const suave = 1 - (1 - faseOnda) ** 3; // ease-out: arranca rápido y se frena
+          m.setPaintProperty("antenas-onda", "circle-radius", (900 / metrosPorPixel) * suave);
+          m.setPaintProperty("antenas-onda", "circle-stroke-opacity", 0.7 * (1 - faseOnda));
+          m.setPaintProperty("antenas-onda", "circle-opacity", 0.12 * (1 - faseOnda));
         }
         if (m.getLayer("antenas-pulso")) {
           m.setPaintProperty("antenas-pulso", "circle-radius", 8 + fase * 26);

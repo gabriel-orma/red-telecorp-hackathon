@@ -210,3 +210,15 @@ export const apiPortal = {
       "/reportes", token, { method: "POST", body: JSON.stringify(cuerpo) }),
   misReportes: (token: string) => conToken<{ reportes: MiReporte[] }>("/mis-reportes", token),
 };
+
+// ---------------- Escenarios de demo (E5) ----------------
+export type TipoEscenario = "TORMENTA" | "CORTE_ENERGIA";
+export interface EstadoEscenario {
+  activo: boolean; tipo?: TipoEscenario; zonaId?: string; oleada?: number; total?: number;
+  inicio?: string; fin?: string | null; reportes?: number; antenas?: number; error?: string | null;
+}
+export const apiEscenarios = {
+  estado: () => pedir<EstadoEscenario>("/escenarios"),
+  lanzar: (tipo: TipoEscenario, zonaId: string) => pedir<{ ejecucionArn: string }>("/escenarios", { method: "POST", body: JSON.stringify({ tipo, zonaId }) }),
+  reiniciar: () => pedir<{ colectivosRestablecidos: number }>("/escenarios/reiniciar", { method: "POST" }),
+};

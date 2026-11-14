@@ -47,6 +47,11 @@ Se probó con un stack de humo (`infra/verificacion/`) desplegado con `LabRole`.
 | **Comprehend** | ❌ | `AccessDenied` |
 | Nota de la CLI en Git Bash | ⚠️ | Exportar `MSYS_NO_PATHCONV=1` para rutas tipo `/aws/lambda/...` |
 
+### Efectos de detener la sesión del lab (descubierto en E5)
+- AWS **desactiva las conexiones SQS → Lambda** (event source mappings en `Disabled / USER_INITIATED`): métricas y reportes quedan en cola. Las de DynamoDB Streams siguen activas.
+- Las **Step Functions en curso fallan** (`Lambda.AWSLambdaException`) al cortarse la sesión: los incidentes quedan sin monitoreo.
+- **Solución**: `scripts/reactivar-lab.sh <stage>` reactiva las colas y reanuda los incidentes huérfanos (modo `reanudar` de la Step Function). `scripts/deploy.sh` lo ejecuta siempre. **Después de cada Start Lab: `bash scripts/reactivar-lab.sh dev-<alias>`.**
+
 ### Alternativas adoptadas
 - **Frontend sin CloudFront**: S3 static website no da HTTPS, y el portal lo necesita para la **geolocalización** y la **voz** del navegador (requieren contexto seguro). Propuesta: servir el frontend por **HTTPS a través de API Gateway** (HTTP API → Lambda que entrega los archivos del bucket S3, con caché larga para los *assets*). El bucket sigue siendo el almacén, versionado. A confirmar en E1.
 - **Notificaciones sin SES ni SMS**:

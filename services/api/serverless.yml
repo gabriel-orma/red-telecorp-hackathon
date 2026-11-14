@@ -125,10 +125,37 @@ functions:
     handler: src/colectivos.obtener
     events:
       - httpApi: GET /api/colectivos/{colectivoId}
+  reanudarColectivos:
+    handler: src/colectivos.reanudar
+    timeout: 30
+    environment:
+      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
+    events:
+      - httpApi: POST /api/colectivos/reanudar
   restablecerColectivo:
     handler: src/colectivos.restablecer
     events:
       - httpApi: POST /api/colectivos/{colectivoId}/restablecer
+  # ---------- Escenarios de demo (E5) ----------
+  escenarioObtener:
+    handler: src/escenarios.obtener
+    events:
+      - httpApi: GET /api/escenarios
+  escenarioLanzar:
+    handler: src/escenarios.lanzar
+    environment:
+      # Nombre determinista: el stack workflows se despliega después del api.
+      MAQUINA_ESCENARIO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-escenario
+    events:
+      - httpApi: POST /api/escenarios
+  escenarioReiniciar:
+    handler: src/escenarios.reiniciar
+    timeout: 30
+    environment:
+      FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
+      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
+    events:
+      - httpApi: POST /api/escenarios/reiniciar
   web:
     handler: src/web.handler
     memorySize: 512
