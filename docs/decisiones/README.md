@@ -23,11 +23,11 @@ Un archivo por decisión: `AAAA-MM-DD-<slug>.md`, con este formato:
 | D6 | Región AWS | ✅ aceptada | `us-east-1` → [2026-11-13-aws-academy-us-east-1](2026-11-13-aws-academy-us-east-1.md) |
 | D7 | Fórmula de prioridad y umbral de recurrencia | ⏳ abierta | Por definir. Ver `docs/arquitectura.md`, "Reglas de negocio". |
 | D8 | Tablas DynamoDB | ✅ aceptada | Tablas separadas → [2026-11-13-dynamodb-tablas-separadas](2026-11-13-dynamodb-tablas-separadas.md) |
-
-Las decisiones **abiertas no las resuelve un agente solo**: van por un issue `decision`. Mientras tanto, no construyas nada que dependa de ellas. Si no queda otra, deja un `TODO(D2)` o `TODO(D7)`.
-
 | D9 | Cuentas de usuario | ✅ aceptada | Cognito + autorizador JWT, auto-confirmación → [2026-11-14-cuentas-cognito](2026-11-14-cuentas-cognito.md) |
 | D10 | Estadísticas del estado público | ✅ aceptada | Contadores agregados de 15 min → [2026-11-14-estadisticas-agregadas](2026-11-14-estadisticas-agregadas.md) |
+| D11 | Sistema de diseño | ✅ aceptada | Neumórfico oscuro + Sonner, NumberFlow, cmdk → [2026-11-14-diseno-neumorfico](2026-11-14-diseno-neumorfico.md) |
+
+Las decisiones **abiertas no las resuelve un agente solo**: van por un issue `decision`. Mientras tanto, no construyas nada que dependa de ellas. Si no queda otra, deja un `TODO(D2)` o `TODO(D7)`.
 
 ## Otras aceptadas
 - [2026-11-13-coordinacion-por-issues](2026-11-13-coordinacion-por-issues.md)

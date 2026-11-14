@@ -1,16 +1,18 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { Toaster } from "sonner";
 import { api, apiColectivos } from "./lib/api";
-import { useRuta } from "./lib/router";
+import { navegar, useRuta } from "./lib/router";
 import { usePolling } from "./hooks/usePolling";
-import { Encabezado } from "./components/Encabezado";
-import { CentroControl } from "./pages/CentroControl";
 import { PanelIncidencias } from "./pages/PanelIncidencias";
 import { EstadoPublico } from "./pages/EstadoPublico";
 import { Cuenta } from "./pages/Cuenta";
 import { Reportar } from "./pages/Reportar";
 import { Seguimiento } from "./pages/Seguimiento";
 import { Colectivos } from "./pages/Colectivos";
-import { AlertaColectivo } from "./components/AlertaColectivo";
+import { MapaNeu } from "./pages/MapaNeu";
+import { ShellNeu } from "./components/neu/ShellNeu";
+import { PaletaComandos } from "./components/neu/PaletaComandos";
+import { useAlertasColectivos } from "./components/neu/alertas";
 
 const POLLING_MS = 3000;
 
@@ -28,6 +30,8 @@ export default function App() {
   return <Operador ruta={ruta} />;
 }
 
+const TITULOS: Record<string, string> = { "/incidencias": "Incidencias", "/colectivos": "Incidentes colectivos" };
+
 function Operador({ ruta }: { ruta: string }) {
   const red = usePolling(
     useCallback(async () => {
@@ -37,22 +41,26 @@ function Operador({ ruta }: { ruta: string }) {
     POLLING_MS,
   );
   const colectivos = usePolling(useCallback(() => apiColectivos.listar().then((r) => r.colectivos), []), POLLING_MS);
+  const [buscar, setBuscar] = useState(false);
+  useAlertasColectivos(colectivos.datos ?? [], colectivos.datos !== null);
+
+  const antenas = red.datos?.antenas ?? [];
+  const zonas = red.datos?.zonas ?? [];
+  const lista = colectivos.datos ?? [];
+  const enVivo = !red.error && red.ultimaCarga !== null;
+  const activos = lista.filter((c) => c.estado !== "CERRADO" && c.estado !== "SERVICIO_RESTABLECIDO").length;
+
   return (
-    <div className="fondo-rejilla flex h-full flex-col">
-      <Encabezado ultimaCarga={red.ultimaCarga} error={red.error} colectivosActivos={colectivos.datos?.filter((c) => c.estado !== "SERVICIO_RESTABLECIDO").length ?? 0} />
-      <AlertaColectivo colectivos={colectivos.datos} />
-      {ruta === "/incidencias" ? (
-        <PanelIncidencias zonas={red.datos?.zonas ?? []} />
-      ) : ruta === "/colectivos" ? (
-        <Colectivos abiertos={colectivos.datos} />
+    <div className="tema-neu h-full">
+      <Toaster position="top-center" theme="dark" toastOptions={{ unstyled: true }} />
+      {ruta === "/incidencias" || ruta === "/colectivos" ? (
+        <ShellNeu titulo={TITULOS[ruta]} enVivo={enVivo} colectivosActivos={activos} onBuscar={() => setBuscar(true)}>
+          <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
+            onZona={(z) => navegar(`/?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/?antena=${a.antenaId}`)} />
+          {ruta === "/incidencias" ? <PanelIncidencias zonas={zonas} /> : <Colectivos abiertos={colectivos.datos} />}
+        </ShellNeu>
       ) : (
-        <CentroControl
-          antenas={red.datos?.antenas ?? []}
-          zonas={red.datos?.zonas ?? []}
-          colectivos={colectivos.datos ?? []}
-          cargando={!red.datos && !red.error}
-          refrescarRed={red.refrescar}
-        />
+        <MapaNeu antenas={antenas} zonas={zonas} colectivos={lista} enVivo={enVivo} refrescarRed={red.refrescar} />
       )}
     </div>
   );

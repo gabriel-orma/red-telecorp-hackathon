@@ -78,7 +78,7 @@ export function Reportar() {
             return (
               <button type="button" key={t} onClick={() => setTipo(t)}
                 className={cn("flex flex-col items-center gap-1.5 rounded-xl border px-2 py-4 text-center text-[11px] transition",
-                  tipo === t ? "border-acento bg-acento/10 text-texto shadow-[0_0_16px_#22d3ee33]" : "border-borde text-tenue hover:text-texto")}>
+                  tipo === t ? "border-acento bg-acento/10 text-texto shadow-[0_0_16px_#a78bfa33]" : "border-borde text-tenue hover:text-texto")}>
                 <Icono className={cn("size-6", tipo === t && "text-acento")} />{etiqueta}
               </button>
             );
@@ -92,7 +92,7 @@ export function Reportar() {
         {error && <div className="rounded-lg bg-caida/10 px-3 py-2 text-xs text-caida ring-1 ring-caida/30">{error}</div>}
 
         <button type="submit" disabled={enviando || ubic.estado === "buscando"}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-acento py-3.5 text-sm font-semibold text-fondo shadow-[0_8px_30px_#22d3ee40] transition hover:brightness-110 disabled:opacity-60">
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-acento py-3.5 text-sm font-semibold text-fondo shadow-[0_8px_30px_#7c5cff40] transition hover:brightness-110 disabled:opacity-60">
           {enviando ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar reporte
         </button>
       </motion.form>

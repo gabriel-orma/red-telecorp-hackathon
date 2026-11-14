@@ -18,7 +18,7 @@ export function Colectivos({ abiertos }: { abiertos: Colectivo[] | null }) {
   const seleccion = new URLSearchParams(window.location.search).get("id") ?? lista?.[0]?.incidenteColectivoId ?? null;
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-3 p-3 md:flex-row">
+    <main className="flex min-h-0 flex-1 flex-col gap-5 md:flex-row">
       <section className="panel flex w-full shrink-0 flex-col overflow-hidden md:w-[360px]">
         <div className="flex items-center justify-between border-b border-borde p-3">
           <h1 className="text-sm font-semibold">Incidentes colectivos</h1>
@@ -68,7 +68,7 @@ export function Colectivos({ abiertos }: { abiertos: Colectivo[] | null }) {
 function ChipPrioridad({ c }: { c: Colectivo }) {
   const p = PRIORIDAD[c.prioridad];
   return (
-    <span className="cifra shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+    <span className="cifra shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
       style={{ background: `${p.color}22`, color: p.color }}>
       {p.etiqueta} · {c.puntajePrioridad}
     </span>
@@ -120,7 +120,7 @@ function Detalle({ id }: { id: string }) {
 
           {c.resumenIA && (
             <div className="mt-3 rounded-xl bg-fondo/60 p-3 text-sm">
-              <div className="mb-1 text-[10px] uppercase tracking-wider text-tenue">Resumen para el operador</div>
+              <div className="mb-1 text-[10px] text-tenue">Resumen para el operador</div>
               {c.resumenIA}
             </div>
           )}
@@ -145,7 +145,7 @@ function Detalle({ id }: { id: string }) {
         {/* Antenas e incidencias */}
         <div className="grid gap-3 md:grid-cols-2">
           <div className="panel p-4">
-            <div className="mb-2 text-[11px] uppercase tracking-wider text-tenue">Antenas en falla</div>
+            <div className="mb-2 text-[11px] text-tenue">Antenas en falla</div>
             {c.antenasEnFalla.length ? c.antenasEnFalla.map((a) => (
               <div key={a.antenaId} className="flex items-center justify-between py-1 text-sm">
                 <span className="cifra">{a.antenaId}</span>
@@ -154,7 +154,7 @@ function Detalle({ id }: { id: string }) {
             )) : <div className="flex items-center gap-2 text-xs text-tenue"><ShieldAlert className="size-4" />Ninguna: falla sin causa en la red (revisar en sitio).</div>}
           </div>
           <div className="panel p-4">
-            <div className="mb-2 text-[11px] uppercase tracking-wider text-tenue">Incidencias agrupadas · {d.incidencias.length}</div>
+            <div className="mb-2 text-[11px] text-tenue">Incidencias agrupadas · {d.incidencias.length}</div>
             <ul className="scroll-fino max-h-48 space-y-1 overflow-y-auto">
               {d.incidencias.map((i) => (
                 <li key={i.incidenciaId} className="flex items-center justify-between gap-2 text-xs">
@@ -167,7 +167,7 @@ function Detalle({ id }: { id: string }) {
         </div>
 
         <div className="panel p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-wider text-tenue">Historial del incidente</div>
+          <div className="mb-3 text-[11px] text-tenue">Historial del incidente</div>
           <Historial eventos={d.historial} />
         </div>
       </div>
@@ -175,7 +175,7 @@ function Detalle({ id }: { id: string }) {
       {/* Flujo de Step Functions */}
       <div className="panel h-fit p-3">
         <div className="mb-2 flex items-center justify-between px-1">
-          <span className="text-[11px] uppercase tracking-wider text-tenue">Flujo · Step Functions</span>
+          <span className="text-[11px] text-tenue">Flujo · Step Functions</span>
           {abierto && <span className="latido size-2 rounded-full bg-acento" />}
         </div>
         <FlujoColectivo colectivo={c} />

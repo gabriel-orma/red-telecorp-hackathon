@@ -5,18 +5,24 @@ import type { Antena, Colectivo, EstadoAntena, Incidencia, Zona } from "../lib/a
 import { ESTADO, PRIORIDAD, TIPO_ZONA } from "../lib/estados";
 import { CENTRO_LIMA, ESTILO_OSCURO as ESTILO, circulo, maplibregl } from "../lib/mapa";
 
-// Expresión de color por estado (misma paleta que el resto del panel).
-const colorPorEstado = [
-  "match", ["get", "estado"],
-  ...(Object.entries(ESTADO) as [EstadoAntena, { color: string }][]).flatMap(([e, v]) => [e, v.color]),
-  ESTADO.SIN_DATOS.color,
-] as unknown as maplibregl.ExpressionSpecification;
+export type PaletaMapa = { estados: Record<EstadoAntena, string>; zonas: { CAIDA: string; INHABILITADA: string; SATURADA: string; OTRA: string } };
 
-// Colores de zona desaturados: el contorno es contexto, no protagonista. Solo las fallas llaman la atención.
-const colorZona = [
+const PALETA_BASE: PaletaMapa = {
+  estados: Object.fromEntries(Object.entries(ESTADO).map(([e, v]) => [e, v.color])) as Record<EstadoAntena, string>,
+  // Colores de zona desaturados: el contorno es contexto, no protagonista. Solo las fallas llaman la atención.
+  zonas: { CAIDA: "#e07070", INHABILITADA: "#a3acb9", SATURADA: "#d4a65a", OTRA: "#7f93a8" },
+};
+
+// Expresiones de color por estado (antenas) y por estado de zona (contornos).
+const exprEstados = (p: PaletaMapa) => [
   "match", ["get", "estado"],
-  "CAIDA", "#e07070", "INHABILITADA", "#a3acb9", "SATURADA", "#d4a65a",
-  "#7f93a8",
+  ...Object.entries(p.estados).flatMap(([e, c]) => [e, c]),
+  p.estados.SIN_DATOS,
+] as unknown as maplibregl.ExpressionSpecification;
+const exprZonas = (p: PaletaMapa) => [
+  "match", ["get", "estado"],
+  "CAIDA", p.zonas.CAIDA, "INHABILITADA", p.zonas.INHABILITADA, "SATURADA", p.zonas.SATURADA,
+  p.zonas.OTRA,
 ] as unknown as maplibregl.ExpressionSpecification;
 
 // Nivel de zoom desde el que aparecen las antenas (con fundido) y los nombres de zona.
@@ -73,9 +79,12 @@ interface Props {
   seleccion: string | null;
   onSeleccionar: (antenaId: string | null) => void;
   enfocarZona: Zona | null;
+  paleta?: PaletaMapa; // opcional: el mapa rediseñado usa su propia paleta
 }
 
-export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona }: Props) {
+export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona, paleta = PALETA_BASE }: Props) {
+  const colorPorEstado = exprEstados(paleta);
+  const colorZona = exprZonas(paleta);
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaML | null>(null);
   const listo = useRef(false);
@@ -164,7 +173,7 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
           "circle-opacity": aparecer(),
           "circle-stroke-opacity": aparecer(),
           "circle-radius": ["case", ["get", "seleccionada"], 8, 5.5],
-          "circle-stroke-color": ["case", ["get", "seleccionada"], "#ffffff", "#060912"],
+          "circle-stroke-color": ["case", ["get", "seleccionada"], "#ffffff", "#16161a"],
           "circle-stroke-width": ["case", ["get", "seleccionada"], 2.5, 1.5],
         },
       });
