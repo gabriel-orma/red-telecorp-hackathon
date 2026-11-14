@@ -18,6 +18,7 @@ echo "✔ Conexiones de colas activas en $STAGE"
 # `POST /api/colectivos/reanudar` exige sesión de operador (Cognito). Este script ya trabaja con credenciales de AWS,
 # así que invoca la Lambda directamente (solo un principal de IAM puede hacerlo; los visitantes HTTP no).
 SALIDA=$(mktemp)
+command -v cygpath >/dev/null 2>&1 && SALIDA=$(cygpath -m "$SALIDA")   # Git Bash en Windows: el AWS CLI necesita ruta de Windows
 if aws lambda invoke --function-name "telecorp-api-$STAGE-reanudarColectivos" --cli-binary-format raw-in-base64-out \
     --payload '{"requestContext":{"authorizer":{"jwt":{"claims":{"sub":"sistema-reactivar-lab","cognito:groups":"[operadores]"}}}}}' \
     "$SALIDA" >/dev/null 2>&1; then
