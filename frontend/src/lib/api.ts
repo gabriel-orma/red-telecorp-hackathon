@@ -76,6 +76,7 @@ export interface Reporte {
   fechaHoraIncidente: string;
   tipo: TipoProblema;
   descripcion: string;
+  avisarPorEmail?: boolean;
 }
 
 export interface Incidencia {
@@ -102,6 +103,10 @@ export interface EventoHistorial {
 }
 
 export interface DetalleIncidencia {
+  colectivo: {
+    incidenteColectivoId: string; estado: EstadoColectivo; pasoActual: PasoColectivo; prioridad: Prioridad;
+    detectadoEn: string; resueltoEn: string | null; afectados: number; antenasEnFalla: number; resumenIA?: string;
+  } | null;
   incidencia: Incidencia;
   historial: EventoHistorial[];
   zona: {
@@ -127,4 +132,48 @@ export const apiIncidencias = {
       method: "PATCH", body: JSON.stringify({ estado, comentario }),
     }),
   ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${lat}&lng=${lng}`),
+};
+
+// ---------------- Incidentes colectivos (E3) ----------------
+export type EstadoColectivo = "EN_EVALUACION" | "INCIDENCIA_CONFIRMADA" | "SERVICIO_RESTABLECIDO" | "CERRADO";
+export type Prioridad = "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+export type PasoColectivo =
+  | "DETECTADO" | "NOTIFICAR_EVALUACION" | "VERIFICAR_INFRAESTRUCTURA" | "PRIORIZAR" | "RESUMIR" | "CONFIRMAR"
+  | "NOTIFICAR_CONFIRMADA" | "ALERTAR_OPERADOR" | "MONITOREAR" | "RESTABLECER" | "NOTIFICAR_RESTABLECIDO" | "CERRADO";
+
+export interface Colectivo {
+  incidenteColectivoId: string;
+  zonaId: string;
+  zona: { nombre: string; tipo: TipoZona; centro: { lat: number; lng: number }; radioM: number; clientesEstimados: number };
+  origen: "REPORTES_USUARIOS" | "METRICAS_ANTENA" | "AMBOS";
+  origenDetalle: string;
+  estado: EstadoColectivo;
+  pasoActual: PasoColectivo;
+  detectadoEn: string;
+  actualizadoEn: string;
+  resueltoEn: string | null;
+  afectados: number;
+  incidencias: string[];
+  antenasEnFalla: { antenaId: string; estado: string; desde?: string }[];
+  prioridad: Prioridad;
+  puntajePrioridad: number;
+  resumenIA?: string;
+  notificacionesEnviadas: number;
+  restablecimientoSolicitado: boolean;
+  primerReporteEn: string | null;
+  primeraFallaEn: string | null;
+  ejecucionArn?: string;
+  duracionMinutos?: number;
+}
+
+export interface DetalleColectivo {
+  colectivo: Colectivo;
+  historial: EventoHistorial[];
+  incidencias: { incidenciaId: string; estado: EstadoIncidencia; tipo: TipoProblema; creadaEn: string; descripcion: string }[];
+}
+
+export const apiColectivos = {
+  listar: (todos = false) => pedir<{ colectivos: Colectivo[] }>(`/colectivos${todos ? "?todos=1" : ""}`),
+  obtener: (id: string) => pedir<DetalleColectivo>(`/colectivos/${id}`),
+  restablecer: (id: string) => pedir<{ mensaje: string }>(`/colectivos/${id}/restablecer`, { method: "POST" }),
 };

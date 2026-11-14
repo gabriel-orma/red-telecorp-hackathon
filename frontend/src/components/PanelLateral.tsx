@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
-import { Activity, Flame, Users } from "lucide-react";
-import type { Antena, EstadoAntena, Zona } from "../lib/api";
-import { ESTADO, GRAVEDAD, ORDEN_ESTADOS, TIPO_ZONA } from "../lib/estados";
+import { Activity, ChevronRight, Flame, Siren, Users } from "lucide-react";
+import type { Antena, Colectivo, EstadoAntena, Zona } from "../lib/api";
+import { ESTADO, ESTADO_COLECTIVO, GRAVEDAD, ORDEN_ESTADOS, PRIORIDAD, TIPO_ZONA } from "../lib/estados";
+import { navegar } from "../lib/router";
+import { FlujoMini } from "./FlujoColectivo";
 import { cn, numero } from "../lib/utils";
 import { NumeroAnimado } from "./NumeroAnimado";
 
@@ -25,11 +27,12 @@ function AnilloOperativas({ operativas, total }: { operativas: number; total: nu
 interface Props {
   antenas: Antena[];
   zonas: Zona[];
+  colectivos: Colectivo[];
   onZona: (z: Zona) => void;
   reportes24h: number;
 }
 
-export function PanelLateral({ antenas, zonas, onZona, reportes24h }: Props) {
+export function PanelLateral({ antenas, zonas, colectivos, onZona, reportes24h }: Props) {
   const conteo = (e: EstadoAntena) => antenas.filter((a) => a.estado === e).length;
   const operativas = conteo("NORMAL") + conteo("SATURADA");
   const trafico = antenas.reduce((s, a) => s + (a.gbPorMinuto ?? 0), 0);
@@ -42,6 +45,29 @@ export function PanelLateral({ antenas, zonas, onZona, reportes24h }: Props) {
 
   return (
     <aside className="scroll-fino flex min-h-0 w-full flex-1 flex-col gap-3 overflow-y-auto p-3 md:w-[340px] md:flex-none">
+      {/* Incidentes colectivos activos */}
+      {colectivos.length > 0 && (
+        <section className="panel overflow-hidden border-caida/40 p-2">
+          <div className="flex items-center gap-2 px-2 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wider text-caida">
+            <Siren className="latido size-3.5" /> Incidentes colectivos · {colectivos.length}
+          </div>
+          {colectivos.map((c) => (
+            <button key={c.incidenteColectivoId} onClick={() => navegar(`/colectivos?id=${c.incidenteColectivoId}`)}
+              className="w-full rounded-lg px-2 py-2 text-left transition hover:bg-panel-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm font-medium">{c.zona.nombre}</span>
+                <span className="cifra text-[10px] font-bold" style={{ color: PRIORIDAD[c.prioridad].color }}>{PRIORIDAD[c.prioridad].etiqueta.toUpperCase()}</span>
+              </div>
+              <div className="mb-1.5 flex items-center gap-1 text-[11px] text-tenue">
+                <span style={{ color: ESTADO_COLECTIVO[c.estado].color }}>{ESTADO_COLECTIVO[c.estado].etiqueta}</span>
+                · {c.afectados} afectados <ChevronRight className="ml-auto size-3.5" />
+              </div>
+              <FlujoMini colectivo={c} />
+            </button>
+          ))}
+        </section>
+      )}
+
       {/* KPI principal */}
       <section className="panel flex items-center gap-4 p-4">
         <div className="relative">

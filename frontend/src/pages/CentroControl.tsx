@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { api, apiIncidencias, type Antena, type EstadoSimulador, type Incidencia, type Zona } from "../lib/api";
+import { api, apiIncidencias, type Antena, type Colectivo, type EstadoSimulador, type Incidencia, type Zona } from "../lib/api";
 import { usePolling } from "../hooks/usePolling";
 import { PanelLateral } from "../components/PanelLateral";
 import { MapaRed } from "../components/MapaRed";
@@ -10,11 +10,12 @@ import { Leyenda } from "../components/Leyenda";
 interface Props {
   antenas: Antena[];
   zonas: Zona[];
+  colectivos: Colectivo[];
   cargando: boolean;
   refrescarRed: () => void;
 }
 
-export function CentroControl({ antenas, zonas, cargando, refrescarRed }: Props) {
+export function CentroControl({ antenas, zonas, colectivos, cargando, refrescarRed }: Props) {
   const sim = usePolling<EstadoSimulador>(api.simulador, 10_000);
   const reportes = usePolling<Incidencia[]>(
     useCallback(() => apiIncidencias.listar({ horas: 24 }).then((r) => r.incidencias), []),
@@ -33,11 +34,12 @@ export function CentroControl({ antenas, zonas, cargando, refrescarRed }: Props)
 
   return (
     <main className="flex min-h-0 flex-1 flex-col-reverse md:flex-row">
-      <PanelLateral antenas={antenas} zonas={zonas} onZona={setZonaFoco} reportes24h={reportes.datos?.length ?? 0} />
+      <PanelLateral antenas={antenas} zonas={zonas} colectivos={colectivos} onZona={setZonaFoco} reportes24h={reportes.datos?.length ?? 0} />
       <div className="relative h-[52vh] shrink-0 overflow-hidden md:m-3 md:ml-0 md:h-auto md:flex-1 md:rounded-2xl md:border md:border-borde">
         <MapaRed
           antenas={antenas}
           zonas={zonas}
+          colectivos={colectivos}
           reportes={verCalor ? reportes.datos ?? [] : []}
           seleccion={seleccion}
           onSeleccionar={setSeleccion}

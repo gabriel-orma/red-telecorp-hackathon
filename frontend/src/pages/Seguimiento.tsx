@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowLeft, Copy, Loader2, Radio, Users } from "lucide-react";
 import { apiIncidencias, type DetalleIncidencia } from "../lib/api";
-import { ESTADO, ESTADO_INCIDENCIA, TIPO_PROBLEMA, TIPO_ZONA } from "../lib/estados";
+import { ESTADO, ESTADO_COLECTIVO, ESTADO_INCIDENCIA, TIPO_PROBLEMA, TIPO_ZONA } from "../lib/estados";
 import { enlace } from "../lib/router";
 import { haceCuanto } from "../lib/utils";
 import { Historial, Progreso } from "../components/LineaTiempo";
@@ -38,7 +38,7 @@ export function Seguimiento({ incidenciaId }: { incidenciaId: string }) {
     );
   }
 
-  const { incidencia: inc, zona, historial } = det;
+  const { incidencia: inc, zona, historial, colectivo } = det;
   const est = ESTADO_INCIDENCIA[inc.estado];
   const Tipo = TIPO_PROBLEMA[inc.tipo]?.icono ?? TIPO_PROBLEMA.OTRO.icono;
   const redColor = ESTADO[zona.estadoRed].color;
@@ -67,6 +67,23 @@ export function Seguimiento({ incidenciaId }: { incidenciaId: string }) {
           <div className="mt-6"><Progreso estado={inc.estado} /></div>
         </div>
       </motion.section>
+
+      {/* Incidente colectivo de la zona */}
+      {colectivo && (
+        <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          className="mt-3 rounded-2xl p-4 ring-1"
+          style={{ background: `${ESTADO_COLECTIVO[colectivo.estado].color}14`, ["--tw-ring-color" as string]: `${ESTADO_COLECTIVO[colectivo.estado].color}55` }}>
+          <div className="text-[11px] uppercase tracking-wider" style={{ color: ESTADO_COLECTIVO[colectivo.estado].color }}>
+            {colectivo.estado === "CERRADO" || colectivo.estado === "SERVICIO_RESTABLECIDO" ? "Falla en tu zona · resuelta" : "Falla detectada en tu zona"}
+          </div>
+          <div className="mt-1 text-sm font-semibold">{ESTADO_COLECTIVO[colectivo.estado].etiqueta}</div>
+          <p className="mt-1 text-xs text-texto/80">
+            Tu reporte forma parte de un incidente que afecta a <b>{colectivo.afectados}</b> usuarios
+            {colectivo.antenasEnFalla > 0 && <> y a <b>{colectivo.antenasEnFalla}</b> antena(s)</>}.
+            {colectivo.estado === "CERRADO" || colectivo.estado === "SERVICIO_RESTABLECIDO" ? " El servicio ya fue restablecido." : " Te avisaremos de cada avance."}
+          </p>
+        </motion.section>
+      )}
 
       {/* Estado de la zona */}
       <section className="panel mt-3 p-4">

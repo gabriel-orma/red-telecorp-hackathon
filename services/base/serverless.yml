@@ -110,6 +110,10 @@ resources:
         QueueName: ${self:custom.prefijo}-reportes
         VisibilityTimeout: 180
         RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 3 }
+    # Eventos del detector (DynamoDB Streams) que fallaron tras los reintentos: no se pierden.
+    ColaDetectorDLQ:
+      Type: AWS::SQS::Queue
+      Properties: { QueueName: "${self:custom.prefijo}-detector-dlq", MessageRetentionPeriod: 1209600 }
     ColaMetricasDLQ:
       Type: AWS::SQS::Queue
       Properties: { QueueName: "${self:custom.prefijo}-metricas-dlq", MessageRetentionPeriod: 1209600 }
@@ -128,6 +132,25 @@ resources:
         Type: String
         Description: "Simulador de antenas. fallas = {antenaId: GB/min forzado}"
         Value: '{"fallas": {}, "probSaturacion": 0.03, "muestrasPorMinuto": 4}'
+    ParametroReglas:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /telecorp/${sls:stage}/reglas
+        Type: String
+        Description: "Reglas de negocio ajustables sin desplegar código (prioridad = TODO D7)"
+        Value: >-
+          {"colectivo": {"umbralUsuarios": 10, "ventanaHoras": 24, "esperaVerificacionSegundos": 30, "maxIteraciones": 5760},
+          "prioridad": {"_todo": "TODO(D7) fórmula provisional", "pesoAfectado": 1, "pesoAntenaEnFalla": 10,
+          "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}}}
+
+    # ---------- SNS: avisos a usuarios (email con FilterPolicy) y alertas al operador ----------
+    TopicoAvisos:
+      Type: AWS::SNS::Topic
+      Properties: { TopicName: "${self:custom.prefijo}-avisos", DisplayName: Red TeleCorp }
+    TopicoAlertasOperador:
+      Type: AWS::SNS::Topic
+      Properties: { TopicName: "${self:custom.prefijo}-alertas-operador", DisplayName: Red TeleCorp NOC }
+
     SecretoIA:
       Type: AWS::SecretsManager::Secret
       Properties:
@@ -148,4 +171,7 @@ resources:
     ColaReportesArn: { Value: !GetAtt ColaReportes.Arn }
     ColaMetricasUrl: { Value: !Ref ColaMetricas }
     ColaMetricasArn: { Value: !GetAtt ColaMetricas.Arn }
+    ColaDetectorDLQArn: { Value: !GetAtt ColaDetectorDLQ.Arn }
     SecretoIAArn: { Value: !Ref SecretoIA }
+    TopicoAvisosArn: { Value: !Ref TopicoAvisos }
+    TopicoAlertasOperadorArn: { Value: !Ref TopicoAlertasOperador }

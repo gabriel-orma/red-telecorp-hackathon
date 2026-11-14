@@ -30,7 +30,7 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - `scripts/deploy.sh` y `remove.sh`: todo replicable.
 - **Probar**: abrir la URL, encender el simulador, forzar una falla y ver la antena cambiar de color. → **Feedback de diseño.**
 
-## E2: Portal del usuario + gestión de incidencias 🧪
+## E2: Portal del usuario + gestión de incidencias ✅
 - `POST /reportes` → SQS → worker, **idempotente** (el mismo usuario no cuenta doble).
 - `GET`/`PATCH` de incidencias, transiciones válidas e **historial inmutable**.
 - Portal móvil:
@@ -40,7 +40,7 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - Panel: lista de incidencias con cambio de estado + **mapa de calor** de reportes.
 - **Probar**: reportar desde el celular, seguir el reporte y cambiarle el estado desde el panel.
 
-## E3: Detección colectiva + Step Functions ⬜
+## E3: Detección colectiva + Step Functions 🧪
 - Detector: **≥10 usuarios distintos / zona / <24 h** y **detección proactiva** por antena caída o inhabilitada.
 - **Step Function `incidente-colectivo`**:
   - `Choice` (¿crítico?, ¿hay antenas en falla?);

@@ -1,0 +1,184 @@
+# Ciclo de vida de un incidente colectivo (Red TeleCorp).
+# Entrada: {"colectivoId": "COL-...", "esperaSegundos": 30, "monitoreo": {"iteracion": 0}}
+Comment: Incidente colectivo - evaluar, verificar la red, priorizar, avisar, monitorear y cerrar
+StartAt: PrepararAvisoEvaluacion
+States:
+  # 1. Aviso a todos los afectados: "estamos evaluando"
+  PrepararAvisoEvaluacion:
+    Type: Task
+    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "EN_EVALUACION", "paso": "NOTIFICAR_EVALUACION" }
+    ResultPath: $.aviso
+    Retry: &reintentos
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException, States.TaskFailed]
+        IntervalSeconds: 2
+        MaxAttempts: 3
+        BackoffRate: 2
+    Next: NotificarEvaluacion
+  NotificarEvaluacion:
+    Type: Map
+    ItemsPath: $.aviso.destinatarios
+    MaxConcurrency: 10
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: AvisarUsuarioEvaluacion
+      States:
+        AvisarUsuarioEvaluacion:
+          Type: Task
+          Resource: { "Fn::GetAtt": [notificarUno, Arn] }
+          Retry: *reintentos
+          End: true
+    ResultPath: null
+    Next: VerificarInfraestructura
+
+  # 2. Verificación de la infraestructura (correlación con las antenas de la zona)
+  VerificarInfraestructura:
+    Type: Task
+    Resource: { "Fn::GetAtt": [verificarInfraestructura, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: $.verificacion
+    Retry: *reintentos
+    Next: Priorizar
+
+  # 3. Prioridad: afectados × criticidad de la zona (+ antenas en falla)
+  Priorizar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [priorizar, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: $.prioridad
+    Retry: *reintentos
+    Next: Resumir
+
+  # 4. Resumen para el operador (IA de la 2.ª nube en E4; si falla, el flujo sigue)
+  Resumir:
+    Type: Task
+    Resource: { "Fn::GetAtt": [resumir, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: $.resumen
+    Retry: *reintentos
+    Catch:
+      - ErrorEquals: [States.ALL]
+        ResultPath: $.errorResumen
+        Next: Confirmar
+    Next: Confirmar
+
+  # 5. Incidencia confirmada en la zona + aviso a todos
+  Confirmar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [confirmar, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: null
+    Retry: *reintentos
+    Next: PrepararAvisoConfirmada
+  PrepararAvisoConfirmada:
+    Type: Task
+    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
+    ResultPath: $.aviso
+    Retry: *reintentos
+    Next: NotificarConfirmada
+  NotificarConfirmada:
+    Type: Map
+    ItemsPath: $.aviso.destinatarios
+    MaxConcurrency: 10
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: AvisarUsuarioConfirmada
+      States:
+        AvisarUsuarioConfirmada:
+          Type: Task
+          Resource: { "Fn::GetAtt": [notificarUno, Arn] }
+          Retry: *reintentos
+          End: true
+    ResultPath: null
+    Next: EsCritico
+
+  # 6. ¿Crítico? → alerta inmediata al centro de operaciones (integración directa con SNS)
+  EsCritico:
+    Type: Choice
+    Choices:
+      - Variable: $.prioridad.critico
+        BooleanEquals: true
+        Next: AlertarOperador
+    Default: Monitorear
+  AlertarOperador:
+    Type: Task
+    Resource: arn:aws:states:::sns:publish
+    Parameters:
+      TopicArn: ${cf:telecorp-base-${sls:stage}.TopicoAlertasOperadorArn}
+      Subject: "Red TeleCorp - Incidente CRITICO"
+      "Message.$": "States.Format('Incidente colectivo {} en {}: {} usuarios afectados, {} antenas en falla, puntaje {}.', $.colectivoId, $.verificacion.zona, $.prioridad.afectados, $.verificacion.antenasEnFalla, $.prioridad.puntaje)"
+    ResultPath: null
+    Retry: *reintentos
+    Next: Monitorear
+
+  # 7. Monitoreo: re-verificar cada N segundos hasta que la red se normalice o el operador lo marque
+  Monitorear:
+    Type: Wait
+    SecondsPath: $.esperaSegundos
+    Next: Reverificar
+  Reverificar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [reverificar, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "iteracion.$": "$.monitoreo.iteracion", "afectados.$": "$.prioridad.afectados" }
+    ResultPath: $.monitoreo
+    Retry: *reintentos
+    Next: EstaRestablecido
+  EstaRestablecido:
+    Type: Choice
+    Choices:
+      - Variable: $.monitoreo.restablecido
+        BooleanEquals: true
+        Next: Restablecer
+      - Variable: $.monitoreo.agotado
+        BooleanEquals: true
+        Next: SinResolver
+    Default: Monitorear
+  SinResolver:
+    Type: Task
+    Resource: { "Fn::GetAtt": [sinResolver, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: null
+    Next: RequiereAtencionManual
+  RequiereAtencionManual:
+    Type: Fail
+    Error: MonitoreoAgotado
+    Cause: El servicio no se restableció dentro del tiempo máximo de monitoreo
+
+  # 8. Restablecido → aviso a todos → cierre (incidencias solucionadas, duración registrada)
+  Restablecer:
+    Type: Task
+    Resource: { "Fn::GetAtt": [restablecer, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
+    ResultPath: null
+    Retry: *reintentos
+    Next: PrepararAvisoRestablecido
+  PrepararAvisoRestablecido:
+    Type: Task
+    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "SERVICIO_RESTABLECIDO", "paso": "NOTIFICAR_RESTABLECIDO" }
+    ResultPath: $.aviso
+    Retry: *reintentos
+    Next: NotificarRestablecido
+  NotificarRestablecido:
+    Type: Map
+    ItemsPath: $.aviso.destinatarios
+    MaxConcurrency: 10
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: AvisarUsuarioRestablecido
+      States:
+        AvisarUsuarioRestablecido:
+          Type: Task
+          Resource: { "Fn::GetAtt": [notificarUno, Arn] }
+          Retry: *reintentos
+          End: true
+    ResultPath: null
+    Next: Cerrar
+  Cerrar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [cerrar, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: $.cierre
+    Retry: *reintentos
+    End: true

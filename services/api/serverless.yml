@@ -30,6 +30,8 @@ provider:
     TABLA_HISTORIAL: ${cf:${self:custom.base}.TablaHistorialNombre}
     TABLA_INCIDENCIAS: ${cf:${self:custom.base}.TablaIncidenciasNombre}
     TABLA_DEDUP: ${cf:${self:custom.base}.TablaDedupNombre}
+    TABLA_COLECTIVOS: ${cf:${self:custom.base}.TablaColectivosNombre}
+    TOPICO_AVISOS: ${cf:${self:custom.base}.TopicoAvisosArn}
     COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
 
 package:
@@ -89,6 +91,19 @@ functions:
     handler: src/incidencias.cambiar_estado
     events:
       - httpApi: PATCH /api/incidencias/{incidenciaId}/estado
+  # ---------- Incidentes colectivos (E3) ----------
+  listarColectivos:
+    handler: src/colectivos.listar
+    events:
+      - httpApi: GET /api/colectivos
+  obtenerColectivo:
+    handler: src/colectivos.obtener
+    events:
+      - httpApi: GET /api/colectivos/{colectivoId}
+  restablecerColectivo:
+    handler: src/colectivos.restablecer
+    events:
+      - httpApi: POST /api/colectivos/{colectivoId}/restablecer
   web:
     handler: src/web.handler
     memorySize: 512

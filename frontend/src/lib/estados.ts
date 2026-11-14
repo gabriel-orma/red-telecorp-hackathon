@@ -58,6 +58,45 @@ export const TIPO_PROBLEMA: Record<TipoProblema, { etiqueta: string; icono: Luci
 };
 
 export const EVENTO: Record<string, { etiqueta: string; icono: LucideIcon }> = {
-  CREADO: { etiqueta: "Reporte registrado", icono: ClipboardCheck },
+  CREADO: { etiqueta: "Registrado", icono: ClipboardCheck },
   CAMBIO_ESTADO: { etiqueta: "Cambio de estado", icono: Wrench },
+  AGRUPADO: { etiqueta: "Agrupado en un incidente colectivo", icono: ClipboardCheck },
+  PRIORIDAD_ASIGNADA: { etiqueta: "Prioridad asignada", icono: Wrench },
+  COMENTARIO: { etiqueta: "Nota", icono: FileText },
 };
+
+// ---------------- Incidentes colectivos (E3) ----------------
+import {
+  AlertTriangle, BellRing, Brain, CheckCheck, Flag, Gauge as GaugeIcon, Megaphone, RadioTower, RefreshCw, Siren, Sparkles,
+} from "lucide-react";
+import type { EstadoColectivo, PasoColectivo, Prioridad } from "./api";
+
+export const ESTADO_COLECTIVO: Record<EstadoColectivo, { etiqueta: string; color: string }> = {
+  EN_EVALUACION: { etiqueta: "En evaluación", color: "#a78bfa" },
+  INCIDENCIA_CONFIRMADA: { etiqueta: "Incidencia confirmada", color: "#ef4444" },
+  SERVICIO_RESTABLECIDO: { etiqueta: "Servicio restablecido", color: "#22c55e" },
+  CERRADO: { etiqueta: "Cerrado", color: "#94a3b8" },
+};
+
+export const PRIORIDAD: Record<Prioridad, { etiqueta: string; color: string }> = {
+  BAJA: { etiqueta: "Baja", color: "#60a5fa" },
+  MEDIA: { etiqueta: "Media", color: "#f59e0b" },
+  ALTA: { etiqueta: "Alta", color: "#f97316" },
+  CRITICA: { etiqueta: "Crítica", color: "#ef4444" },
+};
+
+/** Pasos de la Step Function `incidente-colectivo`, en orden (para el diagrama). */
+export const PASOS_FLUJO: { paso: PasoColectivo; etiqueta: string; detalle: string; icono: LucideIcon; tipo?: "map" | "choice" | "loop" }[] = [
+  { paso: "DETECTADO", etiqueta: "Detección", detalle: "≥10 usuarios / zona / 24 h o antena caída", icono: AlertTriangle },
+  { paso: "NOTIFICAR_EVALUACION", etiqueta: "Aviso: en evaluación", detalle: "Map → un aviso por afectado", icono: Megaphone, tipo: "map" },
+  { paso: "VERIFICAR_INFRAESTRUCTURA", etiqueta: "Verificar infraestructura", detalle: "Correlación con antenas de la zona", icono: RadioTower },
+  { paso: "PRIORIZAR", etiqueta: "Priorizar", detalle: "Afectados × criticidad de zona", icono: GaugeIcon },
+  { paso: "RESUMIR", etiqueta: "Resumen para el operador", detalle: "IA de la 2.ª nube (E4)", icono: Brain },
+  { paso: "CONFIRMAR", etiqueta: "Confirmar incidencia", detalle: "Incidencias → siendo atendidas", icono: Flag },
+  { paso: "NOTIFICAR_CONFIRMADA", etiqueta: "Aviso: incidencia en la zona", detalle: "Map → un aviso por afectado", icono: BellRing, tipo: "map" },
+  { paso: "ALERTAR_OPERADOR", etiqueta: "¿Crítico? Alerta al NOC", detalle: "Choice + SNS directo", icono: Siren, tipo: "choice" },
+  { paso: "MONITOREAR", etiqueta: "Monitoreo", detalle: "Wait + re-verificación periódica", icono: RefreshCw, tipo: "loop" },
+  { paso: "RESTABLECER", etiqueta: "Servicio restablecido", detalle: "Automático (antenas OK) o por operador", icono: Sparkles },
+  { paso: "NOTIFICAR_RESTABLECIDO", etiqueta: "Aviso: restablecido", detalle: "Map → un aviso por afectado", icono: Megaphone, tipo: "map" },
+  { paso: "CERRADO", etiqueta: "Cierre", detalle: "Incidencias solucionadas + duración", icono: CheckCheck },
+];

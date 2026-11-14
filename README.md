@@ -16,7 +16,7 @@ Instala las dependencias (Serverless Framework v3 queda fijado en el repo):
 npm ci
 ```
 
-Despliega todo: base → antenas → api → frontend. La primera vez tarda unos 8 minutos.
+Despliega todo: base → antenas → api → workflows → frontend. La primera vez tarda unos 8 minutos.
 ```bash
 bash scripts/deploy.sh dev-tualias
 ```
@@ -43,6 +43,7 @@ python -m pytest
 | [`services/base`](services/base) | Tablas DynamoDB (PITR), colas SQS + DLQ, SSM, Secrets Manager, layer Python común |
 | [`services/antenas`](services/antenas) | Simulador (EventBridge Scheduler) y clasificador de métricas |
 | [`services/api`](services/api) | HTTP API: datos en `/api/*` y frontend por HTTPS en `/` |
+| [`workflows`](workflows) | Detector de incidentes colectivos (Streams) y Step Function del ciclo de vida |
 | [`frontend`](frontend) | Centro de control (React + MapLibre) |
 
 ## Cómo trabajamos (3 personas, cada una con su agente de IA)
