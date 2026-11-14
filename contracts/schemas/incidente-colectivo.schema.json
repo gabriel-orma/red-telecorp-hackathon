@@ -3,36 +3,107 @@
   "$id": "incidente-colectivo.schema.json",
   "title": "Incidente colectivo (entrada y estado del workflow)",
   "type": "object",
-  "required": ["incidenteColectivoId", "zonaId", "origen", "detectadoEn", "estado"],
+  "required": [
+    "incidenteColectivoId",
+    "zonaId",
+    "origen",
+    "detectadoEn",
+    "estado"
+  ],
   "properties": {
-    "incidenteColectivoId": { "type": "string", "pattern": "^COL-" },
-    "zonaId": { "type": "string" },
+    "incidenteColectivoId": {
+      "type": "string",
+      "pattern": "^COL-"
+    },
+    "zonaId": {
+      "type": "string"
+    },
     "origen": {
       "type": "string",
-      "enum": ["REPORTES_USUARIOS", "METRICAS_ANTENA", "AMBOS"],
+      "enum": [
+        "REPORTES_USUARIOS",
+        "METRICAS_ANTENA",
+        "AMBOS"
+      ],
       "description": "REPORTES_USUARIOS = regla de ≥10 usuarios/24 h; METRICAS_ANTENA = detección proactiva"
     },
-    "detectadoEn": { "type": "string", "format": "date-time" },
-    "resueltoEn": { "type": ["string", "null"], "format": "date-time" },
+    "detectadoEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resueltoEn": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
     "estado": {
       "type": "string",
-      "enum": ["EN_EVALUACION", "INCIDENCIA_CONFIRMADA", "SERVICIO_RESTABLECIDO", "CERRADO"],
+      "enum": [
+        "EN_EVALUACION",
+        "INCIDENCIA_CONFIRMADA",
+        "SERVICIO_RESTABLECIDO",
+        "CERRADO"
+      ],
       "description": "Cada estado dispara su notificación a los afectados"
     },
-    "usuariosAfectados": { "type": "array", "items": { "type": "string" }, "description": "usuarioId distintos" },
-    "incidencias": { "type": "array", "items": { "type": "string" }, "description": "incidenciaId agrupadas" },
+    "usuariosAfectados": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "usuarioId distintos"
+    },
+    "incidencias": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "incidenciaId agrupadas"
+    },
     "antenasEnFalla": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "antenaId": { "type": "string" },
-          "estado": { "type": "string", "enum": ["INHABILITADA", "CAIDA", "SATURADA"] }
+          "antenaId": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "INHABILITADA",
+              "CAIDA",
+              "SATURADA"
+            ]
+          }
         }
       }
     },
-    "prioridad": { "type": "string", "enum": ["BAJA", "MEDIA", "ALTA", "CRITICA"] },
-    "puntajePrioridad": { "type": "number" },
-    "resumenIA": { "type": "string", "description": "Resumen generado por la IA para el operador" }
+    "prioridad": {
+      "type": "string",
+      "enum": [
+        "BAJA",
+        "MEDIA",
+        "ALTA",
+        "CRITICA"
+      ]
+    },
+    "puntajePrioridad": {
+      "type": "number"
+    },
+    "resumenIA": {
+      "type": "string",
+      "description": "Resumen generado por la IA para el operador"
+    },
+    "origenDetalle": {
+      "type": "string",
+      "description": "Explicación breve de por qué se detectó (ej. '12 usuarios en 24 h', 'ANT-008 INHABILITADA')"
+    },
+    "taskToken": {
+      "type": "string",
+      "description": "INTERNO: token de Step Functions de la espera de resolución. El API no lo expone."
+    }
   }
 }

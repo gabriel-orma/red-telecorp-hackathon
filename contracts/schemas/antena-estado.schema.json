@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antena-estado.schema.json",
+  "title": "Estado actual de una antena (último valor clasificado)",
+  "type": "object",
+  "required": ["antenaId", "zonaId", "estado", "gbPorMinuto", "actualizadoEn", "estadoDesde"],
+  "properties": {
+    "antenaId": { "type": "string", "pattern": "^ANT-" },
+    "zonaId": { "type": "string" },
+    "estado": { "type": "string", "enum": ["INHABILITADA", "CAIDA", "NORMAL", "SATURADA"] },
+    "gbPorMinuto": { "type": "number", "minimum": 0 },
+    "actualizadoEn": { "type": "string", "format": "date-time", "description": "Última métrica recibida" },
+    "estadoDesde": { "type": "string", "format": "date-time", "description": "Desde cuándo está en el estado actual" }
+  }
+}
