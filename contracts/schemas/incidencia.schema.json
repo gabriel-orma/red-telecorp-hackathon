@@ -3,25 +3,86 @@
   "$id": "incidencia.schema.json",
   "title": "Incidencia (reporte de usuario ya registrado)",
   "type": "object",
-  "required": ["incidenciaId", "estado", "creadaEn", "actualizadaEn", "reporte"],
+  "required": [
+    "incidenciaId",
+    "estado",
+    "creadaEn",
+    "actualizadaEn",
+    "reporte"
+  ],
   "properties": {
-    "incidenciaId": { "type": "string", "pattern": "^INC-" },
-    "estado": { "$ref": "#/$defs/EstadoIncidencia" },
-    "creadaEn": { "type": "string", "format": "date-time" },
-    "actualizadaEn": { "type": "string", "format": "date-time" },
-    "reporte": { "$ref": "reporte.schema.json" },
-    "tipoIA": { "type": "string", "description": "Tipo sugerido por la IA a partir de la descripción (puede diferir del elegido por el usuario)" },
-    "incidenteColectivoId": { "type": ["string", "null"], "description": "Si fue agrupada en un incidente colectivo" },
-    "prioridad": { "$ref": "#/$defs/Prioridad" }
+    "incidenciaId": {
+      "type": "string",
+      "pattern": "^INC-"
+    },
+    "estado": {
+      "$ref": "#/$defs/EstadoIncidencia"
+    },
+    "creadaEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actualizadaEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reporte": {
+      "$ref": "reporte.schema.json"
+    },
+    "tipoIA": {
+      "type": "string",
+      "description": "Tipo sugerido por la IA a partir de la descripción (puede diferir del elegido por el usuario)"
+    },
+    "incidenteColectivoId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Si fue agrupada en un incidente colectivo"
+    },
+    "prioridad": {
+      "$ref": "#/$defs/Prioridad"
+    },
+    "zonaId": {
+      "type": "string",
+      "description": "Copia de reporte.zonaId en la raíz (índice zona-fecha)"
+    },
+    "usuarioId": {
+      "type": "string",
+      "description": "Copia de reporte.usuarioId en la raíz (conteo de usuarios distintos). Enmascarado en el API"
+    },
+    "tipo": {
+      "type": "string",
+      "description": "Copia de reporte.tipo en la raíz (filtros y analítica)"
+    },
+    "transicionesPermitidas": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/EstadoIncidencia"
+      },
+      "description": "Solo en respuestas del API: estados a los que puede pasar ahora"
+    }
   },
   "$defs": {
     "EstadoIncidencia": {
       "type": "string",
-      "enum": ["REGISTRADA", "EN_REVISION", "EN_ATENCION", "SOLUCIONADA", "CERRADA"]
+      "enum": [
+        "REGISTRADA",
+        "EN_REVISION",
+        "EN_ATENCION",
+        "SOLUCIONADA",
+        "CERRADA"
+      ]
     },
     "Prioridad": {
       "type": "string",
-      "enum": ["BAJA", "MEDIA", "ALTA", "CRITICA"]
+      "enum": [
+        "BAJA",
+        "MEDIA",
+        "ALTA",
+        "CRITICA"
+      ]
     }
-  }
+  },
+  "description": "Los datos de contacto (email, telefonoContacto, usuarioId) se devuelven enmascarados en el API."
 }
