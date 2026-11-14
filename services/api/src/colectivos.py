@@ -1,14 +1,22 @@
 """Incidentes colectivos (E3): consulta y acción del operador.
 
-GET  /api/colectivos?todos=1          → abiertos (por defecto) o los de los últimos 7 días
-GET  /api/colectivos/{id}             → detalle + historial + zona + incidencias (resumen)
+GET  /api/colectivos?todos=1          → abiertos (por defecto) o los de los últimos 7 días (público: solo conteos)
+GET  /api/colectivos/{id}             → detalle + historial + zona + incidencias (resumen). Solo operadores.
 POST /api/colectivos/{id}/restablecer → el operador marca el servicio como restablecido; la Step Function
-                                        lo detecta en su próxima re-verificación y cierra el ciclo.
+                                        lo detecta en su próxima re-verificación y cierra el ciclo. Solo operadores.
+
+"Solo operadores" = autorizador JWT en la ruta + grupo `operadores` comprobado en el handler (ver `acceso.py`).
 """
+import os as _os
+import sys as _sys
+
+_sys.path.insert(0, _os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
+
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
 from telecorp import db, historial, http, reglas, util, zonas
+import acceso  # noqa: E402
 
 _OCULTOS = {"taskToken"}
 
@@ -31,6 +39,7 @@ def listar(event, context):
     return http.ok({"colectivos": [_publico(c) for c in items]})
 
 
+@acceso.solo_operadores
 def obtener(event, context):
     cid = event["pathParameters"]["colectivoId"]
     c = db.tabla("colectivos").get_item(Key={"incidenteColectivoId": cid}).get("Item")
@@ -49,6 +58,7 @@ def obtener(event, context):
                     "incidencias": incidencias})
 
 
+@acceso.solo_operadores
 def restablecer(event, context):
     cid = event["pathParameters"]["colectivoId"]
     try:
@@ -62,7 +72,7 @@ def restablecer(event, context):
         if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
             return http.error(409, "El incidente no está abierto")
         raise
-    historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "OPERADOR",
+    historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", f"operador:{acceso.identidad(event)}",
                         detalle="El operador marcó el servicio como restablecido")
     return http.ok({"incidenteColectivoId": cid, "restablecimientoSolicitado": True,
                     "mensaje": "La Step Function cerrará el incidente en su próxima verificación."})

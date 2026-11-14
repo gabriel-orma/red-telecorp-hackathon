@@ -2,29 +2,53 @@
 
 POST  /api/reportes                    → valida, deduplica y encola en SQS (202). El worker la registra.
 SQS   reportes → registrar             → put idempotente (condicional) + historial CREADO.
-GET   /api/incidencias                 → lista (filtros: zonaId, estado, horas, limite).
-GET   /api/incidencias/{id}            → detalle + historial + transiciones permitidas + estado de la zona.
-PATCH /api/incidencias/{id}/estado     → cambio de estado validado + historial.
+GET   /api/incidencias                 → lista PÚBLICA (filtros: zonaId, estado, horas, limite). Solo lista blanca.
+GET   /api/incidencias/{id}            → detalle PÚBLICO + historial + transiciones + estado de la zona. Solo lista blanca.
+GET   /api/operador/incidencias[/{id}] → lo mismo con el detalle del reporte (nombre, ubicación, descripción). Solo operadores.
+PATCH /api/incidencias/{id}/estado     → cambio de estado validado + historial. Solo operadores.
 
-Los datos personales se devuelven enmascarados (no hay autenticación todavía).
+Privacidad (R3): sin sesión se devuelve únicamente una LISTA BLANCA de campos (estado, tipo, zona, fechas). Nombre, GPS
+exacto, descripción libre y datos de contacto solo los ve un operador autenticado (ID token + grupo `operadores`, ver
+`acceso.py`); aun así el DNI, el servicio, el correo y el teléfono se muestran enmascarados.
 """
 import json
+import math
 import os
+import sys as _sys
 import time
+from datetime import datetime, timedelta, timezone
+
+_sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
 from telecorp import db, estadisticas, historial, http, notificador, reglas, util, zonas
+import acceso  # noqa: E402
 
 _sqs = boto3.client("sqs")
 VENTANA_DEDUP_HORAS = 24
+FECHA_INCIDENTE_MAX_ANTIGUEDAD = timedelta(days=7)
+FECHA_INCIDENTE_MAX_ADELANTO = timedelta(minutes=5)
+
+# Lista blanca de la vista pública: nada de nombre, GPS, descripción libre, contacto ni identificadores de la persona.
+_CAMPOS_PUBLICOS = ("incidenciaId", "estado", "creadaEn", "actualizadaEn", "zonaId", "tipo", "incidenteColectivoId")
+_CAMPOS_REPORTE_PUBLICOS = ("tipo", "zonaId", "fechaHoraIncidente", "ubicacionFuente")
 
 
 # ---------------- Utilidades ----------------
-def _publica(item: dict, completa: bool = False) -> dict:
-    """Vista para el API: datos personales enmascarados."""
+def _vista_publica(item: dict) -> dict:
+    """Vista sin sesión: SOLO los campos de la lista blanca (H02)."""
+    rep = item.get("reporte", {})
+    salida = {k: item[k] for k in _CAMPOS_PUBLICOS if k in item}
+    salida["reporte"] = {k: rep[k] for k in _CAMPOS_REPORTE_PUBLICOS if k in rep}
+    salida["transicionesPermitidas"] = reglas.transiciones_permitidas(item["estado"])
+    return salida
+
+
+def _vista_operador(item: dict, completa: bool = False) -> dict:
+    """Vista de operador autenticado: ve el detalle del reporte, pero identificadores y contacto salen enmascarados."""
     rep = dict(item.get("reporte", {}))
     rep["usuarioId"] = reglas.enmascarar(rep.get("usuarioId"))
     rep["numeroServicio"] = reglas.enmascarar(rep.get("numeroServicio"))
@@ -35,6 +59,28 @@ def _publica(item: dict, completa: bool = False) -> dict:
     salida = {**item, "reporte": rep, "usuarioId": rep["usuarioId"]}
     salida["transicionesPermitidas"] = reglas.transiciones_permitidas(item["estado"])
     return salida
+
+
+def _vista(item: dict, operador: bool, completa: bool = False) -> dict:
+    return _vista_operador(item, completa) if operador else _vista_publica(item)
+
+
+def _fecha_incidente(valor):
+    """Valida `fechaHoraIncidente` (H26): texto ISO-8601 con zona horaria, ≤ 40 caracteres y dentro de
+    [ahora − 7 días, ahora + 5 min]. Devuelve (iso_utc, None) o (None, mensaje)."""
+    if not isinstance(valor, str) or len(valor) > 40:
+        return None, "fechaHoraIncidente debe ser un texto ISO-8601 (p. ej. 2026-11-14T10:30:00-05:00)"
+    try:
+        t = datetime.fromisoformat(valor)
+    except ValueError:
+        return None, "fechaHoraIncidente no es una fecha ISO-8601 válida"
+    if t.tzinfo is None:
+        return None, "fechaHoraIncidente debe incluir la zona horaria (Z o ±hh:mm)"
+    t = t.astimezone(timezone.utc)
+    ahora = datetime.now(timezone.utc)
+    if not (ahora - FECHA_INCIDENTE_MAX_ANTIGUEDAD <= t <= ahora + FECHA_INCIDENTE_MAX_ADELANTO):
+        return None, "fechaHoraIncidente está fuera del rango permitido (últimos 7 días)"
+    return t.isoformat(timespec="milliseconds").replace("+00:00", "Z"), None
 
 
 def _incidencias_zona(zona_id: str, desde_iso: str) -> list:
@@ -49,35 +95,55 @@ def _incidencias_zona(zona_id: str, desde_iso: str) -> list:
         kwargs["ExclusiveStartKey"] = r["LastEvaluatedKey"]
 
 
-def _historial(entidad_id: str) -> list:
+def _historial(entidad_id: str, operador: bool = False) -> list:
     r = db.tabla("historial").query(KeyConditionExpression=Key("entidadId").eq(entidad_id))
-    return [{k: v for k, v in e.items() if k != "sk"} for e in r["Items"]]
+    eventos = [{k: v for k, v in e.items() if k != "sk"} for e in r["Items"]]
+    if not operador:  # el público no debe ver el `sub` de quien operó: solo que fue un operador
+        for e in eventos:
+            if str(e.get("actor", "")).startswith("operador:"):
+                e["actor"] = "OPERADOR"
+    return eventos
 
 
 # ---------------- Endpoints ----------------
 def crear_reporte(event, context):
     """POST /api/reportes (requiere sesión). Cuerpo mínimo: {tipo, descripcion, ubicacion?}.
 
-    Los datos personales salen del ID token de Cognito (validado por el autorizador JWT del HTTP API).
+    Los datos personales salen del ID token de Cognito (validado por el autorizador JWT del HTTP API). La identidad
+    del reporte (`usuarioId`) es el `sub` del token, nunca `custom:dni`: el usuario puede editar su DNI, no su `sub`.
     """
     try:
         cuerpo = http.cuerpo_json(event)
     except ValueError as e:
         return http.error(400, str(e))
-    claims = (event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}) or {}).get("claims", {})
-    perfil = reglas.perfil_desde_claims(claims)
-    if not perfil.get("dni"):
+    sub = acceso.identidad(event)
+    if sub is None:
         return http.error(401, "Inicia sesión para reportar")
+    if not acceso.id_valido(sub):
+        return http.error(400, "Identificador de usuario inválido")
+    perfil = reglas.perfil_desde_claims(acceso.claims_de(event))
+
+    fecha_incidente = None
+    if cuerpo.get("fechaHoraIncidente") is not None:
+        fecha_incidente, error_fecha = _fecha_incidente(cuerpo["fechaHoraIncidente"])
+        if error_fecha:
+            return http.error(400, error_fecha)
 
     zona_gps = None
     ubic = cuerpo.get("ubicacion")
     if isinstance(ubic, dict):
         try:
-            z = zonas.ubicar(float(ubic["lat"]), float(ubic["lng"]))
-            zona_gps = z["zonaId"] if z else None
+            lat, lng = float(ubic["lat"]), float(ubic["lng"])
         except (KeyError, TypeError, ValueError):
             return http.error(400, "ubicacion debe tener lat y lng numéricos")
+        if not (math.isfinite(lat) and math.isfinite(lng) and -90 <= lat <= 90 and -180 <= lng <= 180):
+            return http.error(400, "ubicacion fuera de rango")
+        z = zonas.ubicar(lat, lng)
+        zona_gps = z["zonaId"] if z else None
     reporte = reglas.construir_reporte(cuerpo, perfil, zona_gps, util.ahora_iso())
+    reporte["usuarioId"] = sub
+    if fecha_incidente:
+        reporte["fechaHoraIncidente"] = fecha_incidente
 
     errores = reglas.validar_reporte(reporte, {z["zonaId"] for z in zonas.zonas()})
     if errores:
@@ -171,11 +237,11 @@ def _liberar_dedup(item: dict) -> None:
 
 def mis_reportes(event, context):
     """GET /api/mis-reportes (requiere sesión): los reportes del usuario, sin enmascarar porque son suyos."""
-    claims = (event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}) or {}).get("claims", {})
-    dni = claims.get("custom:dni")
-    if not dni:
+    claims = acceso.claims_de(event)
+    sub = acceso.identidad(event)
+    if not acceso.id_valido(sub):
         return http.error(401, "Inicia sesión")
-    r = db.tabla("incidencias").query(IndexName="usuario-fecha", KeyConditionExpression=Key("usuarioId").eq(dni),
+    r = db.tabla("incidencias").query(IndexName="usuario-fecha", KeyConditionExpression=Key("usuarioId").eq(sub),
                                       ScanIndexForward=False, Limit=50)
     salida = []
     for i in r["Items"]:
@@ -187,6 +253,17 @@ def mis_reportes(event, context):
 
 
 def listar(event, context):
+    """GET /api/incidencias (pública): solo lista blanca."""
+    return _listar(event, operador=False)
+
+
+@acceso.solo_operadores
+def listar_operador(event, context):
+    """GET /api/operador/incidencias (JWT + grupo `operadores`): con el detalle del reporte."""
+    return _listar(event, operador=True)
+
+
+def _listar(event, operador: bool):
     q = event.get("queryStringParameters") or {}
     try:
         horas = min(max(int(q.get("horas", 72)), 1), 24 * 30)
@@ -201,10 +278,21 @@ def listar(event, context):
     if q.get("estado"):
         items = [i for i in items if i["estado"] == q["estado"]]
     items.sort(key=lambda i: i["creadaEn"], reverse=True)
-    return http.ok({"incidencias": [_publica(i) for i in items[:limite]], "total": len(items)})
+    return http.ok({"incidencias": [_vista(i, operador) for i in items[:limite]], "total": len(items)})
 
 
 def obtener(event, context):
+    """GET /api/incidencias/{id} (pública): solo lista blanca."""
+    return _obtener(event, operador=False)
+
+
+@acceso.solo_operadores
+def obtener_operador(event, context):
+    """GET /api/operador/incidencias/{id} (JWT + grupo `operadores`): con el detalle del reporte."""
+    return _obtener(event, operador=True)
+
+
+def _obtener(event, operador: bool):
     incidencia_id = event["pathParameters"]["incidenciaId"]
     item = db.tabla("incidencias").get_item(Key={"incidenciaId": incidencia_id}).get("Item")
     if not item:
@@ -226,8 +314,8 @@ def obtener(event, context):
             colectivo["antenasEnFalla"] = len(c.get("antenasEnFalla", []))
     return http.ok({
         "colectivo": colectivo,
-        "incidencia": _publica(item, completa=True),
-        "historial": _historial(incidencia_id),
+        "incidencia": _vista(item, operador, completa=True),
+        "historial": _historial(incidencia_id, operador),
         "zona": {
             "zonaId": item["zonaId"], "nombre": zona.get("nombre"), "tipo": zona.get("tipo"),
             "estadoRed": reglas.peor_estado(estados_antenas),
@@ -238,7 +326,9 @@ def obtener(event, context):
     })
 
 
+@acceso.solo_operadores
 def cambiar_estado(event, context):
+    """PATCH /api/incidencias/{id}/estado (JWT + grupo `operadores`). El historial registra quién lo hizo."""
     incidencia_id = event["pathParameters"]["incidenciaId"]
     try:
         cuerpo = http.cuerpo_json(event)
@@ -269,8 +359,8 @@ def cambiar_estado(event, context):
         if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
             return http.error(409, "La incidencia cambió mientras tanto; recarga e inténtalo de nuevo")
         raise
-    historial.registrar(incidencia_id, "INCIDENCIA", "CAMBIO_ESTADO", "OPERADOR",
+    historial.registrar(incidencia_id, "INCIDENCIA", "CAMBIO_ESTADO", f"operador:{acceso.identidad(event)}",
                         detalle=comentario, estado_anterior=actual, estado_nuevo=nuevo, ocurrido_en=ahora)
     if nuevo not in reglas.ESTADOS_INCIDENCIA_ACTIVOS:
         _liberar_dedup(item)  # resuelta: el usuario ya puede volver a reportar en esa zona
-    return http.ok({"incidencia": _publica(nuevo_item, completa=True)})
+    return http.ok({"incidencia": _vista_operador(nuevo_item, completa=True)})

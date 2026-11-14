@@ -68,12 +68,12 @@ functions:
       PROGRAMACION_SIMULADOR: ${cf:${self:custom.antenas}.ProgramacionSimuladorNombre}
       FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
     events:
-      - httpApi: GET /api/simulador
+      - httpApi: { method: GET, path: /api/simulador, authorizer: { name: cognito } }   # solo operadores (grupo, ver acceso.py)
   simuladorActualizar:
     handler: src/simulador.actualizar
     environment: *simulador
     events:
-      - httpApi: PUT /api/simulador
+      - httpApi: { method: PUT, path: /api/simulador, authorizer: { name: cognito } }   # solo operadores
   # ---------- Incidencias (E2) ----------
   crearReporte:
     handler: src/incidencias.crear_reporte
@@ -112,10 +112,19 @@ functions:
     handler: src/incidencias.obtener
     events:
       - httpApi: GET /api/incidencias/{incidenciaId}
+  # ---------- Rutas de OPERADOR: autorizador JWT + grupo `operadores` comprobado en el handler (src/acceso.py) ----------
+  listarIncidenciasOperador:
+    handler: src/incidencias.listar_operador
+    events:
+      - httpApi: { method: GET, path: /api/operador/incidencias, authorizer: { name: cognito } }
+  obtenerIncidenciaOperador:
+    handler: src/incidencias.obtener_operador
+    events:
+      - httpApi: { method: GET, path: "/api/operador/incidencias/{incidenciaId}", authorizer: { name: cognito } }
   cambiarEstadoIncidencia:
     handler: src/incidencias.cambiar_estado
     events:
-      - httpApi: PATCH /api/incidencias/{incidenciaId}/estado
+      - httpApi: { method: PATCH, path: "/api/incidencias/{incidenciaId}/estado", authorizer: { name: cognito } }
   # ---------- Incidentes colectivos (E3) ----------
   listarColectivos:
     handler: src/colectivos.listar
@@ -124,11 +133,11 @@ functions:
   obtenerColectivo:
     handler: src/colectivos.obtener
     events:
-      - httpApi: GET /api/colectivos/{colectivoId}
+      - httpApi: { method: GET, path: "/api/colectivos/{colectivoId}", authorizer: { name: cognito } }
   restablecerColectivo:
     handler: src/colectivos.restablecer
     events:
-      - httpApi: POST /api/colectivos/{colectivoId}/restablecer
+      - httpApi: { method: POST, path: "/api/colectivos/{colectivoId}/restablecer", authorizer: { name: cognito } }
   web:
     handler: src/web.handler
     memorySize: 512

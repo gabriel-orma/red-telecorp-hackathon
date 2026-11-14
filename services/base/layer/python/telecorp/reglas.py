@@ -66,8 +66,8 @@ def validar_reporte(reporte: dict, zonas_validas: set) -> list:
 
 
 # ---------------- Privacidad ----------------
-def enmascarar(valor, visibles_inicio: int = 2, visibles_fin: int = 3) -> str:
-    """'70123456' → '70***456'. Para mostrar datos personales en el panel sin exponerlos completos."""
+def enmascarar(valor, visibles_inicio: int = 2, visibles_fin: int = 2) -> str:
+    """'70123456' → '70***56'. Deja visibles ≤ 4 de 8 dígitos (con 5 visibles quedaban solo 1.000 combinaciones por fuerza bruta)."""
     if not valor:
         return valor
     s = str(valor)

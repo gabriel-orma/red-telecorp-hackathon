@@ -23,7 +23,7 @@
     "dni": {
       "type": "string",
       "pattern": "^[0-9]{8,12}$",
-      "description": "custom:dni (usuarioId de las incidencias)"
+      "description": "custom:dni: dato de perfil (editable por el usuario). No es el usuarioId: la identidad de las incidencias es el `sub` del token"
     },
     "numeroServicio": {
       "type": "string",
