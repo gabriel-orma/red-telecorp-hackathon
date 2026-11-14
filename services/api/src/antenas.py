@@ -42,6 +42,19 @@ def listar_zonas(event, context):
     return http.ok({"zonas": salida, "tiposZona": tipos, "generadoEn": util.ahora_iso()})
 
 
+def ubicar_zona(event, context):
+    """GET /api/zonas/ubicar?lat=..&lng=.. → zona de cobertura del punto (404 si está fuera)."""
+    q = event.get("queryStringParameters") or {}
+    try:
+        lat, lng = float(q["lat"]), float(q["lng"])
+    except (KeyError, TypeError, ValueError):
+        return http.error(400, "lat y lng son obligatorios y numéricos")
+    z = zonas.ubicar(lat, lng)
+    if not z:
+        return http.error(404, "Ubicación fuera de nuestras zonas de cobertura")
+    return http.ok({k: z[k] for k in ("zonaId", "nombre", "tipo", "centro", "radioM", "distanciaM")})
+
+
 def metricas_antena(event, context):
     """GET /api/antenas/{antenaId}/metricas?minutos=30 → serie para el gráfico del popup."""
     antena_id = event["pathParameters"]["antenaId"]

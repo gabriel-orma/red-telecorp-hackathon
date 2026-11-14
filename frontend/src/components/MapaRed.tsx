@@ -1,16 +1,9 @@
 import { useEffect, useRef } from "react";
-import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, Map as MapaML, MapLayerMouseEvent, MapMouseEvent } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
-// maplibre v6 carga su web worker como módulo aparte: Vite lo emite como asset y le pasamos la URL.
-import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-
-maplibregl.setWorkerUrl(workerUrl);
-import type { Antena, EstadoAntena, Zona } from "../lib/api";
+import type { Antena, EstadoAntena, Incidencia, Zona } from "../lib/api";
 import { ESTADO, TIPO_ZONA } from "../lib/estados";
-
-const ESTILO = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-const CENTRO_LIMA: [number, number] = [-77.03, -12.075];
+import { CENTRO_LIMA, ESTILO_OSCURO as ESTILO, circulo, maplibregl } from "../lib/mapa";
 
 // Expresión de color por estado (misma paleta que el resto del panel).
 const colorPorEstado = [
@@ -18,18 +11,6 @@ const colorPorEstado = [
   ...(Object.entries(ESTADO) as [EstadoAntena, { color: string }][]).flatMap(([e, v]) => [e, v.color]),
   ESTADO.SIN_DATOS.color,
 ] as unknown as maplibregl.ExpressionSpecification;
-
-/** Polígono circular aproximado (para dibujar el área de cobertura de una zona). */
-function circulo(lng: number, lat: number, radioM: number, puntos = 72): [number, number][] {
-  const coords: [number, number][] = [];
-  for (let i = 0; i <= puntos; i++) {
-    const a = (i / puntos) * 2 * Math.PI;
-    const dx = (radioM * Math.cos(a)) / (111320 * Math.cos((lat * Math.PI) / 180));
-    const dy = (radioM * Math.sin(a)) / 111320;
-    coords.push([lng + dx, lat + dy]);
-  }
-  return coords;
-}
 
 const geoAntenas = (antenas: Antena[], seleccion: string | null): FeatureCollection => ({
   type: "FeatureCollection",
@@ -49,15 +30,34 @@ const geoZonas = (zonas: Zona[]): FeatureCollection => ({
   })),
 });
 
+/** Puntos del mapa de calor: ubicación del reporte o, si no la dio, un punto estable dentro de su zona. */
+const geoReportes = (reportes: Incidencia[], zonas: Zona[]): FeatureCollection => ({
+  type: "FeatureCollection",
+  features: reportes.flatMap((r) => {
+    let lng = r.reporte.ubicacion?.lng, lat = r.reporte.ubicacion?.lat;
+    if (lat === undefined || lng === undefined) {
+      const z = zonas.find((x) => x.zonaId === r.zonaId);
+      if (!z) return [];
+      let h = 0;
+      for (const c of r.incidenciaId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      const ang = (h % 360) * (Math.PI / 180), dist = ((h >> 9) % 100) / 100 * z.radioM * 0.7;
+      lat = z.centro.lat + (dist * Math.sin(ang)) / 111320;
+      lng = z.centro.lng + (dist * Math.cos(ang)) / (111320 * Math.cos((z.centro.lat * Math.PI) / 180));
+    }
+    return [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [lng, lat] }, properties: {} }];
+  }),
+});
+
 interface Props {
   antenas: Antena[];
   zonas: Zona[];
+  reportes: Incidencia[];
   seleccion: string | null;
   onSeleccionar: (antenaId: string | null) => void;
   enfocarZona: Zona | null;
 }
 
-export function MapaRed({ antenas, zonas, seleccion, onSeleccionar, enfocarZona }: Props) {
+export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, enfocarZona }: Props) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaML | null>(null);
   const listo = useRef(false);
@@ -83,6 +83,7 @@ export function MapaRed({ antenas, zonas, seleccion, onSeleccionar, enfocarZona 
     m.on("load", () => {
       m.addSource("zonas", { type: "geojson", data: geoZonas([]) });
       m.addSource("antenas", { type: "geojson", data: geoAntenas([], null) });
+      m.addSource("reportes", { type: "geojson", data: geoReportes([], []) });
 
       m.addLayer({
         id: "zonas-relleno", type: "fill", source: "zonas",
@@ -94,6 +95,18 @@ export function MapaRed({ antenas, zonas, seleccion, onSeleccionar, enfocarZona 
       m.addLayer({
         id: "zonas-borde", type: "line", source: "zonas",
         paint: { "line-color": colorPorEstado, "line-opacity": 0.55, "line-width": 1.2, "line-dasharray": [2, 2] },
+      });
+      m.addLayer({
+        id: "reportes-calor", type: "heatmap", source: "reportes",
+        paint: {
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 18, 14, 45],
+          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 14, 1.6],
+          "heatmap-opacity": 0.75,
+          "heatmap-color": [
+            "interpolate", ["linear"], ["heatmap-density"],
+            0, "rgba(0,0,0,0)", 0.2, "rgba(124,58,237,0.45)", 0.45, "#db2777", 0.7, "#f97316", 1, "#fde047",
+          ],
+        },
       });
       m.addLayer({
         id: "antenas-pulso", type: "circle", source: "antenas",
@@ -154,10 +167,11 @@ export function MapaRed({ antenas, zonas, seleccion, onSeleccionar, enfocarZona 
     const aplicar = () => {
       (m.getSource("antenas") as GeoJSONSource | undefined)?.setData(geoAntenas(antenas, seleccion));
       (m.getSource("zonas") as GeoJSONSource | undefined)?.setData(geoZonas(zonas));
+      (m.getSource("reportes") as GeoJSONSource | undefined)?.setData(geoReportes(reportes, zonas));
     };
     if (listo.current) aplicar();
     else pendiente.current = aplicar;
-  }, [antenas, zonas, seleccion]);
+  }, [antenas, zonas, reportes, seleccion]);
 
   // Etiquetas HTML de zona (nombre + tipo), recreadas solo si cambia el catálogo.
   const claveZonas = zonas.map((z) => z.zonaId).join();

@@ -30,3 +30,34 @@ export const TIPO_ZONA: Record<TipoZona, { etiqueta: string; icono: LucideIcon }
   MEDICA: { etiqueta: "Médica", icono: HeartPulse },
   SERVICIOS_CRITICOS: { etiqueta: "Servicios críticos", icono: ShieldAlert },
 };
+
+// ---------------- Incidencias (E2) ----------------
+import {
+  CheckCircle2, ClipboardCheck, FileText, Gauge, MessageSquareOff, PhoneOff, SearchCheck, SignalZero,
+  Waves, WifiOff, Wrench, HelpCircle, Archive,
+} from "lucide-react";
+import type { EstadoIncidencia, TipoProblema } from "./api";
+
+export const ESTADO_INCIDENCIA: Record<EstadoIncidencia, { etiqueta: string; color: string; icono: LucideIcon; ayuda: string }> = {
+  REGISTRADA: { etiqueta: "Registrada", color: "#60a5fa", icono: FileText, ayuda: "Recibimos tu reporte" },
+  EN_REVISION: { etiqueta: "En revisión", color: "#a78bfa", icono: SearchCheck, ayuda: "Un operador lo está revisando" },
+  EN_ATENCION: { etiqueta: "Siendo atendida", color: "#f59e0b", icono: Wrench, ayuda: "Un equipo técnico está trabajando" },
+  SOLUCIONADA: { etiqueta: "Solucionada", color: "#22c55e", icono: CheckCircle2, ayuda: "El problema fue resuelto" },
+  CERRADA: { etiqueta: "Cerrada", color: "#94a3b8", icono: Archive, ayuda: "Caso cerrado" },
+};
+export const ORDEN_INCIDENCIA: EstadoIncidencia[] = ["REGISTRADA", "EN_REVISION", "EN_ATENCION", "SOLUCIONADA", "CERRADA"];
+
+export const TIPO_PROBLEMA: Record<TipoProblema, { etiqueta: string; icono: LucideIcon }> = {
+  SIN_INTERNET: { etiqueta: "Sin Internet", icono: WifiOff },
+  INTERNET_LENTO: { etiqueta: "Internet lento", icono: Gauge },
+  SIN_LLAMADAS: { etiqueta: "No puedo llamar", icono: PhoneOff },
+  SIN_SMS: { etiqueta: "No llegan SMS", icono: MessageSquareOff },
+  SIN_SENAL: { etiqueta: "Sin señal", icono: SignalZero },
+  INTERMITENCIA: { etiqueta: "Se corta", icono: Waves },
+  OTRO: { etiqueta: "Otro", icono: HelpCircle },
+};
+
+export const EVENTO: Record<string, { etiqueta: string; icono: LucideIcon }> = {
+  CREADO: { etiqueta: "Reporte registrado", icono: ClipboardCheck },
+  CAMBIO_ESTADO: { etiqueta: "Cambio de estado", icono: Wrench },
+};

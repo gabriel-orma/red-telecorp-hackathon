@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { Radio, WifiOff } from "lucide-react";
+import { ListChecks, Map, Radio, Smartphone, WifiOff } from "lucide-react";
+import { enlace, useRuta } from "../lib/router";
 import { cn, haceCuanto, horaLima } from "../lib/utils";
 
+const SECCIONES = [
+  { ruta: "/", etiqueta: "Mapa en vivo", icono: Map },
+  { ruta: "/incidencias", etiqueta: "Incidencias", icono: ListChecks },
+  { ruta: "/portal", etiqueta: "Portal usuario", icono: Smartphone },
+];
+
 export function Encabezado({ ultimaCarga, error }: { ultimaCarga: number | null; error: string | null }) {
+  const ruta = useRuta();
   const [ahora, setAhora] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setAhora(Date.now()), 1000);
@@ -22,6 +30,23 @@ export function Encabezado({ ultimaCarga, error }: { ultimaCarga: number | null;
         </div>
       </div>
 
+      <nav className="flex items-center gap-1 rounded-xl bg-fondo/60 p-1 ring-1 ring-borde">
+        {SECCIONES.map(({ ruta: r, etiqueta, icono: Icono }) => (
+          <a
+            key={r}
+            {...enlace(r)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition",
+              ruta === r ? "bg-panel-2 text-texto ring-1 ring-borde" : "text-tenue hover:text-texto",
+            )}
+            title={etiqueta}
+          >
+            <Icono className="size-3.5" />
+            <span className="hidden lg:inline">{etiqueta}</span>
+          </a>
+        ))}
+      </nav>
+
       <div className="flex items-center gap-4">
         <div
           className={cn(
@@ -31,7 +56,7 @@ export function Encabezado({ ultimaCarga, error }: { ultimaCarga: number | null;
           title={error ?? undefined}
         >
           {enVivo ? <span className="latido size-2 rounded-full bg-normal" /> : <WifiOff className="size-3.5" />}
-          {enVivo ? "EN VIVO" : "SIN CONEXIÓN"}
+          <span className="hidden sm:inline">{enVivo ? "EN VIVO" : "SIN CONEXIÓN"}</span>
           <span className="hidden text-tenue sm:inline">· {haceCuanto(ultimaCarga ? new Date(ultimaCarga).toISOString() : null, ahora)}</span>
         </div>
         <div className="cifra hidden text-sm text-tenue md:block">
