@@ -13,6 +13,7 @@ export function useRuta(): string {
   useEffect(() => {
     const cambio = () => setRuta(window.location.pathname + window.location.search);
     window.addEventListener("popstate", cambio);
+    cambio(); // un hijo pudo navegar en su efecto antes de que este listener existiera
     return () => window.removeEventListener("popstate", cambio);
   }, []);
   return ruta;

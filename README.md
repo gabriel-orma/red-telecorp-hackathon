@@ -28,7 +28,10 @@ Elimina todo cuando no lo uses, para no gastar el presupuesto del lab:
 bash scripts/remove.sh dev-tualias
 ```
 
-Reportes de prueba (ficticios) contra el API desplegado:
+Datos de demo: 8 días de historial para la línea base (una sola vez por stage) y reportes con cuentas demo de Cognito:
+```bash
+python scripts/demo/historico.py dev-tualias
+```
 ```bash
 python scripts/demo/reportar.py https://<id>.execute-api.us-east-1.amazonaws.com --zona ZONA-05 --n 12
 ```

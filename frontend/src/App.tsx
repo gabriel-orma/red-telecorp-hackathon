@@ -5,7 +5,9 @@ import { usePolling } from "./hooks/usePolling";
 import { Encabezado } from "./components/Encabezado";
 import { CentroControl } from "./pages/CentroControl";
 import { PanelIncidencias } from "./pages/PanelIncidencias";
-import { Portal } from "./pages/Portal";
+import { EstadoPublico } from "./pages/EstadoPublico";
+import { Cuenta } from "./pages/Cuenta";
+import { Reportar } from "./pages/Reportar";
 import { Seguimiento } from "./pages/Seguimiento";
 import { Colectivos } from "./pages/Colectivos";
 import { AlertaColectivo } from "./components/AlertaColectivo";
@@ -18,7 +20,10 @@ export default function App() {
   // Portal del usuario: layout propio, mobile-first.
   if (ruta.startsWith("/portal")) {
     const m = ruta.match(/^\/portal\/seguimiento\/([^/]+)/);
-    return m ? <Seguimiento incidenciaId={decodeURIComponent(m[1])} /> : <Portal />;
+    if (m) return <Seguimiento incidenciaId={decodeURIComponent(m[1])} />;
+    if (ruta === "/portal/cuenta") return <Cuenta />;
+    if (ruta === "/portal/reportar") return <Reportar />;
+    return <EstadoPublico />;
   }
   return <Operador ruta={ruta} />;
 }

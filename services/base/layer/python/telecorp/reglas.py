@@ -109,3 +109,34 @@ def calcular_prioridad(afectados: int, criticidad: int, antenas_en_falla: int, c
         if puntaje >= umbrales[nivel]:
             prioridad = nivel
     return round(puntaje, 1), prioridad
+
+
+# ---------------- Reporte mínimo con cuenta (E3.5) ----------------
+def perfil_desde_claims(claims: dict) -> dict:
+    """Atributos del ID token de Cognito → perfil (contracts/schemas/usuario.schema.json)."""
+    return {
+        "email": claims.get("email"), "nombre": claims.get("name"), "dni": claims.get("custom:dni"),
+        "numeroServicio": claims.get("custom:numeroServicio"), "telefono": claims.get("phone_number"),
+        "zonaId": claims.get("custom:zonaId"), "avisosEmail": claims.get("custom:avisosEmail", "0"),
+    }
+
+
+def construir_reporte(cuerpo: dict, perfil: dict, zona_gps: str | None, ahora_iso: str) -> dict:
+    """El usuario solo manda {tipo, descripcion, ubicacion?}: el resto sale de su cuenta.
+
+    Zona: la del GPS si cae en cobertura; si no hay GPS (o está fuera), la zona del servicio de la cuenta.
+    """
+    ubic = cuerpo.get("ubicacion") if zona_gps else None
+    reporte = {
+        "usuarioId": perfil.get("dni"), "nombre": perfil.get("nombre"),
+        "numeroServicio": perfil.get("numeroServicio"), "email": perfil.get("email"),
+        "telefonoContacto": perfil.get("telefono"),
+        "zonaId": zona_gps or perfil.get("zonaId"),
+        "ubicacionFuente": "GPS" if zona_gps else "CUENTA",
+        "fechaHoraIncidente": cuerpo.get("fechaHoraIncidente") or ahora_iso,
+        "tipo": cuerpo.get("tipo"), "descripcion": str(cuerpo.get("descripcion") or "").strip(),
+        "avisarPorEmail": perfil.get("avisosEmail") == "1",
+    }
+    if ubic:
+        reporte["ubicacion"] = {"lat": float(ubic["lat"]), "lng": float(ubic["lng"])}
+    return {k: v for k, v in reporte.items() if v is not None}

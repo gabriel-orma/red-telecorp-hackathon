@@ -93,3 +93,28 @@ def test_prioridad_sube_con_criticidad_y_antenas():
     assert reglas.calcular_prioridad(10, 1, 0, cfg) == (10, "BAJA")        # 10 vecinos en zona residencial
     assert reglas.calcular_prioridad(10, 5, 0, cfg)[1] == "ALTA"            # mismos 10 en un hospital
     assert reglas.calcular_prioridad(10, 5, 1, cfg)[1] == "CRITICA"         # hospital + antena caída
+
+
+# ---------------- E3.5 ----------------
+PERFIL = {"email": "a@b.com", "nombre": "Ana", "dni": "70123456", "numeroServicio": "999111222",
+          "telefono": "+51999111222", "zonaId": "ZONA-02", "avisosEmail": "1"}
+
+
+def test_reporte_con_gps_usa_la_zona_del_gps():
+    r = reglas.construir_reporte({"tipo": "SIN_INTERNET", "descripcion": " sin datos ", "ubicacion": {"lat": -12.08, "lng": -77.04}},
+                                 PERFIL, "ZONA-05", "2026-11-14T10:00:00Z")
+    assert r["zonaId"] == "ZONA-05" and r["ubicacionFuente"] == "GPS" and r["ubicacion"]["lat"] == -12.08
+    assert r["usuarioId"] == "70123456" and r["descripcion"] == "sin datos" and r["avisarPorEmail"] is True
+    assert reglas.validar_reporte(r, {"ZONA-05"}) == []
+
+
+def test_reporte_sin_gps_usa_la_zona_de_la_cuenta():
+    r = reglas.construir_reporte({"tipo": "SIN_SENAL", "descripcion": "x", "ubicacion": {"lat": -13.5, "lng": -71.9}},
+                                 PERFIL, None, "2026-11-14T10:00:00Z")
+    assert r["zonaId"] == "ZONA-02" and r["ubicacionFuente"] == "CUENTA" and "ubicacion" not in r
+    assert r["fechaHoraIncidente"] == "2026-11-14T10:00:00Z"
+
+
+def test_perfil_desde_claims():
+    p = reglas.perfil_desde_claims({"email": "a@b.com", "name": "Ana", "custom:dni": "70123456", "custom:zonaId": "ZONA-02"})
+    assert p["dni"] == "70123456" and p["zonaId"] == "ZONA-02" and p["avisosEmail"] == "0"

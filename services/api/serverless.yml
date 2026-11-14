@@ -23,6 +23,13 @@ provider:
     - ${cf:${self:custom.base}.ComunLambdaLayerQualifiedArn}
   httpApi:
     name: ${self:custom.prefijo}-api
+    authorizers:
+      cognito:   # valida el ID token de Cognito (D9)
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.${aws:region}.amazonaws.com/${cf:${self:custom.base}.UserPoolId}
+        audience:
+          - ${cf:${self:custom.base}.UserPoolClientId}
   environment:
     STAGE: ${sls:stage}
     TABLA_METRICAS: ${cf:${self:custom.base}.TablaMetricasNombre}
@@ -31,6 +38,7 @@ provider:
     TABLA_INCIDENCIAS: ${cf:${self:custom.base}.TablaIncidenciasNombre}
     TABLA_DEDUP: ${cf:${self:custom.base}.TablaDedupNombre}
     TABLA_COLECTIVOS: ${cf:${self:custom.base}.TablaColectivosNombre}
+    TABLA_ESTADISTICAS: ${cf:${self:custom.base}.TablaEstadisticasNombre}
     TOPICO_AVISOS: ${cf:${self:custom.base}.TopicoAvisosArn}
     COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
 
@@ -70,7 +78,24 @@ functions:
   crearReporte:
     handler: src/incidencias.crear_reporte
     events:
-      - httpApi: POST /api/reportes
+      - httpApi: { method: POST, path: /api/reportes, authorizer: { name: cognito } }
+  misReportes:
+    handler: src/incidencias.mis_reportes
+    events:
+      - httpApi: { method: GET, path: /api/mis-reportes, authorizer: { name: cognito } }
+  # ---------- Estado público (E3.5) ----------
+  estadoRed:
+    handler: src/estado.estado
+    memorySize: 512
+    events:
+      - httpApi: GET /api/estado
+  config:
+    handler: src/estado.config
+    environment:
+      USER_POOL_ID: ${cf:${self:custom.base}.UserPoolId}
+      USER_POOL_CLIENT_ID: ${cf:${self:custom.base}.UserPoolClientId}
+    events:
+      - httpApi: GET /api/config
   registrarReporte:
     handler: src/incidencias.registrar
     timeout: 30

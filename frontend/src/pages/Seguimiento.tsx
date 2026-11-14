@@ -45,7 +45,7 @@ export function Seguimiento({ incidenciaId }: { incidenciaId: string }) {
 
   return (
     <PortalLayout>
-      <a {...enlace("/portal")} className="mb-4 inline-flex items-center gap-1 text-xs text-tenue hover:text-texto"><ArrowLeft className="size-3.5" /> Nuevo reporte</a>
+      <a {...enlace("/portal/cuenta")} className="mb-4 inline-flex items-center gap-1 text-xs text-tenue hover:text-texto"><ArrowLeft className="size-3.5" /> Mis reportes</a>
 
       {duplicado && (
         <div className="mb-3 rounded-xl bg-saturada/10 px-4 py-3 text-xs text-saturada ring-1 ring-saturada/30">

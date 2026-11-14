@@ -8,7 +8,9 @@ Rutas (router mínimo en `lib/router.ts`; la Lambda `web` devuelve `index.html` 
 |---|---|
 | `/` | Centro de control: mapa en vivo, KPIs, simulador, mapa de calor de reportes |
 | `/incidencias` | Panel del operador: lista filtrable, detalle, cambio de estado e historial |
-| `/portal` | Portal del usuario (mobile-first): reporte con GPS o mapa, tipo y descripción |
+| `/portal` | **Estado público** estilo Downdetector: semáforo, gráfico de 24 h vs lo normal, tipos, zonas, mapa e incidentes |
+| `/portal/cuenta` | Ingresar / crear cuenta (Cognito) · perfil · mis reportes |
+| `/portal/reportar` | Reporte mínimo (requiere sesión): tipo + descripción; ubicación automática |
 | `/portal/seguimiento/{id}` | Seguimiento tipo "pedido en camino" + estado de la zona |
 
 ```
