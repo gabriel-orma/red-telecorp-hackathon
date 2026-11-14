@@ -16,11 +16,13 @@ import sys as _sys
 _sys.path.insert(0, _os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 
 import os
+from datetime import timedelta
 
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from telecorp import config, db, historial, notificador, reglas, util, zonas
+from telecorp.nube2 import azure_maps, ia
 import comun_colectivos as cc  # noqa: E402
 import monitoreo  # noqa: E402
 
@@ -114,12 +116,51 @@ def priorizar(event, context):
 
 
 def resumir(event, context):
-    """Resumen para el operador. HOOK(D2): reemplazar la plantilla por la IA de la segunda nube; si falla, el flujo sigue."""
+    """Análisis del incidente para el operador: IA (Gemini) sobre DATOS AGREGADOS + clima de Azure Maps.
+
+    Si la IA, Azure Maps o sus secretos no están disponibles el flujo NO se bloquea: `ia.analizar_colectivo` devuelve el
+    análisis determinista (`fuente: "REGLAS"`), y sin clima el análisis sigue. `resumenIA` se conserva (texto corto)."""
     cid = event["colectivoId"]
     cc.marcar_paso(cid, "RESUMIR")
-    resumen = _texto_resumen(cc.obtener(cid))
-    cc.actualizar(cid, resumenIA=resumen)
-    return {"resumen": resumen, "fuente": "plantilla"}
+    col = cc.obtener(cid)
+    try:
+        analisis = ia.analizar_colectivo(_contexto_analisis(col))
+    except Exception as e:  # noqa: BLE001 - nunca debe romper el flujo
+        print(f"resumir: análisis no disponible ({type(e).__name__})")
+        analisis = ia.analisis_reglas(_contexto_analisis(col, con_clima=False))
+    resumen = (analisis.get("resumen") or _texto_resumen(col))[:400]
+    cc.actualizar(cid, resumenIA=resumen, analisisIA=analisis)
+    historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "IA" if analisis.get("fuente") == "IA" else "STEP_FUNCTION",
+                        detalle=f"Análisis {analisis.get('fuente')}: {len(analisis.get('hipotesisCausa', []))} hipótesis, "
+                                f"confianza {analisis.get('confianza')}")
+    return {"resumen": resumen, "fuente": analisis.get("fuente")}
+
+
+def _contexto_analisis(col: dict, con_clima: bool = True) -> dict:
+    """Solo agregados (R3): conteos, estados de antenas, zona, clima. Sin ids de usuarios, correos ni descripciones."""
+    zona = zonas.zona(col["zonaId"]) or {}
+    centro = zona.get("centro") or {}
+    tipos: dict = {}
+    for inc in db.obtener_varios("incidencias", "incidenciaId", col.get("incidencias", [])[:300]):
+        tipos[inc.get("tipo", "OTRO")] = tipos.get(inc.get("tipo", "OTRO"), 0) + 1
+    clima = None
+    if con_clima and centro.get("lat") is not None:
+        try:
+            clima = azure_maps.clima_actual(float(centro["lat"]), float(centro["lng"]))
+        except Exception:  # noqa: BLE001
+            clima = None
+    ahora = util.ahora()
+    return {
+        "zonaId": col["zonaId"],
+        "zona": {"nombre": zona.get("nombre"), "tipo": zona.get("tipo"), "criticidad": zonas.criticidad(col["zonaId"]),
+                 "clientesEstimados": zona.get("clientesEstimados")},
+        "afectados": len(col.get("usuariosAfectados", [])), "tiposReporte": tipos,
+        "antenasEnFalla": [{"antenaId": a.get("antenaId"), "estado": a.get("estado")} for a in col.get("antenasEnFalla", [])],
+        "antenasZona": len(zona.get("antenas", [])), "prioridad": col.get("prioridad"), "origen": col.get("origen"),
+        "duracionMin": round((ahora - util.parse_iso(col["detectadoEn"])).total_seconds() / 60, 1),
+        "deteccionAnticipadaMin": reglas.deteccion_anticipada_min(col.get("primeraFallaEn"), col.get("primerReporteEn")),
+        "clima": clima, "horaLocal": (ahora + timedelta(hours=-5)).strftime("%H:%M"),   # Lima (UTC-5)
+    }
 
 
 def _texto_resumen(col: dict) -> str:
@@ -199,7 +240,7 @@ def _repriorizar(col: dict) -> None:
         return
     col.update(prioridad=prioridad, puntajePrioridad=puntaje)
     cc.actualizar(col["incidenteColectivoId"], prioridad=prioridad, puntajePrioridad=puntaje,
-                  **({"resumenIA": _texto_resumen(col)} if prioridad != previa else {}))
+                  **({"resumenIA": _texto_resumen(col)} if prioridad != previa and not col.get("analisisIA") else {}))
     if prioridad == previa:
         return
     historial.registrar(col["incidenteColectivoId"], "INCIDENTE_COLECTIVO", "PRIORIDAD_ASIGNADA", "STEP_FUNCTION",

@@ -101,6 +101,21 @@ ESTADOS_ANTENA_FALLA = {"INHABILITADA", "CAIDA"}  # disparan detección proactiv
 ESTADOS_ANTENA_VERIFICACION = ESTADOS_ANTENA_FALLA | {"SATURADA"}
 
 
+# Reporte de texto libre (`OTRO`) clasificado por la IA: "la IA solo suma". Un OTRO cuenta para disparar un colectivo
+# únicamente si la IA REAL lo clasificó como problema del servicio con confianza suficiente y un tipo del catálogo; si la IA
+# falla, no responde o duda, sigue sin contar (como antes). La IA nunca resta reportes que las reglas ya cuentan.
+UMBRAL_CONFIANZA_TRIAGE_IA = 0.8
+
+
+def triage_ia_confirma_servicio(triage) -> bool:
+    try:
+        return (isinstance(triage, dict) and triage.get("fuente") == "IA" and triage.get("relacionado") is True
+                and float(triage.get("confianza", 0)) >= UMBRAL_CONFIANZA_TRIAGE_IA
+                and triage.get("tipoSugerido") in TIPOS_PROBLEMA and triage.get("tipoSugerido") != "OTRO")
+    except (TypeError, ValueError):
+        return False
+
+
 def es_colectivo(usuarios_distintos: int, umbral: int = 10) -> bool:
     """≥ umbral usuarios distintos (la ventana de <24 h la aplica la consulta)."""
     return usuarios_distintos >= umbral

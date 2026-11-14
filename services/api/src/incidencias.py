@@ -25,6 +25,7 @@ from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
 from telecorp import db, estadisticas, historial, http, notificador, reglas, util, zonas
+from telecorp.nube2 import ia
 import acceso  # noqa: E402
 
 _sqs = boto3.client("sqs")
@@ -196,7 +197,7 @@ def _clave_dedup(usuario_id: str, zona_id: str) -> str:
     return db.clave_dedup_usuario(usuario_id, zona_id)
 
 
-def _registrar_incidencia(m: dict) -> None:
+def _registrar_incidencia(m: dict, triage: dict | None = None) -> None:
     """Crea la incidencia, su historial CREADO y los contadores del estado público en UNA transacción (H17): o quedan
     los tres o ninguno, así un reintento de SQS nunca encuentra una incidencia "a medias". Idempotente: si la
     incidencia ya existe, la transacción se cancela y el reintento no duplica nada."""
@@ -207,6 +208,8 @@ def _registrar_incidencia(m: dict) -> None:
         "zonaId": rep["zonaId"], "usuarioId": rep["usuarioId"], "tipo": rep["tipo"],
         "reporte": rep,
     }
+    if triage:
+        item["iaTriage"] = triage   # solo la escribe el worker (servidor): el usuario no puede enviarla. La vista pública NO la expone.
     b, ttl = estadisticas.bucket_de_iso(m["creadaEn"]), int(time.time()) + estadisticas.TTL_DIAS * 86400
     operaciones = [
         ("Put", "incidencias", {"Item": util.a_dynamo(item), "ConditionExpression": "attribute_not_exists(incidenciaId)"}),
@@ -239,13 +242,34 @@ def _confirmar_dedup(rep: dict, incidencia_id: str) -> None:
             raise  # si la reserva ya caducó o es de otro reporte, no hay nada que extender
 
 
+# Segundos de Lambda que deben quedar libres después de consultar a la IA (el worker procesa hasta 10 reportes por lote).
+MARGEN_TRIAGE_SEGUNDOS = 10.0
+CAMPOS_TRIAGE = ("relacionado", "tipoSugerido", "urgencia", "confianza", "fuente", "modelo", "motivo")
+
+
+def _triage_ia(rep: dict, context) -> dict | None:
+    """Triage por IA del texto libre de un reporte `OTRO` (los demás tipos ya cuentan por reglas y no gastan tokens).
+    Mejor esfuerzo y con plazo corto: ante cualquier problema el reporte se registra igual, sin `iaTriage`."""
+    if rep.get("tipo") != "OTRO":
+        return None
+    try:
+        restante = context.get_remaining_time_in_millis() / 1000 if hasattr(context, "get_remaining_time_in_millis") else 30.0
+        if restante < MARGEN_TRIAGE_SEGUNDOS + 2:
+            return None
+        r = ia.triage_reporte(rep.get("descripcion"), "OTRO", plazo_s=min(4.0, restante - MARGEN_TRIAGE_SEGUNDOS))
+        return {k: r[k] for k in CAMPOS_TRIAGE if k in r}
+    except Exception as e:  # noqa: BLE001
+        print(f"triage IA omitido ({type(e).__name__})")
+        return None
+
+
 def registrar(event, context):
     """Worker SQS: crea la incidencia de forma idempotente y atómica (los reintentos de SQS no duplican ni pierden)."""
     fallidos = []
     for r in event.get("Records", []):
         try:
             m = json.loads(r["body"])
-            _registrar_incidencia(m)
+            _registrar_incidencia(m, _triage_ia(m["reporte"], context))
             _confirmar_dedup(m["reporte"], m["incidenciaId"])
         except Exception as e:  # noqa: BLE001 - vuelve a la cola; tras 5 intentos, a la DLQ (con alarma)
             print(f"ERROR reporte {r.get('messageId')}: {e!r}")
