@@ -16,7 +16,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
-from telecorp import db, historial, http, notificador, reglas, util, zonas
+from telecorp import db, estadisticas, historial, http, notificador, reglas, util, zonas
 
 _sqs = boto3.client("sqs")
 VENTANA_DEDUP_HORAS = 24
@@ -56,11 +56,28 @@ def _historial(entidad_id: str) -> list:
 
 # ---------------- Endpoints ----------------
 def crear_reporte(event, context):
+    """POST /api/reportes (requiere sesión). Cuerpo mínimo: {tipo, descripcion, ubicacion?}.
+
+    Los datos personales salen del ID token de Cognito (validado por el autorizador JWT del HTTP API).
+    """
     try:
-        reporte = http.cuerpo_json(event)
+        cuerpo = http.cuerpo_json(event)
     except ValueError as e:
         return http.error(400, str(e))
-    reporte = {k: (v.strip() if isinstance(v, str) else v) for k, v in reporte.items()}
+    claims = (event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}) or {}).get("claims", {})
+    perfil = reglas.perfil_desde_claims(claims)
+    if not perfil.get("dni"):
+        return http.error(401, "Inicia sesión para reportar")
+
+    zona_gps = None
+    ubic = cuerpo.get("ubicacion")
+    if isinstance(ubic, dict):
+        try:
+            z = zonas.ubicar(float(ubic["lat"]), float(ubic["lng"]))
+            zona_gps = z["zonaId"] if z else None
+        except (KeyError, TypeError, ValueError):
+            return http.error(400, "ubicacion debe tener lat y lng numéricos")
+    reporte = reglas.construir_reporte(cuerpo, perfil, zona_gps, util.ahora_iso())
 
     errores = reglas.validar_reporte(reporte, {z["zonaId"] for z in zonas.zonas()})
     if errores:
@@ -99,7 +116,8 @@ def crear_reporte(event, context):
         db.tabla("dedup").delete_item(Key={"clave": clave})  # no bloquear al usuario si no se encoló
         raise
     return http.respuesta(202, {"incidenciaId": incidencia_id, "estado": "REGISTRADA", "duplicado": False,
-                                "avisoEmail": suscripcion})
+                                "avisoEmail": suscripcion, "zonaId": reporte["zonaId"],
+                                "ubicacionFuente": reporte["ubicacionFuente"]})
 
 
 def _clave_dedup(usuario_id: str, zona_id: str) -> str:
@@ -126,6 +144,10 @@ def registrar(event, context):
                 if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
                     continue  # ya registrada en un intento anterior
                 raise
+            # Contadores para la página pública de estado (serie global y de la zona).
+            b, ttl = estadisticas.bucket_de_iso(m["creadaEn"]), int(time.time()) + estadisticas.TTL_DIAS * 86400
+            for serie in ("GLOBAL", rep["zonaId"]):
+                estadisticas.incrementar(db.tabla("estadisticas"), serie, b, rep["tipo"], ttl)
             historial.registrar(m["incidenciaId"], "INCIDENCIA", "CREADO", "USUARIO",
                                 detalle=f"Zona {(zonas.zona(rep['zonaId']) or {}).get('nombre', rep['zonaId'])}",
                                 estado_nuevo="REGISTRADA",
@@ -145,6 +167,23 @@ def _liberar_dedup(item: dict) -> None:
     except ClientError as e:
         if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
             raise
+
+
+def mis_reportes(event, context):
+    """GET /api/mis-reportes (requiere sesión): los reportes del usuario, sin enmascarar porque son suyos."""
+    claims = (event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}) or {}).get("claims", {})
+    dni = claims.get("custom:dni")
+    if not dni:
+        return http.error(401, "Inicia sesión")
+    r = db.tabla("incidencias").query(IndexName="usuario-fecha", KeyConditionExpression=Key("usuarioId").eq(dni),
+                                      ScanIndexForward=False, Limit=50)
+    salida = []
+    for i in r["Items"]:
+        salida.append({k: i.get(k) for k in ("incidenciaId", "estado", "creadaEn", "actualizadaEn", "zonaId", "tipo",
+                                             "incidenteColectivoId")}
+                      | {"descripcion": i["reporte"].get("descripcion"), "ubicacionFuente": i["reporte"].get("ubicacionFuente"),
+                         "zona": (zonas.zona(i["zonaId"]) or {}).get("nombre")})
+    return http.ok({"reportes": salida, "perfil": reglas.perfil_desde_claims(claims)})
 
 
 def listar(event, context):

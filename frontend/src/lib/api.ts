@@ -177,3 +177,36 @@ export const apiColectivos = {
   obtener: (id: string) => pedir<DetalleColectivo>(`/colectivos/${id}`),
   restablecer: (id: string) => pedir<{ mensaje: string }>(`/colectivos/${id}/restablecer`, { method: "POST" }),
 };
+
+// ---------------- Portal público y cuenta (E3.5) ----------------
+export type NivelRed = "SIN_PROBLEMAS" | "POSIBLES_PROBLEMAS" | "PROBLEMAS";
+export interface EstadoRed {
+  generadoEn: string;
+  alcance: string;
+  nivel: NivelRed;
+  mensaje: string;
+  serie: { t: string; total: number; base: number }[];
+  totales: { ultimas24h: number; ultimaHora: number; baseHora: number };
+  tipos: { tipo: TipoProblema; total: number; pct: number }[];
+  zonas: { zonaId: string; nombre: string; tipo: TipoZona; centro: { lat: number; lng: number }; radioM: number;
+           total24h: number; ultimaHora: number; baseHora: number; nivel: NivelRed }[];
+  colectivos: { incidenteColectivoId: string; zonaId: string; nombre: string; estado: EstadoColectivo; prioridad: Prioridad;
+                afectados: number; detectadoEn: string; antenasEnFalla: number }[];
+}
+
+export interface MiReporte {
+  incidenciaId: string; estado: EstadoIncidencia; creadaEn: string; zonaId: string; zona: string; tipo: TipoProblema;
+  descripcion: string; ubicacionFuente: "GPS" | "CUENTA"; incidenteColectivoId?: string | null;
+}
+
+async function conToken<T>(ruta: string, token: string, init?: RequestInit): Promise<T> {
+  return pedir<T>(ruta, { ...init, headers: { authorization: token, ...(init?.headers ?? {}) } });
+}
+
+export const apiPortal = {
+  estado: (zonaId?: string) => pedir<EstadoRed>(`/estado${zonaId ? `?zonaId=${zonaId}` : ""}`),
+  reportar: (token: string, cuerpo: { tipo: TipoProblema; descripcion: string; ubicacion?: { lat: number; lng: number } }) =>
+    conToken<{ incidenciaId: string; duplicado: boolean; zonaId?: string; ubicacionFuente?: "GPS" | "CUENTA"; mensaje?: string }>(
+      "/reportes", token, { method: "POST", body: JSON.stringify(cuerpo) }),
+  misReportes: (token: string) => conToken<{ reportes: MiReporte[] }>("/mis-reportes", token),
+};

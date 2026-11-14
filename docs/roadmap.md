@@ -40,7 +40,7 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - Panel: lista de incidencias con cambio de estado + **mapa de calor** de reportes.
 - **Probar**: reportar desde el celular, seguir el reporte y cambiarle el estado desde el panel.
 
-## E3: Detección colectiva + Step Functions 🧪
+## E3: Detección colectiva + Step Functions ✅
 - Detector: **≥10 usuarios distintos / zona / <24 h** y **detección proactiva** por antena caída o inhabilitada.
 - **Step Function `incidente-colectivo`**:
   - `Choice` (¿crítico?, ¿hay antenas en falla?);
@@ -55,6 +55,15 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
   - **banner y alerta sonora** al detectarse un colectivo;
   - detalle del incidente.
 - **Probar**: 12 reportes en una zona → alerta, diagrama avanzando, notificaciones registradas.
+
+## E3.5: Estado público + cuentas de usuario 🧪
+> Pedido del equipo antes de la 2.ª nube.
+- **Página pública estilo Downdetector** (`/portal`):
+  - semáforo general y por zona;
+  - gráfico de 24 h contra la línea base;
+  - problemas más reportados, zonas con más reportes, mapa e incidentes activos.
+- **Cuentas con Cognito** (D9): registro en un paso y reporte mínimo (**tipo + descripción**). Ubicación automática (GPS → zona de la cuenta); "mis reportes".
+- **Contadores agregados** por bloque de 15 min (D10).
 
 ## E4: Segunda nube + IA (requiere D2) ⬜
 > **Sin 2 nubes no se corrige el proyecto**, y la IA vale 3 puntos. Por eso va antes que lo vistoso. Si D2 no está decidida a tiempo, se intercambia con E5.

@@ -10,7 +10,10 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 | `GET /api/simulador` | `simulador.obtener` | Estado del simulador y fallas forzadas |
 | `PUT /api/simulador` | `simulador.actualizar` | `{activo}`, `{fallas: {ANT-x: gb\|null}}`, `{limpiarFallas}` |
 | `GET /api/zonas/ubicar?lat=&lng=` | `antenas.ubicar_zona` | Zona de cobertura de un punto (404 si está fuera) |
-| `POST /api/reportes` | `incidencias.crear_reporte` | Valida, **deduplica** (clave condicional `usuario#zona` en la tabla `dedup`) y encola en SQS → `202` |
+| `POST /api/reportes` 🔒 | `incidencias.crear_reporte` | **Requiere sesión (Cognito)**. Cuerpo `{tipo, descripcion, ubicacion?}`; los datos personales salen del token. Zona por GPS o, si no, la de la cuenta. Deduplica y encola en SQS → `202` |
+| `GET /api/mis-reportes` 🔒 | `incidencias.mis_reportes` | Reportes del usuario (GSI `usuario-fecha`) |
+| `GET /api/estado?zonaId=` | `estado.estado` | Estado público: semáforo, serie de 24 h + base, tipos, zonas, incidentes (caché de 10 s) |
+| `GET /api/config` | `estado.config` | Ids públicos de Cognito para el frontend |
 | *(SQS `reportes`)* | `incidencias.registrar` | Worker: put idempotente + historial `CREADO`; los fallos van a la DLQ |
 | `GET /api/incidencias?zonaId=&estado=&horas=` | `incidencias.listar` | Lista con datos personales enmascarados |
 | `GET /api/incidencias/{id}` | `incidencias.obtener` | Detalle + historial + `transicionesPermitidas` + estado de la zona |

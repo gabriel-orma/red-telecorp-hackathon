@@ -100,3 +100,13 @@ export const PASOS_FLUJO: { paso: PasoColectivo; etiqueta: string; detalle: stri
   { paso: "NOTIFICAR_RESTABLECIDO", etiqueta: "Aviso: restablecido", detalle: "Map → un aviso por afectado", icono: Megaphone, tipo: "map" },
   { paso: "CERRADO", etiqueta: "Cierre", detalle: "Incidencias solucionadas + duración", icono: CheckCheck },
 ];
+
+// ---------------- Estado público (E3.5) ----------------
+import { CheckCircle2 as Ok, AlertTriangle as Atencion, XOctagon } from "lucide-react";
+import type { NivelRed } from "./api";
+
+export const NIVEL_RED: Record<NivelRed, { titulo: string; corto: string; color: string; icono: LucideIcon }> = {
+  SIN_PROBLEMAS: { titulo: "Sin problemas en Red TeleCorp", corto: "Normal", color: "#22c55e", icono: Ok },
+  POSIBLES_PROBLEMAS: { titulo: "Posibles problemas en Red TeleCorp", corto: "Posibles problemas", color: "#f59e0b", icono: Atencion },
+  PROBLEMAS: { titulo: "Problemas en Red TeleCorp", corto: "Problemas", color: "#ef4444", icono: XOctagon },
+};

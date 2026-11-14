@@ -85,4 +85,8 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | DLQ del detector | AWS SQS | `telecorp-<stage>-detector-dlq` | base | `onFailure` de los streams |
 | Detector | AWS Lambda (DynamoDB Streams ×2) | `telecorp-<stage>-detector` | workflows | Filtro: INSERT de incidencias; antenas en CAIDA/INHABILITADA |
 | Step Function `incidente-colectivo` | AWS Step Functions (Standard) | `telecorp-<stage>-incidente-colectivo` | workflows | Map, Choice, Wait, Retry, Catch, SNS directo |
+| User Pool + cliente web + trigger PreSignUp | AWS Cognito + Lambda | `telecorp-<stage>-usuarios`, `telecorp-<stage>-pre-registro` | base | D9: auto-confirmación y validación del perfil |
+| Tabla `estadisticas` (TTL 35 d, PITR) | AWS DynamoDB | `telecorp-<stage>-estadisticas` | base | D10: contadores de 15 min |
+| GSI `usuario-fecha` en `incidencias` | AWS DynamoDB | — | base | "Mis reportes" |
+| Autorizador JWT (Cognito) | AWS API Gateway v2 | `cognito` | api | Protege `POST /api/reportes` y `/api/mis-reportes` |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |
