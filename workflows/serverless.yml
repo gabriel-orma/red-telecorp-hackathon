@@ -90,7 +90,7 @@ functions:
   notificarLote: { handler: src/pasos.notificar_lote, timeout: 120 }
   verificarInfraestructura: { handler: src/pasos.verificar_infraestructura }
   priorizar: { handler: src/pasos.priorizar }
-  resumir: { handler: src/pasos.resumir }             # HOOK 2.ª nube (IA)
+  resumir: { handler: src/pasos.resumir, timeout: 45 }   # IA (Gemini ≤ 8 s) + clima (Azure Maps ≤ 5 s); el estado de la máquina permite 60 s
   confirmar: { handler: src/pasos.confirmar, timeout: 300 }
   reverificar: { handler: src/pasos.reverificar }
   restablecer: { handler: src/pasos.restablecer }

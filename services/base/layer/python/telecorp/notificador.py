@@ -3,7 +3,9 @@
 Canales disponibles en Learner Lab (ver D1: SES y SMS bloqueados):
 1. **En la app**: cada aviso queda como evento NOTIFICACION_ENVIADA en el historial de la incidencia;
    el portal de seguimiento lo muestra como mensaje.
-2. **Email vía SNS**: se publica en el tópico `avisos` con el atributo `usuarioId`; solo lo reciben los usuarios
+2. **Email vía Azure Communication Services** (2.ª nube): solo para quien aceptó avisos por correo y nunca para reportes
+   simulados ni dominios reservados; con el límite por hora de ACS. Si envía, no se duplica por SNS.
+3. **Email vía SNS** (respaldo): se publica en el tópico `avisos` con el atributo `usuarioId`; solo lo reciben los usuarios
    que aceptaron avisos por correo (suscripción con FilterPolicy por usuarioId, confirmada por ellos).
 """
 import json
@@ -89,8 +91,13 @@ def notificar(incidencia: dict, estado_colectivo: str, colectivo_id: str) -> dic
     try:
         asunto, cuerpo = mensaje(estado_colectivo, incidencia["zonaId"])
         canales = {"app": "ok"}
+        azure = _correo_azure(incidencia.get("reporte") or {}, asunto, cuerpo)
+        if azure is not None:
+            canales["azureEmail"] = azure
         topico = os.environ.get("TOPICO_AVISOS")
-        if topico:
+        if azure == "enviado":
+            canales["email"] = "omitido: ya enviado por Azure"   # evita duplicar el correo por SNS
+        elif topico:
             try:
                 _sns.publish(
                     TopicArn=topico, Subject=f"Red TeleCorp: {asunto}"[:100], Message=cuerpo,
@@ -109,6 +116,21 @@ def notificar(incidencia: dict, estado_colectivo: str, colectivo_id: str) -> dic
         raise
     _confirmar_aviso(incidencia["incidenciaId"], estado_colectivo, marca)
     return canales
+
+
+def _correo_azure(reporte: dict, asunto: str, cuerpo: str) -> str | None:
+    """Canal ACS. None = no aplica (sin consentimiento, simulado o sin correo). Nunca lanza."""
+    email = reporte.get("email")
+    if not (reporte.get("avisarPorEmail") and email) or reporte.get("simulado"):
+        return None
+    try:
+        from html import escape
+        from telecorp.nube2 import azure_acs
+        r = azure_acs.enviar_correo(email, f"Red TeleCorp: {asunto}", cuerpo,
+                                    html=f"<p>{escape(cuerpo)}</p><p><small>Red TeleCorp · aviso automático</small></p>")
+        return "enviado" if r.get("enviado") else f"no enviado: {r.get('motivo')}"
+    except Exception as e:  # noqa: BLE001 - un canal caído no detiene los demás
+        return f"error: {type(e).__name__}"
 
 
 def suscribir_email(email: str, usuario_id: str) -> str | None:

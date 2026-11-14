@@ -30,12 +30,15 @@ MAX_INCIDENCIAS_EN_TRANSACCION = 40  # 2 ítems por incidencia (etiqueta + histo
 
 # H11. El enunciado pide reportes "relacionados con el servicio". Los seis tipos del catálogo lo son por construcción;
 # `OTRO` es texto libre sin clasificar y no cuenta para disparar un colectivo (sí se suma a uno ya abierto).
-# Extensión prevista: que la IA clasifique el texto de `OTRO` y lo reincorpore cuando sea de servicio.
+# La IA puede REINCORPORARLO si clasificó el texto como problema del servicio con confianza ≥ 0,8 (`iaTriage`, guardado por el
+# worker de ingesta): ver `reglas.triage_ia_confirma_servicio`. Solo suma; si la IA falla, OTRO sigue sin contar.
 TIPOS_SIN_RELACION_DEMOSTRADA = {"OTRO"}
 
 
 def relacionada_con_servicio(incidencia: dict) -> bool:
-    return incidencia.get("tipo") not in TIPOS_SIN_RELACION_DEMOSTRADA
+    if incidencia.get("tipo") not in TIPOS_SIN_RELACION_DEMOSTRADA:
+        return True
+    return reglas.triage_ia_confirma_servicio(incidencia.get("iaTriage"))
 
 
 # ---------------- Lectura ----------------

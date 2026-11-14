@@ -61,6 +61,43 @@
         "$ref": "#/$defs/EstadoIncidencia"
       },
       "description": "Solo en respuestas del API: estados a los que puede pasar ahora"
+    },
+    "iaTriage": {
+      "type": "object",
+      "description": "Solo para reportes de tipo OTRO. La IA (Gemini, texto enmascarado) clasifica si trata del servicio. El detector lo cuenta SOLO si fuente=IA, relacionado=true, confianza>=0.8 y tipoSugerido distinto de OTRO ('la IA solo suma'). La escribe únicamente el worker de ingesta; la vista pública no la expone.",
+      "properties": {
+        "relacionado": {
+          "type": "boolean"
+        },
+        "tipoSugerido": {
+          "type": "string"
+        },
+        "urgencia": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "confianza": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fuente": {
+          "enum": [
+            "IA",
+            "REGLAS"
+          ]
+        },
+        "modelo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "motivo": {
+          "type": "string"
+        }
+      }
     }
   },
   "$defs": {
