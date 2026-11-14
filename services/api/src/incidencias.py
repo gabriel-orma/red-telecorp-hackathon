@@ -20,6 +20,10 @@ from telecorp import db, estadisticas, historial, http, notificador, reglas, uti
 
 _sqs = boto3.client("sqs")
 VENTANA_DEDUP_HORAS = 24
+# H19. Al recibir el reporte solo se RESERVA la clave de deduplicación el tiempo que SQS puede tardar en entregar el
+# mensaje al worker (visibilidad 180 s × maxReceiveCount 5 = 15 min). El worker la extiende a 24 h al registrar la
+# incidencia. Si el mensaje se agota y cae a la DLQ, la reserva caduca sola y el usuario puede volver a reportar.
+RESERVA_DEDUP_SEGUNDOS = 20 * 60
 
 
 # ---------------- Utilidades ----------------
@@ -90,7 +94,8 @@ def crear_reporte(event, context):
     ahora = int(time.time())
     try:
         db.tabla("dedup").put_item(
-            Item={"clave": clave, "incidenciaId": incidencia_id, "expiraEn": ahora + VENTANA_DEDUP_HORAS * 3600},
+            Item={"clave": clave, "incidenciaId": incidencia_id, "expiraEn": ahora + RESERVA_DEDUP_SEGUNDOS,
+                  "estado": "RESERVADO"},
             ConditionExpression="attribute_not_exists(clave) OR expiraEn < :ahora",
             ExpressionAttributeValues={":ahora": ahora},
         )
@@ -121,38 +126,61 @@ def crear_reporte(event, context):
 
 
 def _clave_dedup(usuario_id: str, zona_id: str) -> str:
-    return f"{usuario_id}#{zona_id}"
+    return db.clave_dedup_usuario(usuario_id, zona_id)
+
+
+def _registrar_incidencia(m: dict) -> None:
+    """Crea la incidencia, su historial CREADO y los contadores del estado público en UNA transacción (H17): o quedan
+    los tres o ninguno, así un reintento de SQS nunca encuentra una incidencia "a medias". Idempotente: si la
+    incidencia ya existe, la transacción se cancela y el reintento no duplica nada."""
+    rep = m["reporte"]
+    item = {
+        "incidenciaId": m["incidenciaId"], "estado": "REGISTRADA",
+        "creadaEn": m["creadaEn"], "actualizadaEn": m["creadaEn"],
+        "zonaId": rep["zonaId"], "usuarioId": rep["usuarioId"], "tipo": rep["tipo"],
+        "reporte": rep,
+    }
+    b, ttl = estadisticas.bucket_de_iso(m["creadaEn"]), int(time.time()) + estadisticas.TTL_DIAS * 86400
+    operaciones = [
+        ("Put", "incidencias", {"Item": util.a_dynamo(item), "ConditionExpression": "attribute_not_exists(incidenciaId)"}),
+        ("Put", "historial", {"Item": historial.evento(
+            m["incidenciaId"], "INCIDENCIA", "CREADO", "USUARIO",
+            detalle=f"Zona {(zonas.zona(rep['zonaId']) or {}).get('nombre', rep['zonaId'])}",
+            estado_nuevo="REGISTRADA", ocurrido_en=m["creadaEn"], token="creado")}),
+    ]
+    # Contadores para la página pública de estado (serie global y de la zona).
+    for serie in ("GLOBAL", rep["zonaId"]):
+        operaciones.append(("Update", "estadisticas", estadisticas.argumentos_incremento(serie, b, rep["tipo"], ttl)))
+    try:
+        db.transaccion(operaciones)
+    except ClientError as e:
+        if db.es_transaccion_cancelada(e) and db.motivos_cancelacion(e)[:1] == ["ConditionalCheckFailed"]:
+            return  # ya registrada en un intento anterior
+        raise
+
+
+def _confirmar_dedup(rep: dict, incidencia_id: str) -> None:
+    """La reserva pasa a ser el bloqueo de 24 h de "un reporte activo por usuario y zona" (mejor esfuerzo)."""
+    try:
+        db.tabla("dedup").update_item(
+            Key={"clave": _clave_dedup(rep["usuarioId"], rep["zonaId"])},
+            UpdateExpression="SET expiraEn = :x, estado = :a", ConditionExpression="incidenciaId = :i",
+            ExpressionAttributeValues={":x": int(time.time()) + VENTANA_DEDUP_HORAS * 3600, ":a": "ACTIVO",
+                                       ":i": incidencia_id})
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
+            raise  # si la reserva ya caducó o es de otro reporte, no hay nada que extender
 
 
 def registrar(event, context):
-    """Worker SQS: crea la incidencia de forma idempotente (los reintentos de SQS no duplican)."""
+    """Worker SQS: crea la incidencia de forma idempotente y atómica (los reintentos de SQS no duplican ni pierden)."""
     fallidos = []
     for r in event.get("Records", []):
         try:
             m = json.loads(r["body"])
-            rep = m["reporte"]
-            item = {
-                "incidenciaId": m["incidenciaId"], "estado": "REGISTRADA",
-                "creadaEn": m["creadaEn"], "actualizadaEn": m["creadaEn"],
-                "zonaId": rep["zonaId"], "usuarioId": rep["usuarioId"], "tipo": rep["tipo"],
-                "reporte": rep,
-            }
-            try:
-                db.tabla("incidencias").put_item(Item=util.a_dynamo(item),
-                                                 ConditionExpression="attribute_not_exists(incidenciaId)")
-            except ClientError as e:
-                if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                    continue  # ya registrada en un intento anterior
-                raise
-            # Contadores para la página pública de estado (serie global y de la zona).
-            b, ttl = estadisticas.bucket_de_iso(m["creadaEn"]), int(time.time()) + estadisticas.TTL_DIAS * 86400
-            for serie in ("GLOBAL", rep["zonaId"]):
-                estadisticas.incrementar(db.tabla("estadisticas"), serie, b, rep["tipo"], ttl)
-            historial.registrar(m["incidenciaId"], "INCIDENCIA", "CREADO", "USUARIO",
-                                detalle=f"Zona {(zonas.zona(rep['zonaId']) or {}).get('nombre', rep['zonaId'])}",
-                                estado_nuevo="REGISTRADA",
-                                ocurrido_en=m["creadaEn"])
-        except Exception as e:  # noqa: BLE001 - vuelve a la cola; tras 3 intentos, a la DLQ
+            _registrar_incidencia(m)
+            _confirmar_dedup(m["reporte"], m["incidenciaId"])
+        except Exception as e:  # noqa: BLE001 - vuelve a la cola; tras 5 intentos, a la DLQ (con alarma)
             print(f"ERROR reporte {r.get('messageId')}: {e!r}")
             fallidos.append({"itemIdentifier": r["messageId"]})
     return {"batchItemFailures": fallidos}

@@ -179,7 +179,7 @@ resources:
       Properties:
         QueueName: ${self:custom.prefijo}-reportes
         VisibilityTimeout: 180
-        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 3 }
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 5 }  # AWS recomienda ≥5 con Lambda (H27)
     # Eventos del detector (DynamoDB Streams) que fallaron tras los reintentos: no se pierden.
     ColaDetectorDLQ:
       Type: AWS::SQS::Queue
@@ -192,7 +192,55 @@ resources:
       Properties:
         QueueName: ${self:custom.prefijo}-metricas
         VisibilityTimeout: 180
-        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 3 }
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 5 }
+
+    # Alarmas: cualquier mensaje en una DLQ es un registro que NO se procesó (H27). Aviso por el tópico del operador.
+    # Reproceso manual: aws sqs start-message-move-task --source-arn <arn de la DLQ>. Las 3 entran en la capa gratuita (10).
+    AlarmaReportesDLQ:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijo}-reportes-dlq-con-mensajes
+        AlarmDescription: "Hay reportes de usuarios que no se pudieron registrar (DLQ de reportes)"
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions: [{ Name: QueueName, Value: !GetAtt ColaReportesDLQ.QueueName }]
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions: [!Ref TopicoAlertasOperador]
+    AlarmaMetricasDLQ:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijo}-metricas-dlq-con-mensajes
+        AlarmDescription: "Hay métricas de antenas que no se pudieron clasificar (DLQ de métricas)"
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions: [{ Name: QueueName, Value: !GetAtt ColaMetricasDLQ.QueueName }]
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions: [!Ref TopicoAlertasOperador]
+    AlarmaDetectorDLQ:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijo}-detector-dlq-con-mensajes
+        AlarmDescription: "El detector de colectivos descartó eventos tras sus reintentos (DLQ del detector)"
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions: [{ Name: QueueName, Value: !GetAtt ColaDetectorDLQ.QueueName }]
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions: [!Ref TopicoAlertasOperador]
 
     # ---------- Configuración (SSM) y secretos (Secrets Manager) ----------
     ParametroSimulador:
