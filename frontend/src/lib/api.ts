@@ -105,7 +105,11 @@ export interface EventoHistorial {
   detalle: string;
   estadoAnterior: string | null;
   estadoNuevo: string | null;
+  /** Canal de un aviso (`NOTIFICACION_ENVIADA`), si el backend lo informa. */
+  canal?: CanalAviso;
 }
+
+export type CanalAviso = "AZURE_EMAIL" | "SNS_EMAIL" | "APP";
 
 export interface DetalleIncidencia {
   colectivo: {
@@ -173,6 +177,8 @@ export interface Colectivo {
   prioridad: Prioridad;
   puntajePrioridad: number;
   resumenIA?: string;
+  /** Análisis estructurado (E8). Ausente en incidentes anteriores o mientras el paso RESUMIR no corrió. */
+  analisisIA?: AnalisisIA | null;
   notificacionesEnviadas: number;
   restablecimientoSolicitado: boolean;
   primerReporteEn: string | null;
@@ -256,3 +262,36 @@ export const apiAnalitica = {
   obtener: (dias: number) => pedir<Analitica>(`/analitica?dias=${dias}`),
   recurrencia: () => pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST" }),
 };
+
+// ---------------- Análisis de IA, nubes e histórico (E8) ----------------
+export type ProbabilidadCausa = "ALTA" | "MEDIA" | "BAJA";
+export interface AnalisisIA {
+  /** "IA" solo si un modelo respondió; "REGLAS" es el respaldo determinista (nunca se presenta como IA). */
+  fuente: "IA" | "REGLAS";
+  proveedor: "gemini" | "reglas";
+  modelo: string | null;
+  generadoEn: string;
+  resumen: string;
+  hipotesisCausa: { causa: string; probabilidad: ProbabilidadCausa; evidencia: string }[];
+  recomendaciones: string[];
+  confianza: number;
+  clima: { fuente: "AzureMaps"; frase: string; temperaturaC: number; precipitacion: boolean; vientoKmH: number } | null;
+}
+
+export type EstadoNube = "OK" | "ERROR" | "SIN_CONFIGURAR";
+export interface ServicioNube { estado: EstadoNube; ultimaLlamada?: string | null; contador?: number; detalle?: string }
+export interface Nubes {
+  aws?: Record<string, ServicioNube>;
+  azure?: { acsEmail?: ServicioNube; maps?: ServicioNube };
+  gcp?: { bigquery?: ServicioNube; gemini?: ServicioNube };
+}
+export const apiNubes = { obtener: () => pedir<Nubes>("/nubes") };
+
+export interface Historico {
+  fuente: "BigQuery" | "DynamoDB";
+  total: number;
+  duracionPromedioMin: number | null;
+  zonasTop: { zonaId: string; nombre: string; incidentes: number }[];
+  tipos: { tipo: TipoProblema; cantidad: number }[];
+}
+export const apiHistorico = { obtener: () => pedir<Historico>("/analitica/historico") };

@@ -10,6 +10,7 @@ import { navegar } from "../lib/router";
 import { cn, haceCuanto } from "../lib/utils";
 import { Cifra } from "../components/neu/Piezas";
 import { COLOR_NEU } from "../components/neu/paleta";
+import { HistoricoNube } from "../components/neu/HistoricoNube";
 
 const RANGOS = [1, 7, 30];
 const EJE = { fill: "#8b8b97", fontSize: 11 };
@@ -164,6 +165,9 @@ export function Analitica() {
           </div>
         </Tarjeta>
       </>)}
+
+      {/* Histórico agregado en la nube (BigQuery, con respaldo en DynamoDB) */}
+      <HistoricoNube />
     </main>
   );
 }
