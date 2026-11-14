@@ -19,6 +19,7 @@ import antenas  # noqa: E402
 import colectivos  # noqa: E402
 import escenarios  # noqa: E402
 import incidencias  # noqa: E402
+import nubes  # noqa: E402
 
 SRC = pathlib.Path(__file__).resolve().parents[1] / "src"
 # Hay otro `simulador.py` en services/antenas/src (mismo nombre de módulo, hallazgo H30): se carga por ruta.
@@ -70,6 +71,7 @@ def test_el_grupo_no_basta_sin_un_sub_valido():
     # rutas administrativas añadidas en E5/E6: lanzar/reiniciar escenarios, reanudar colectivos y lanzar la recurrencia
     (colectivos.reanudar, {}), (analitica.ejecutar_recurrencia, {}),
     (escenarios.lanzar, {"body": '{"tipo": "TORMENTA", "zonaId": "ZONA-05"}'}), (escenarios.reiniciar, {}),
+    (nubes.obtener, {}),   # estado de las nubes: lanza sondas a Azure, no debe ser público
 ])
 def test_rutas_de_administracion_rechazan_sin_sesion_y_sin_rol_antes_de_tocar_datos(handler, ev):
     assert handler(dict(ev), None)["statusCode"] == 401
@@ -98,6 +100,7 @@ def test_serverless_yml_las_rutas_de_administracion_llevan_autorizador():
         ("PATCH", "/api/incidencias/{incidenciaId}/estado"), ("GET", "/api/colectivos/{colectivoId}"),
         ("POST", "/api/colectivos/{colectivoId}/restablecer"), ("POST", "/api/colectivos/reanudar"),
         ("POST", "/api/recurrencia"), ("POST", "/api/escenarios"), ("POST", "/api/escenarios/reiniciar"),
+        ("GET", "/api/nubes"),
     }
     # el resto (incl. las vistas públicas de incidencias) debe ser de solo lectura
     assert all(m == "GET" for (m, _), auth in rutas.items() if not auth)

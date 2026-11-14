@@ -91,9 +91,12 @@ def notificar(incidencia: dict, estado_colectivo: str, colectivo_id: str) -> dic
     try:
         asunto, cuerpo = mensaje(estado_colectivo, incidencia["zonaId"])
         canales = {"app": "ok"}
-        azure = _correo_azure(incidencia.get("reporte") or {}, asunto, cuerpo)
+        extra: dict = {}
+        azure = _correo_azure(incidencia.get("reporte") or {}, asunto, cuerpo, extra)
         if azure is not None:
             canales["azureEmail"] = azure
+        if extra.get("operacion"):
+            canales["azureOperacion"] = extra["operacion"]   # id de ACS: permite comprobar la entrega (Succeeded/Failed)
         topico = os.environ.get("TOPICO_AVISOS")
         if azure == "enviado":
             canales["email"] = "omitido: ya enviado por Azure"   # evita duplicar el correo por SNS
@@ -118,8 +121,9 @@ def notificar(incidencia: dict, estado_colectivo: str, colectivo_id: str) -> dic
     return canales
 
 
-def _correo_azure(reporte: dict, asunto: str, cuerpo: str) -> str | None:
-    """Canal ACS. None = no aplica (sin consentimiento, simulado o sin correo). Nunca lanza."""
+def _correo_azure(reporte: dict, asunto: str, cuerpo: str, extra: dict | None = None) -> str | None:
+    """Canal ACS. None = no aplica (sin consentimiento, simulado o sin correo). Nunca lanza.
+    Si se pasa `extra`, se le añade `operacion` (id de la operación de ACS) cuando el envío fue aceptado."""
     email = reporte.get("email")
     if not (reporte.get("avisarPorEmail") and email) or reporte.get("simulado"):
         return None
@@ -128,6 +132,8 @@ def _correo_azure(reporte: dict, asunto: str, cuerpo: str) -> str | None:
         from telecorp.nube2 import azure_acs
         r = azure_acs.enviar_correo(email, f"Red TeleCorp: {asunto}", cuerpo,
                                     html=f"<p>{escape(cuerpo)}</p><p><small>Red TeleCorp · aviso automático</small></p>")
+        if r.get("enviado") and extra is not None and r.get("operationId"):
+            extra["operacion"] = r["operationId"]
         return "enviado" if r.get("enviado") else f"no enviado: {r.get('motivo')}"
     except Exception as e:  # noqa: BLE001 - un canal caído no detiene los demás
         return f"error: {type(e).__name__}"

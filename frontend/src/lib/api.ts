@@ -283,15 +283,8 @@ export interface ServicioNube { estado: EstadoNube; ultimaLlamada?: string | nul
 export interface Nubes {
   aws?: Record<string, ServicioNube>;
   azure?: { acsEmail?: ServicioNube; maps?: ServicioNube };
-  gcp?: { bigquery?: ServicioNube; gemini?: ServicioNube };
+  /** Inferencia de IA por API externa (Gemini): NO cuenta como nube adicional. */
+  ia?: { gemini?: ServicioNube };
 }
 export const apiNubes = { obtener: () => pedir<Nubes>("/nubes") };
 
-export interface Historico {
-  fuente: "BigQuery" | "DynamoDB";
-  total: number;
-  duracionPromedioMin: number | null;
-  zonasTop: { zonaId: string; nombre: string; incidentes: number }[];
-  tipos: { tipo: TipoProblema; cantidad: number }[];
-}
-export const apiHistorico = { obtener: () => pedir<Historico>("/analitica/historico") };

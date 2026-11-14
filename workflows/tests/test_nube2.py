@@ -155,10 +155,12 @@ def test_falla_de_red_se_devuelve_estructurada_sin_lanzar(nubes, monkeypatch):
 
 
 def test_sondear_acs_distingue_credenciales_validas_de_invalidas(nubes):
-    nubes.acs = lambda: (404, {}, b"")
+    nubes.acs = lambda: (400, {}, json.dumps({"error": {"code": "BadRequest"}}).encode())   # clave buena: falla la validación, no la autenticación
     assert azure_acs.sondear()["ok"] is True
     nubes.acs = lambda: (401, {}, b"")
-    assert azure_acs.sondear()["ok"] is False and not any(c[0] == "POST" for c in nubes.llamadas)   # nunca envía correo
+    assert azure_acs.sondear()["ok"] is False
+    posts = [c for c in nubes.llamadas if c[0] == "POST"]
+    assert posts and all(json.loads(c[3])["recipients"]["to"] == [] for c in posts)         # nunca lleva destinatarios: no envía correo
 
 
 # ================================================================ Azure Maps
@@ -342,6 +344,33 @@ def test_repriorizar_no_pisa_el_resumen_de_la_ia(nubes):
     col["puntajePrioridad"] = 0                        # fuerza un cambio de puntaje y de nivel
     pasos._repriorizar({**col, "prioridad": "BAJA"})
     assert cc.obtener(cid)["resumenIA"] == ANALISIS["resumen"]
+
+
+def test_el_analisis_se_regenera_cuando_cambian_los_datos_y_no_si_siguen_iguales(nubes):
+    """Caso real (14-nov): las antenas caen ANTES de los reportes → el colectivo se abre con 0 afectados y el análisis
+    inicial queda desactualizado. El monitoreo lo vuelve a generar solo si cambiaron los afectados o las antenas en falla."""
+    import comun_colectivos as cc
+    import pasos
+    nubes.gemini = lambda: gemini(ANALISIS)
+    cid = _colectivo_con_10()
+    pasos.resumir({"colectivoId": cid}, None)
+    assert cc.obtener(cid)["analisisIA"]["basadoEn"] == {"afectados": 10, "antenasEnFalla": 0}
+    llamadas = len(nubes.a("generativelanguage.googleapis.com"))
+    assert pasos._refrescar_analisis(cc.obtener(cid)) is False                                  # nada cambió: no gasta IA
+    assert len(nubes.a("generativelanguage.googleapis.com")) == llamadas
+    col = cc.obtener(cid)
+    cc.agregar_antenas(col, [{"antenaId": "ANT-013", "estado": "CAIDA", "desde": "2026-11-14T22:00:00.000Z"}])
+    assert pasos._refrescar_analisis(cc.obtener(cid)) is True                                   # apareció una antena caída
+    assert cc.obtener(cid)["analisisIA"]["basadoEn"] == {"afectados": 10, "antenasEnFalla": 1}
+    assert len(nubes.a("generativelanguage.googleapis.com")) == llamadas + 1
+
+
+def test_si_el_refresco_del_analisis_falla_el_monitoreo_no_se_rompe(nubes, monkeypatch):
+    import comun_colectivos as cc
+    import pasos
+    cid = _colectivo_con_10()
+    monkeypatch.setattr(pasos, "_generar_analisis", lambda col: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert pasos._refrescar_analisis(cc.obtener(cid)) is False
 
 
 # ================================================================ Notificador: canal Azure

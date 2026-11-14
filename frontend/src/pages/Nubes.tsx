@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  AlertTriangle, BarChart3, CheckCircle2, CircleDashed, Cloud, CloudOff, Database, HelpCircle, Inbox, Loader2, Mail,
+  AlertTriangle, CheckCircle2, CircleDashed, Cloud, CloudOff, Database, HelpCircle, Inbox, Loader2, Mail,
   MapPinned, Sparkles, Workflow, Zap, type LucideIcon,
 } from "lucide-react";
 import { api, apiColectivos, apiNubes, type EstadoNube, type Nubes as DatosNubes, type ServicioNube } from "../lib/api";
@@ -10,7 +10,7 @@ import { cn, haceCuanto } from "../lib/utils";
 import { Cifra } from "../components/neu/Piezas";
 
 interface Servicio { clave: string; nombre: string; detalle: string; icono: LucideIcon }
-interface Proveedor { id: "aws" | "azure" | "gcp"; nombre: string; rol: string; servicios: Servicio[] }
+interface Proveedor { id: "aws" | "azure" | "ia"; nombre: string; rol: string; servicios: Servicio[] }
 
 const PROVEEDORES: Proveedor[] = [
   { id: "aws", nombre: "Amazon Web Services", rol: "Núcleo: ingesta, datos, automatización y API", servicios: [
@@ -21,11 +21,10 @@ const PROVEEDORES: Proveedor[] = [
   ] },
   { id: "azure", nombre: "Microsoft Azure", rol: "Avisos por correo y contexto geoespacial", servicios: [
     { clave: "acsEmail", nombre: "Communication Services · correo", detalle: "Avisos a los afectados", icono: Mail },
-    { clave: "maps", nombre: "Azure Maps", detalle: "Clima y geocodificación de la zona", icono: MapPinned },
+    { clave: "maps", nombre: "Azure Maps", detalle: "Clima actual de la zona del incidente", icono: MapPinned },
   ] },
-  { id: "gcp", nombre: "Google Cloud", rol: "Histórico analítico e IA", servicios: [
-    { clave: "bigquery", nombre: "BigQuery", detalle: "Histórico de incidentes y consultas", icono: BarChart3 },
-    { clave: "gemini", nombre: "Gemini API", detalle: "Análisis de incidentes con IA", icono: Sparkles },
+  { id: "ia", nombre: "IA generativa (API externa)", rol: "Análisis del incidente; no cuenta como nube adicional", servicios: [
+    { clave: "gemini", nombre: "Gemini API", detalle: "Hipótesis de causa y recomendaciones; si no responde, reglas deterministas", icono: Sparkles },
   ] },
 ];
 
@@ -76,13 +75,14 @@ export function Nubes() {
   };
   const fila = (p: Proveedor["id"], clave: string): { fila: Fila; derivada: boolean } => {
     if (p === "aws") return aws(clave);
-    const grupo = p === "azure" ? nubes.datos?.azure : nubes.datos?.gcp;
+    const grupo = p === "azure" ? nubes.datos?.azure : nubes.datos?.ia;
     return { fila: (grupo as Record<string, ServicioNube | undefined> | undefined)?.[clave], derivada: false };
   };
 
   const estados = PROVEEDORES.map((p) => ({ p, estado: resumenProveedor(p.servicios.map((s) => fila(p.id, s.clave).fila)) }));
   // «Conectada» = al menos un servicio de ese proveedor respondió bien (la integración funciona, aunque sea parcial).
-  const conectadas = estados.filter((e) => e.estado === "OK" || e.estado === "PARCIAL").length;
+  const nubesReales = estados.filter((e) => e.p.id !== "ia");   // la API de IA no es una nube adicional
+  const conectadas = nubesReales.filter((e) => e.estado === "OK" || e.estado === "PARCIAL").length;
   const cargando = !nubes.datos && !nubes.error;
 
   return (
@@ -95,7 +95,7 @@ export function Nubes() {
             <p className="text-xs text-tenue">Cada servicio se consulta en vivo; «operativo» significa que respondió bien en su última llamada.</p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold"><Cifra valor={conectadas} /><span className="text-lg font-semibold text-tenue"> de 3</span></div>
+            <div className="text-3xl font-bold"><Cifra valor={conectadas} /><span className="text-lg font-semibold text-tenue"> de {nubesReales.length}</span></div>
             <div className="text-xs text-tenue">nubes con integración operativa</div>
           </div>
         </div>

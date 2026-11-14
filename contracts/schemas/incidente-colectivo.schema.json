@@ -190,6 +190,14 @@
           "type": "string",
           "format": "date-time"
         },
+        "basadoEn": {
+          "type": "object",
+          "description": "Datos con los que se generó el análisis; si cambian, el monitoreo lo regenera.",
+          "properties": {
+            "afectados": {"type": "integer", "minimum": 0},
+            "antenasEnFalla": {"type": "integer", "minimum": 0}
+          }
+        },
         "resumen": {
           "type": "string",
           "maxLength": 600

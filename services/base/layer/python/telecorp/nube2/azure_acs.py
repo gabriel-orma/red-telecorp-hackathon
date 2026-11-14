@@ -145,19 +145,21 @@ def consultar_operacion(operation_id: str) -> dict:
 
 
 def sondear() -> dict:
-    """Comprueba credenciales SIN enviar correo: consulta una operación inexistente. Con firma válida ACS responde 404
-    (o 400 por id desconocido); con firma/clave incorrectas, 401/403."""
+    """Comprueba credenciales SIN enviar correo: `emails:send` con la lista de destinatarios VACÍA. ACS autentica primero y
+    valida después: con la clave buena responde 400 BadRequest (~1 s, no crea operación ni envía nada); con clave o firma
+    malas, 401. (Consultar una operación inexistente no sirve: Azure tarda ~30 s y responde 504; medido el 14-nov-2026.)"""
     inicio = time.time()
     try:
         cfg = _config()
         if not cfg:
             estado.anotar(SERVICIO, False, estado="NO_CONFIGURADA")
             return {"ok": False, "motivo": "NO_CONFIGURADA"}
-        st, _, _ = _llamar(cfg, "GET", f"/emails/operations/{uuid.uuid4()}?api-version={API_VERSION}", timeout=6.0)
-        ok = st in (200, 400, 404)
+        cuerpo = {"senderAddress": cfg["acsSender"], "content": {"subject": "sonda", "plainText": "sonda"}, "recipients": {"to": []}}
+        st, _, _ = _llamar(cfg, "POST", f"/emails:send?api-version={API_VERSION}", cuerpo, timeout=6.0)
+        ok = st == 400
         ms = int((time.time() - inicio) * 1000)
         estado.anotar(SERVICIO, ok, ms, error=None if ok else f"HTTP_{st}")
         return {"ok": ok, "http": st, "latenciaMs": ms}
     except Exception as e:  # noqa: BLE001
-        estado.anotar(SERVICIO, False, error=type(e).__name__)
+        estado.anotar(SERVICIO, False, error=getattr(e, "codigo", type(e).__name__))
         return {"ok": False, "motivo": type(e).__name__}

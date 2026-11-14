@@ -184,6 +184,14 @@ functions:
       MAQUINA_RECURRENCIA: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-recurrencia
     events:
       - httpApi: { method: POST, path: "/api/recurrencia", authorizer: { name: cognito } }
+  # ---------- Nubes conectadas (2.ª nube: Azure) ----------
+  nubes:
+    handler: src/nubes.obtener
+    timeout: 20
+    environment:
+      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
+    events:
+      - httpApi: { method: GET, path: "/api/nubes", authorizer: { name: cognito } }   # solo operadores (grupo, ver acceso.py)
   # ---------- Escenarios de demo (E5) ----------
   escenarioObtener:
     handler: src/escenarios.obtener

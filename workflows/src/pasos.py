@@ -122,18 +122,41 @@ def resumir(event, context):
     análisis determinista (`fuente: "REGLAS"`), y sin clima el análisis sigue. `resumenIA` se conserva (texto corto)."""
     cid = event["colectivoId"]
     cc.marcar_paso(cid, "RESUMIR")
-    col = cc.obtener(cid)
+    analisis = _generar_analisis(cc.obtener(cid))
+    return {"resumen": analisis["resumen"], "fuente": analisis.get("fuente")}
+
+
+def _generar_analisis(col: dict) -> dict:
+    """Genera y guarda `analisisIA` (+ `resumenIA`) del colectivo. Anota sobre qué datos se hizo (`basadoEn`) para saber
+    cuándo queda desactualizado. Nunca lanza: ante cualquier fallo de la IA o de Azure Maps usa la plantilla determinista."""
+    cid = col["incidenteColectivoId"]
     try:
         analisis = ia.analizar_colectivo(_contexto_analisis(col))
     except Exception as e:  # noqa: BLE001 - nunca debe romper el flujo
         print(f"resumir: análisis no disponible ({type(e).__name__})")
         analisis = ia.analisis_reglas(_contexto_analisis(col, con_clima=False))
+    analisis["basadoEn"] = {"afectados": len(col.get("usuariosAfectados", [])), "antenasEnFalla": len(col.get("antenasEnFalla", []))}
     resumen = (analisis.get("resumen") or _texto_resumen(col))[:400]
     cc.actualizar(cid, resumenIA=resumen, analisisIA=analisis)
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "IA" if analisis.get("fuente") == "IA" else "STEP_FUNCTION",
                         detalle=f"Análisis {analisis.get('fuente')}: {len(analisis.get('hipotesisCausa', []))} hipótesis, "
                                 f"confianza {analisis.get('confianza')}")
-    return {"resumen": resumen, "fuente": analisis.get("fuente")}
+    return {**analisis, "resumen": resumen}
+
+
+def _refrescar_analisis(col: dict) -> bool:
+    """Si desde el último análisis cambiaron los afectados o las antenas en falla (p. ej. las antenas cayeron ANTES de los
+    reportes y el colectivo se abrió con 0 usuarios), lo vuelve a generar. Devuelve True si lo regeneró. Nunca lanza."""
+    try:
+        previo = (col.get("analisisIA") or {}).get("basadoEn") or {}
+        ahora = {"afectados": len(col.get("usuariosAfectados", [])), "antenasEnFalla": len(col.get("antenasEnFalla", []))}
+        if col.get("analisisIA") and all(int(previo.get(k, -1)) == v for k, v in ahora.items()):
+            return False
+        _generar_analisis(col)
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"reverificar: no se pudo refrescar el análisis ({type(e).__name__})")
+        return False
 
 
 def _contexto_analisis(col: dict, con_clima: bool = True) -> dict:
@@ -201,6 +224,8 @@ def reverificar(event, context):
               if e in reglas.ESTADOS_ANTENA_VERIFICACION]
     antes = len(col.get("antenasEnFalla", []))
     cc.agregar_antenas(col, nuevas)  # fallas que aparecieron durante el monitoreo
+    col = cc.obtener(cid)             # afectados y antenas al día (los reportes siguen llegando mientras se monitorea)
+    _refrescar_analisis(col)
     _repriorizar(col)  # el tiempo activo sube el puntaje en cada vuelta del monitoreo
     afectadas = [a["antenaId"] for a in col.get("antenasEnFalla", [])]
     silencio = int(cfg.get("cierreSinReportesMinutos", SILENCIO_MIN))
