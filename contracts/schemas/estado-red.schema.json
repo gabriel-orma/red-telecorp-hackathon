@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "estado-red.schema.json",
+  "title": "Estado público de la red (GET /api/estado)",
+  "type": "object",
+  "required": [
+    "generadoEn",
+    "nivel",
+    "serie",
+    "tipos",
+    "zonas",
+    "colectivos"
+  ],
+  "$defs": {
+    "Nivel": {
+      "type": "string",
+      "enum": [
+        "SIN_PROBLEMAS",
+        "POSIBLES_PROBLEMAS",
+        "PROBLEMAS"
+      ]
+    }
+  },
+  "properties": {
+    "generadoEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "alcance": {
+      "type": "string",
+      "description": "GLOBAL o zonaId consultada"
+    },
+    "nivel": {
+      "$ref": "#/$defs/Nivel"
+    },
+    "mensaje": {
+      "type": "string"
+    },
+    "serie": {
+      "type": "array",
+      "description": "96 bloques de 15 min (24 h)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "base": {
+            "type": "number",
+            "description": "Promedio del mismo bloque en los 7 días previos"
+          }
+        }
+      }
+    },
+    "tipos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "pct": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "zonas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "zonaId": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "total24h": {
+            "type": "integer"
+          },
+          "ultimaHora": {
+            "type": "integer"
+          },
+          "baseHora": {
+            "type": "number"
+          },
+          "nivel": {
+            "$ref": "#/$defs/Nivel"
+          }
+        }
+      }
+    },
+    "colectivos": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "totales": {
+      "type": "object",
+      "properties": {
+        "ultimas24h": {
+          "type": "integer"
+        },
+        "ultimaHora": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

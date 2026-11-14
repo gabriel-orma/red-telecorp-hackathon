@@ -64,6 +64,14 @@
     "avisarPorEmail": {
       "type": "boolean",
       "description": "Opt-in: recibir avisos por correo (SNS email; requiere confirmar la suscripción)"
+    },
+    "ubicacionFuente": {
+      "type": "string",
+      "enum": [
+        "GPS",
+        "CUENTA"
+      ],
+      "description": "De dónde salió la zona: GPS del navegador o zona del servicio de la cuenta. Lo completa el backend."
     }
   },
   "$defs": {
@@ -79,5 +87,6 @@
         "OTRO"
       ]
     }
-  }
+  },
+  "description": "Desde E3.5 el portal solo envía {tipo, descripcion, ubicacion?}; el backend completa los datos personales desde la cuenta (token de Cognito)."
 }

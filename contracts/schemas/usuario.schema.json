@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "usuario.schema.json",
+  "title": "Perfil de usuario (atributos de Cognito)",
+  "type": "object",
+  "required": [
+    "email",
+    "nombre",
+    "dni",
+    "numeroServicio",
+    "zonaId"
+  ],
+  "properties": {
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Usuario de inicio de sesión"
+    },
+    "nombre": {
+      "type": "string",
+      "description": "Atributo estándar name"
+    },
+    "dni": {
+      "type": "string",
+      "pattern": "^[0-9]{8,12}$",
+      "description": "custom:dni (usuarioId de las incidencias)"
+    },
+    "numeroServicio": {
+      "type": "string",
+      "description": "custom:numeroServicio"
+    },
+    "telefono": {
+      "type": "string",
+      "pattern": "^\\+[0-9]{8,15}$",
+      "description": "phone_number (E.164)"
+    },
+    "zonaId": {
+      "type": "string",
+      "description": "custom:zonaId: zona del servicio (respaldo si no hay GPS)"
+    },
+    "avisosEmail": {
+      "type": "string",
+      "enum": [
+        "0",
+        "1"
+      ],
+      "description": "custom:avisosEmail: acepta avisos por correo"
+    }
+  }
+}
