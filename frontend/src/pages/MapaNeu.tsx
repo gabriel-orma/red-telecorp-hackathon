@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Flame, ListOrdered, Radar, RotateCcw, Siren, Users, Zap } from "lucide-react";
+import { Box, ChevronRight, Flame, ListOrdered, Radar, RotateCcw, Siren, Users, Zap } from "lucide-react";
 import { api, apiIncidencias, type Antena, type Colectivo, type EstadoSimulador, type Incidencia, type Zona } from "../lib/api";
 import { ESTADO, ESTADO_COLECTIVO, GRAVEDAD, ORDEN_ESTADOS, PRIORIDAD, TIPO_ZONA } from "../lib/estados";
 import { usePolling } from "../hooks/usePolling";
 import { useEsOperador } from "../lib/auth";
 import { navegar } from "../lib/router";
+import { useAlCambiar } from "../lib/tiempoReal";
 import { cn, haceCuanto, numero } from "../lib/utils";
 import { MapaRed } from "../components/MapaRed";
 import { ShellNeu } from "../components/neu/ShellNeu";
@@ -31,7 +32,9 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
   const esOperador = useEsOperador();
   const sim = usePolling<EstadoSimulador | null>(esOperador ? api.simulador : sinSimulador, 10_000);
   const reportes = usePolling<Incidencia[]>(useCallback(() => apiIncidencias.listar({ horas: 24 }).then((r) => r.incidencias), []), 10_000);
+  useAlCambiar(["incidencias"], reportes.refrescar);
   const [verCalor, setVerCalor] = useState(true);
+  const [modo3d, setModo3d] = useState(false);
   // ?antena=ANT-013 o ?zona=ZONA-05 (desde la paleta Ctrl+K de otras pantallas)
   const params = new URLSearchParams(window.location.search);
   const [seleccion, setSeleccion] = useState<string | null>(params.get("antena"));
@@ -144,7 +147,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
             </div>
           </section>
 
-          <section className="neu p-3">
+          <section className="neu ocultar-en-sala p-3">
             <div className="flex items-center justify-between px-2 pb-2 pt-1">
               <span className="text-sm text-tenue">Zonas por gravedad</span>
               <span className="text-[11px] text-tenue">{zonas.length}</span>
@@ -200,7 +203,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
           <div className="neu-hundido relative min-h-[55vh] flex-1 overflow-hidden p-1.5">
             <div className="relative h-full min-h-[55vh] overflow-hidden rounded-[13px]">
               <MapaRed antenas={antenas} zonas={zonas} colectivos={colectivos} reportes={verCalor ? reportes.datos ?? [] : []}
-                seleccion={seleccion} onSeleccionar={setSeleccion} enfocarZona={zonaFoco} paleta={PALETA_MAPA_NEU} />
+                seleccion={seleccion} onSeleccionar={setSeleccion} enfocarZona={zonaFoco} paleta={PALETA_MAPA_NEU} modo3d={modo3d} />
               <DetalleAntenaNeu antena={antenaSel} zona={zonas.find((z) => z.zonaId === antenaSel?.zonaId)}
                 forzada={antenaSel ? sim.datos?.fallas[antenaSel.antenaId] : undefined}
                 onCerrar={() => setSeleccion(null)} onForzar={(id, v) => cambiarSimulador({ fallas: { [id]: v } })} />
@@ -211,6 +214,10 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
                 <button onClick={() => setVerCalor(!verCalor)} data-activo={verCalor}
                   className={cn("boton-neu flex items-center gap-1.5 px-2.5 py-1", verCalor ? "text-[#e05ab0]" : "text-tenue")}>
                   <Flame className="size-3" /> Reportes
+                </button>
+                <button onClick={() => setModo3d(!modo3d)} data-activo={modo3d} title="Columnas por zona según los reportes de 24 h"
+                  className={cn("boton-neu flex items-center gap-1.5 px-2.5 py-1", modo3d ? "text-acento" : "text-tenue")}>
+                  <Box className="size-3" /> 3D
                 </button>
               </div>
             </div>

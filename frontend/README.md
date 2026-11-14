@@ -39,3 +39,13 @@ VITE_API_PROXY=https://<id>.execute-api.us-east-1.amazonaws.com npm run dev
 `bash scripts/deploy.sh <stage> frontend` compila y sube `dist/` al bucket. La Lambda `web` lo sirve por HTTPS.
 
 Mapa base: CARTO Dark Matter (gratuito, sin API key, con atribución).
+
+## Tiempo real y experiencia (E7)
+- `lib/tiempoReal.ts`: **una** conexión WebSocket compartida (URL en `/api/config`), reconexión con espera creciente y ping cada 4 min.
+  - Con WebSocket, el polling baja a 30 s (respaldo) y los datos se refrescan al llegar cada aviso.
+  - Sin WebSocket, vuelve el polling de 3 s.
+  - La barra superior muestra "En vivo · WebSocket" o "En vivo · polling".
+- **Reproducción del historial** (`components/neu/Reproduccion.tsx`): deslizador y play de 12 s sobre el historial inmutable del incidente (estado, reportes acumulados, antenas, prioridad).
+- **Reporte por voz** (`components/Dictado.tsx`): Web Speech API (`es-PE`); si el navegador no la soporta, el botón no aparece.
+- **Mapa 3D**: botón "3D" en la leyenda; las zonas se extruyen según los reportes de 24 h y la cámara se inclina.
+- **Modo sala** (pantalla completa, sin barra lateral ni listas largas) y **alto contraste**: botones en la barra superior, guardados en el navegador.

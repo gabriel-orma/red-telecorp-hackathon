@@ -21,6 +21,8 @@ provider:
     role: arn:aws:iam::${aws:accountId}:role/LabRole
   layers:
     - ${cf:${self:custom.base}.ComunLambdaLayerQualifiedArn}
+  websocketsApiName: ${self:custom.prefijo}-tiempo-real
+  websocketsApiRouteSelectionExpression: $request.body.accion
   httpApi:
     name: ${self:custom.prefijo}-api
     authorizers:
@@ -39,6 +41,7 @@ provider:
     TABLA_DEDUP: ${cf:${self:custom.base}.TablaDedupNombre}
     TABLA_COLECTIVOS: ${cf:${self:custom.base}.TablaColectivosNombre}
     TABLA_ESTADISTICAS: ${cf:${self:custom.base}.TablaEstadisticasNombre}
+    TABLA_CONEXIONES: ${cf:${self:custom.base}.TablaConexionesNombre}
     TOPICO_AVISOS: ${cf:${self:custom.base}.TopicoAvisosArn}
     COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
 
@@ -92,6 +95,7 @@ functions:
   config:
     handler: src/estado.config
     environment:
+      WS_URL: !Sub "wss://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}"
       USER_POOL_ID: ${cf:${self:custom.base}.UserPoolId}
       USER_POOL_CLIENT_ID: ${cf:${self:custom.base}.UserPoolClientId}
     events:
@@ -145,6 +149,28 @@ functions:
     handler: src/colectivos.restablecer
     events:
       - httpApi: { method: POST, path: "/api/colectivos/{colectivoId}/restablecer", authorizer: { name: cognito } }
+  # ---------- Tiempo real (E7): WebSocket + difusor ----------
+  wsConectar:
+    handler: src/tiempo_real.conectar
+    events:
+      - websocket: $connect
+  wsDesconectar:
+    handler: src/tiempo_real.desconectar
+    events:
+      - websocket: $disconnect
+  wsMensaje:
+    handler: src/tiempo_real.mensaje
+    events:
+      - websocket: $default
+  difusor:
+    handler: src/tiempo_real.difundir
+    timeout: 30
+    environment:
+      WS_ENDPOINT: !Sub "https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}"
+    events:
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaAntenasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaColectivosStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaIncidenciasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
   # ---------- Analítica operativa (E6) ----------
   analitica:
     handler: src/analitica.analitica

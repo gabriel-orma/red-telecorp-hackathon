@@ -101,10 +101,21 @@ resources:
           - { AttributeName: zonaId, AttributeType: S }
           - { AttributeName: estado, AttributeType: S }
         KeySchema: [{ AttributeName: incidenteColectivoId, KeyType: HASH }]
+        StreamSpecification: { StreamViewType: KEYS_ONLY }  # E7: avisos en tiempo real al panel
         GlobalSecondaryIndexes:
           - IndexName: zona-estado
             KeySchema: [{ AttributeName: zonaId, KeyType: HASH }, { AttributeName: estado, KeyType: RANGE }]
             Projection: { ProjectionType: ALL }
+
+    # Conexiones WebSocket del panel (E7). TTL: las abandonadas caducan solas.
+    TablaConexiones:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-conexiones
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions: [{ AttributeName: connectionId, AttributeType: S }]
+        KeySchema: [{ AttributeName: connectionId, KeyType: HASH }]
+        TimeToLiveSpecification: { AttributeName: expiraEn, Enabled: true }
 
     # Contadores agregados para la página pública de estado (D10): 96 ítems por día y serie.
     TablaEstadisticas:
@@ -311,6 +322,8 @@ resources:
     TablaAntenasNombre: { Value: !Ref TablaAntenas }
     TablaAntenasStreamArn: { Value: !GetAtt TablaAntenas.StreamArn }
     TablaColectivosNombre: { Value: !Ref TablaColectivos }
+    TablaColectivosStreamArn: { Value: !GetAtt TablaColectivos.StreamArn }
+    TablaConexionesNombre: { Value: !Ref TablaConexiones }
     TablaDedupNombre: { Value: !Ref TablaDedup }
     TablaEstadisticasNombre: { Value: !Ref TablaEstadisticas }
     UserPoolId: { Value: !Ref UserPool }

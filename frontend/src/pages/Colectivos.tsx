@@ -8,6 +8,7 @@ import { navegar } from "../lib/router";
 import { cn, haceCuanto, numero } from "../lib/utils";
 import { FlujoColectivo, FlujoMini } from "../components/FlujoColectivo";
 import { Anticipacion } from "./MapaNeu";
+import { Reproduccion } from "../components/neu/Reproduccion";
 import { ChipEstado, Historial } from "../components/LineaTiempo";
 
 const ORIGEN = { REPORTES_USUARIOS: "Reportes de usuarios", METRICAS_ANTENA: "Detección proactiva (antena)", AMBOS: "Usuarios + antenas" };
@@ -168,6 +169,8 @@ function Detalle({ id }: { id: string }) {
             </ul>
           </div>
         </div>
+
+        <Reproduccion detalle={d} />
 
         <div className="panel p-4">
           <div className="mb-3 text-[11px] text-tenue">Historial del incidente</div>

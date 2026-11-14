@@ -93,4 +93,8 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Parámetro del escenario en curso | AWS SSM | `/telecorp/<stage>/escenario` | base | Estado visible en el panel |
 | Step Function `recurrencia` + programación diaria | AWS Step Functions + EventBridge Scheduler | `telecorp-<stage>-recurrencia` | workflows | E6: cron 06:00 America/Lima; Choice + Map |
 | Parámetro de la última recurrencia | AWS SSM | `/telecorp/<stage>/recurrencia` | base | |
+| WebSocket API | AWS API Gateway v2 (WebSocket) | `telecorp-<stage>-tiempo-real` | api | E7: `$connect`, `$disconnect`, `$default` (ping) |
+| Tabla `conexiones` (TTL 2 h) | AWS DynamoDB | `telecorp-<stage>-conexiones` | base | Conexiones abiertas del panel |
+| Difusor | AWS Lambda (DynamoDB Streams ×3) | `telecorp-api-<stage>-difusor` | api | Avisa a los paneles cambios en antenas, colectivos e incidencias; borra conexiones caídas |
+| Stream de `colectivos` (KEYS_ONLY) | AWS DynamoDB | — | base | Para el difusor |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |

@@ -133,3 +133,19 @@ body {
   background: var(--color-fondo); border-color: transparent; box-shadow: var(--neu-hundido);
 }
 .tema-neu input:focus, .tema-neu textarea:focus, .tema-neu select:focus { border-color: #a78bfa80; }
+
+/* Modo sala de operaciones (E7): pantalla grande, sin barra lateral ni listas largas */
+html.modo-sala .ocultar-en-sala { display: none !important; }
+html.modo-sala .tema-neu { font-size: 17px; }
+
+/* Alto contraste (E7): textos secundarios más claros y bordes visibles en las superficies con relieve */
+html.alto-contraste .tema-neu {
+  --color-tenue: #c9c9d4;
+  --color-borde: #5a5a66;
+  --color-texto: #ffffff;
+}
+html.alto-contraste .tema-neu .neu,
+html.alto-contraste .tema-neu .neu-chico,
+html.alto-contraste .tema-neu .boton-neu,
+html.alto-contraste .tema-neu .panel { outline: 1px solid #5a5a66; }
+html.alto-contraste .tema-neu .neu-hundido { outline: 1px solid #44444f; }

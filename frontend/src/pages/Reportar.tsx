@@ -7,6 +7,7 @@ import { TIPO_PROBLEMA } from "../lib/estados";
 import { navegar } from "../lib/router";
 import { cn } from "../lib/utils";
 import { PortalLayout } from "../components/PortalLayout";
+import { Dictado } from "../components/Dictado";
 
 type Ubicacion =
   | { estado: "buscando" }
@@ -88,6 +89,7 @@ export function Reportar() {
         <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required maxLength={2000} rows={4}
           placeholder="Cuéntanos qué pasa (ej.: desde las 9 am no cargan páginas)"
           className="w-full resize-none rounded-xl border border-borde bg-fondo px-3 py-3 text-sm outline-none focus:border-acento" />
+        <Dictado texto={descripcion} onTexto={setDescripcion} />
 
         {error && <div className="rounded-lg bg-caida/10 px-3 py-2 text-xs text-caida ring-1 ring-caida/30">{error}</div>}
 
