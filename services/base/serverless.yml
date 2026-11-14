@@ -90,6 +90,16 @@ resources:
             KeySchema: [{ AttributeName: zonaId, KeyType: HASH }, { AttributeName: estado, KeyType: RANGE }]
             Projection: { ProjectionType: ALL }
 
+    # Deduplicación de reportes: una clave por usuario+zona mientras su incidencia está activa (máx. 24 h, TTL).
+    TablaDedup:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-dedup
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions: [{ AttributeName: clave, AttributeType: S }]
+        KeySchema: [{ AttributeName: clave, KeyType: HASH }]
+        TimeToLiveSpecification: { AttributeName: expiraEn, Enabled: true }
+
     # ---------- SQS: colchón anti-avalancha con DLQ ----------
     ColaReportesDLQ:
       Type: AWS::SQS::Queue
@@ -133,6 +143,7 @@ resources:
     TablaAntenasNombre: { Value: !Ref TablaAntenas }
     TablaAntenasStreamArn: { Value: !GetAtt TablaAntenas.StreamArn }
     TablaColectivosNombre: { Value: !Ref TablaColectivos }
+    TablaDedupNombre: { Value: !Ref TablaDedup }
     ColaReportesUrl: { Value: !Ref ColaReportes }
     ColaReportesArn: { Value: !GetAtt ColaReportes.Arn }
     ColaMetricasUrl: { Value: !Ref ColaMetricas }

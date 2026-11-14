@@ -28,6 +28,11 @@ Elimina todo cuando no lo uses, para no gastar el presupuesto del lab:
 bash scripts/remove.sh dev-tualias
 ```
 
+Reportes de prueba (ficticios) contra el API desplegado:
+```bash
+python scripts/demo/reportar.py https://<id>.execute-api.us-east-1.amazonaws.com --zona ZONA-05 --n 12
+```
+
 Pruebas unitarias:
 ```bash
 python -m pytest

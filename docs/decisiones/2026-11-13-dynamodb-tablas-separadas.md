@@ -25,3 +25,6 @@ Una tabla por entidad, en modo **on-demand** (`PAY_PER_REQUEST`) y con **Point-i
 - `metricas` **pierde el GSI y el Stream**: la correlación usa el estado actual de `antenas`, y la serie solo se consulta por antena (gráfico del detalle).
 - La SK de `historial` lleva un sufijo aleatorio para que dos eventos en el mismo milisegundo no choquen.
 - `colectivos` es el nombre corto definitivo de la tabla de incidentes colectivos.
+
+## Enmienda (E2, 2026-11-14, issue #15)
+- Nueva tabla **`dedup`** (PK `clave` = `usuarioId#zonaId`, TTL `expiraEn`). La deduplicación se hace con un **put condicional** al recibir el reporte: es atómica e inmediata. Consultar el GSI `zona-fecha` no servía, porque es eventualmente consistente y el worker de SQS aún no había escrito. La clave se libera cuando la incidencia se resuelve o se cierra.

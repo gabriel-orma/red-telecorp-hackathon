@@ -17,7 +17,8 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - Lambda (`python3.12`), HTTP API, **WebSocket API**, DynamoDB (Streams, PITR, TTL), SQS + DLQ, Step Functions, EventBridge Scheduler, SNS (email y SMS), SES, S3, **CloudFront**, Secrets Manager, SSM.
 - **Probar**: tabla de resultados ✅/❌ en la decisión D1, con una alternativa para cada servicio bloqueado.
 
-## E1: Mapa en vivo (primer vistazo del diseño) 🧪
+## E1: Mapa en vivo (primer vistazo del diseño) ✅
+> Feedback: aprobado. **Pendiente de pulir más adelante: fuentes y algunos detalles de CSS.**
 - Catálogo de **zonas reales de Lima** (centro y radio) y **~35 antenas con coordenadas**. Requiere un cambio de contrato.
 - Stack `base`: tablas, colas + DLQ, SSM, Secrets Manager y el layer común.
 - Stack `antenas`: simulador (EventBridge, **apagado por defecto**) y clasificador (0 / <60 / 60–129 / >129).
@@ -29,7 +30,7 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - `scripts/deploy.sh` y `remove.sh`: todo replicable.
 - **Probar**: abrir la URL, encender el simulador, forzar una falla y ver la antena cambiar de color. → **Feedback de diseño.**
 
-## E2: Portal del usuario + gestión de incidencias ⬜
+## E2: Portal del usuario + gestión de incidencias 🧪
 - `POST /reportes` → SQS → worker, **idempotente** (el mismo usuario no cuenta doble).
 - `GET`/`PATCH` de incidencias, transiciones válidas e **historial inmutable**.
 - Portal móvil:

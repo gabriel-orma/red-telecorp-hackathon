@@ -9,7 +9,17 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 | `GET /api/antenas/{id}/metricas?minutos=30` | `antenas.metricas_antena` | Serie para el gráfico del detalle |
 | `GET /api/simulador` | `simulador.obtener` | Estado del simulador y fallas forzadas |
 | `PUT /api/simulador` | `simulador.actualizar` | `{activo}`, `{fallas: {ANT-x: gb\|null}}`, `{limpiarFallas}` |
+| `GET /api/zonas/ubicar?lat=&lng=` | `antenas.ubicar_zona` | Zona de cobertura de un punto (404 si está fuera) |
+| `POST /api/reportes` | `incidencias.crear_reporte` | Valida, **deduplica** (clave condicional `usuario#zona` en la tabla `dedup`) y encola en SQS → `202` |
+| *(SQS `reportes`)* | `incidencias.registrar` | Worker: put idempotente + historial `CREADO`; los fallos van a la DLQ |
+| `GET /api/incidencias?zonaId=&estado=&horas=` | `incidencias.listar` | Lista con datos personales enmascarados |
+| `GET /api/incidencias/{id}` | `incidencias.obtener` | Detalle + historial + `transicionesPermitidas` + estado de la zona |
+| `PATCH /api/incidencias/{id}/estado` | `incidencias.cambiar_estado` | `{estado, comentario}`; valida la transición (409 si no se permite) y libera la clave de deduplicación al resolverse |
 | `GET /`, `GET /{proxy+}` | `web.handler` | Frontend desde S3 privado (gzip + caché en memoria) |
+
+**Ciclo de vida de una incidencia**: `REGISTRADA → EN_REVISION → EN_ATENCION → SOLUCIONADA → CERRADA`. Se pueden saltar pasos hacia adelante; la única vuelta atrás es reabrir (`SOLUCIONADA → EN_ATENCION`). La regla vive en `telecorp.reglas.transicion_valida`. Cada cambio queda en el historial inmutable.
+
+**Privacidad**: aún no hay autenticación, así que el API **enmascara** DNI, número, email y teléfono (`70***456`, `g***@dominio`).
 
 **¿Por qué una Lambda sirve el frontend?** CloudFront está bloqueado en Learner Lab (ver D1), y el S3 *static website* no tiene HTTPS, que la geolocalización y la voz del navegador necesitan. Los `assets/*` llevan hash y se cachean 1 año en el navegador, así que la Lambda casi solo entrega `index.html`.
 

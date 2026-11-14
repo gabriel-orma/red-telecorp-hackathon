@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, Users } from "lucide-react";
+import { Activity, Flame, Users } from "lucide-react";
 import type { Antena, EstadoAntena, Zona } from "../lib/api";
 import { ESTADO, GRAVEDAD, ORDEN_ESTADOS, TIPO_ZONA } from "../lib/estados";
 import { cn, numero } from "../lib/utils";
@@ -22,7 +22,14 @@ function AnilloOperativas({ operativas, total }: { operativas: number; total: nu
   );
 }
 
-export function PanelLateral({ antenas, zonas, onZona }: { antenas: Antena[]; zonas: Zona[]; onZona: (z: Zona) => void }) {
+interface Props {
+  antenas: Antena[];
+  zonas: Zona[];
+  onZona: (z: Zona) => void;
+  reportes24h: number;
+}
+
+export function PanelLateral({ antenas, zonas, onZona, reportes24h }: Props) {
   const conteo = (e: EstadoAntena) => antenas.filter((a) => a.estado === e).length;
   const operativas = conteo("NORMAL") + conteo("SATURADA");
   const trafico = antenas.reduce((s, a) => s + (a.gbPorMinuto ?? 0), 0);
@@ -56,6 +63,10 @@ export function PanelLateral({ antenas, zonas, onZona }: { antenas: Antena[]; zo
           <div className={cn("mt-1 flex items-center gap-1.5 text-xs", clientesEnRiesgo ? "text-caida" : "text-tenue")}>
             <Users className="size-3.5" />
             <span className="cifra"><NumeroAnimado valor={clientesEnRiesgo} /></span> clientes en zonas con falla
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[#fb923c]">
+            <Flame className="size-3.5" />
+            <span className="cifra"><NumeroAnimado valor={reportes24h} /></span> reportes de usuarios (24 h)
           </div>
         </div>
       </section>

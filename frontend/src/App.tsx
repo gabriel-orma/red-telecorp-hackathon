@@ -1,16 +1,27 @@
-import { useCallback, useState } from "react";
-import { api, type Antena, type EstadoSimulador, type Zona } from "./lib/api";
+import { useCallback } from "react";
+import { api } from "./lib/api";
+import { useRuta } from "./lib/router";
 import { usePolling } from "./hooks/usePolling";
 import { Encabezado } from "./components/Encabezado";
-import { PanelLateral } from "./components/PanelLateral";
-import { MapaRed } from "./components/MapaRed";
-import { DetalleAntena } from "./components/DetalleAntena";
-import { PanelSimulador } from "./components/PanelSimulador";
-import { Leyenda } from "./components/Leyenda";
+import { CentroControl } from "./pages/CentroControl";
+import { PanelIncidencias } from "./pages/PanelIncidencias";
+import { Portal } from "./pages/Portal";
+import { Seguimiento } from "./pages/Seguimiento";
 
 const POLLING_MS = 3000;
 
 export default function App() {
+  const ruta = useRuta();
+
+  // Portal del usuario: layout propio, mobile-first.
+  if (ruta.startsWith("/portal")) {
+    const m = ruta.match(/^\/portal\/seguimiento\/([^/]+)/);
+    return m ? <Seguimiento incidenciaId={decodeURIComponent(m[1])} /> : <Portal />;
+  }
+  return <Operador ruta={ruta} />;
+}
+
+function Operador({ ruta }: { ruta: string }) {
   const red = usePolling(
     useCallback(async () => {
       const [a, z] = await Promise.all([api.antenas(), api.zonas()]);
@@ -18,42 +29,19 @@ export default function App() {
     }, []),
     POLLING_MS,
   );
-  const sim = usePolling<EstadoSimulador>(api.simulador, 10_000);
-
-  const [seleccion, setSeleccion] = useState<string | null>(null);
-  const [zonaFoco, setZonaFoco] = useState<Zona | null>(null);
-
-  const antenas: Antena[] = red.datos?.antenas ?? [];
-  const zonas: Zona[] = red.datos?.zonas ?? [];
-  const antenaSel = antenas.find((a) => a.antenaId === seleccion) ?? null;
-
-  const cambiarSimulador = async (cambios: Parameters<typeof api.actualizarSimulador>[0]) => {
-    await api.actualizarSimulador(cambios);
-    await sim.refrescar();
-    setTimeout(red.refrescar, 1500); // la muestra inmediata tarda ~1 s en clasificarse
-  };
-
   return (
     <div className="fondo-rejilla flex h-full flex-col">
       <Encabezado ultimaCarga={red.ultimaCarga} error={red.error} />
-      <main className="flex min-h-0 flex-1 flex-col-reverse md:flex-row">
-        <PanelLateral antenas={antenas} zonas={zonas} onZona={setZonaFoco} />
-        <div className="relative h-[52vh] shrink-0 overflow-hidden md:m-3 md:ml-0 md:h-auto md:flex-1 md:rounded-2xl md:border md:border-borde">
-          <MapaRed antenas={antenas} zonas={zonas} seleccion={seleccion} onSeleccionar={setSeleccion} enfocarZona={zonaFoco} />
-          <PanelSimulador estado={sim.datos} onCambiar={cambiarSimulador} />
-          <DetalleAntena
-            antena={antenaSel}
-            zona={zonas.find((z) => z.zonaId === antenaSel?.zonaId)}
-            forzada={antenaSel ? sim.datos?.fallas[antenaSel.antenaId] : undefined}
-            onCerrar={() => setSeleccion(null)}
-            onForzar={(id, valor) => cambiarSimulador({ fallas: { [id]: valor } })}
-          />
-          <Leyenda />
-          {!red.datos && !red.error && (
-            <div className="absolute inset-0 grid place-items-center text-sm text-tenue">Conectando con la red…</div>
-          )}
-        </div>
-      </main>
+      {ruta === "/incidencias" ? (
+        <PanelIncidencias zonas={red.datos?.zonas ?? []} />
+      ) : (
+        <CentroControl
+          antenas={red.datos?.antenas ?? []}
+          zonas={red.datos?.zonas ?? []}
+          cargando={!red.datos && !red.error}
+          refrescarRed={red.refrescar}
+        />
+      )}
     </div>
   );
 }

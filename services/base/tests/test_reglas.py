@@ -36,3 +36,41 @@ def test_ids_e_iso_son_ordenables():
     a, b = util.nuevo_id("INC"), util.nuevo_id("INC")
     assert a.startswith("INC-") and a != b
     assert util.iso(util.ahora()).endswith("Z")
+
+
+# ---------------- E2 ----------------
+def test_transiciones_de_incidencia():
+    assert reglas.transicion_valida("REGISTRADA", "EN_REVISION")
+    assert reglas.transicion_valida("REGISTRADA", "SOLUCIONADA")  # se pueden saltar pasos
+    assert not reglas.transicion_valida("EN_ATENCION", "REGISTRADA")
+    assert reglas.transicion_valida("SOLUCIONADA", "EN_ATENCION")  # reapertura
+    assert not reglas.transicion_valida("CERRADA", "EN_ATENCION")
+    assert reglas.transiciones_permitidas("CERRADA") == []
+    assert reglas.transiciones_permitidas("SOLUCIONADA") == ["EN_ATENCION", "CERRADA"]
+
+
+def _reporte(**cambios):
+    base = {"usuarioId": "70123456", "numeroServicio": "999000111", "zonaId": "ZONA-05",
+            "fechaHoraIncidente": "2026-11-14T10:00:00Z", "tipo": "SIN_INTERNET",
+            "descripcion": "Sin datos", "email": "a@b.com"}
+    return {**base, **cambios}
+
+
+def test_validar_reporte():
+    zonas_validas = {"ZONA-05"}
+    assert reglas.validar_reporte(_reporte(), zonas_validas) == []
+    assert any("zonaId" in e for e in reglas.validar_reporte(_reporte(zonaId="ZONA-99"), zonas_validas))
+    assert any("tipo" in e for e in reglas.validar_reporte(_reporte(tipo="X"), zonas_validas))
+    assert any("email" in e for e in reglas.validar_reporte(_reporte(email=None), zonas_validas))
+    assert any("ubicacion" in e for e in reglas.validar_reporte(_reporte(ubicacion={"lat": "x"}), zonas_validas))
+
+
+def test_enmascarar():
+    assert reglas.enmascarar("70123456") == "70***456"
+    assert reglas.enmascarar_email("gabriel@example.com") == "g***@example.com"
+
+
+def test_ubicar_por_coordenadas():
+    z = zonas.zona("ZONA-02")  # Miraflores
+    assert zonas.ubicar(z["centro"]["lat"], z["centro"]["lng"])["zonaId"] == "ZONA-02"
+    assert zonas.ubicar(-13.5, -71.9) is None  # Cusco: fuera de cobertura

@@ -1,0 +1,82 @@
+import { motion } from "framer-motion";
+import { Check } from "lucide-react";
+import type { EstadoIncidencia, EventoHistorial } from "../lib/api";
+import { ESTADO_INCIDENCIA, EVENTO, ORDEN_INCIDENCIA } from "../lib/estados";
+import { cn, haceCuanto } from "../lib/utils";
+
+const fecha = (iso: string) =>
+  new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
+/** Progreso tipo "pedido en camino": los 5 estados con el actual resaltado. */
+export function Progreso({ estado, compacto = false }: { estado: EstadoIncidencia; compacto?: boolean }) {
+  const idx = ORDEN_INCIDENCIA.indexOf(estado);
+  return (
+    <ol className="relative flex items-start justify-between">
+      <div className="absolute left-4 right-4 top-4 h-0.5 bg-borde" />
+      <motion.div
+        className="absolute left-4 top-4 h-0.5"
+        style={{ background: ESTADO_INCIDENCIA[estado].color }}
+        initial={{ width: 0 }}
+        animate={{ width: `calc((100% - 2rem) * ${idx / (ORDEN_INCIDENCIA.length - 1)})` }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      />
+      {ORDEN_INCIDENCIA.map((e, i) => {
+        const { etiqueta, color, icono: Icono } = ESTADO_INCIDENCIA[e];
+        const hecho = i < idx, actual = i === idx;
+        return (
+          <li key={e} className="relative z-10 flex w-16 flex-col items-center gap-1.5 text-center">
+            <motion.div
+              className={cn("grid size-8 place-items-center rounded-full ring-2", !hecho && !actual && "bg-panel ring-borde text-tenue")}
+              style={hecho || actual ? { background: actual ? color : `${color}33`, color: actual ? "#060912" : color, boxShadow: actual ? `0 0 18px ${color}99` : undefined, ["--tw-ring-color" as string]: color } : undefined}
+              animate={actual ? { scale: [1, 1.12, 1] } : {}}
+              transition={actual ? { repeat: Infinity, duration: 2 } : {}}
+            >
+              {hecho ? <Check className="size-4" /> : <Icono className="size-4" />}
+            </motion.div>
+            {!compacto && (
+              <span className={cn("text-[10px] leading-tight", actual ? "font-semibold text-texto" : "text-tenue")}>{etiqueta}</span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Historial inmutable en orden cronológico inverso. */
+export function Historial({ eventos }: { eventos: EventoHistorial[] }) {
+  const orden = [...eventos].sort((a, b) => b.ocurridoEn.localeCompare(a.ocurridoEn));
+  return (
+    <ul className="relative space-y-3 border-l border-borde pl-4">
+      {orden.map((e, i) => {
+        const Icono = EVENTO[e.tipoEvento]?.icono ?? EVENTO.CAMBIO_ESTADO.icono;
+        const estado = e.estadoNuevo as EstadoIncidencia | null;
+        const color = estado && ESTADO_INCIDENCIA[estado] ? ESTADO_INCIDENCIA[estado].color : "#64748b";
+        return (
+          <motion.li key={e.ocurridoEn + i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="relative">
+            <span className="absolute -left-[25px] top-0.5 grid size-[17px] place-items-center rounded-full ring-4 ring-panel" style={{ background: color }}>
+              <Icono className="size-2.5 text-fondo" />
+            </span>
+            <div className="text-sm">
+              {e.tipoEvento === "CAMBIO_ESTADO" && estado
+                ? <>Pasó a <b style={{ color }}>{ESTADO_INCIDENCIA[estado]?.etiqueta ?? estado}</b></>
+                : EVENTO[e.tipoEvento]?.etiqueta ?? e.tipoEvento}
+            </div>
+            {e.detalle && <div className="text-xs text-tenue">{e.detalle}</div>}
+            <div className="cifra text-[10px] text-tenue">{fecha(e.ocurridoEn)} · {haceCuanto(e.ocurridoEn)} · {e.actor.toLowerCase()}</div>
+          </motion.li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function ChipEstado({ estado }: { estado: EstadoIncidencia }) {
+  const { etiqueta, color } = ESTADO_INCIDENCIA[estado];
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: `${color}22`, color }}>
+      <span className="size-1.5 rounded-full" style={{ background: color }} />
+      {etiqueta}
+    </span>
+  );
+}

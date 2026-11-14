@@ -71,6 +71,7 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Tabla `metricas` (TTL 7 d, PITR) | AWS DynamoDB | `telecorp-<stage>-metricas` | base | Serie por antena |
 | Tabla `antenas` (Stream, PITR) | AWS DynamoDB | `telecorp-<stage>-antenas` | base | Estado actual |
 | Tabla `colectivos` (GSI `zona-estado`, PITR) | AWS DynamoDB | `telecorp-<stage>-colectivos` | base | Se usa desde E3 |
+| Tabla `dedup` (TTL 24 h) | AWS DynamoDB | `telecorp-<stage>-dedup` | base | Clave condicional `usuario#zona` (E2) |
 | Colas `reportes`, `metricas` + DLQ | AWS SQS | `telecorp-<stage>-{reportes,metricas}[-dlq]` | base | 3 reintentos → DLQ (14 d) |
 | Parámetro del simulador | AWS SSM | `/telecorp/<stage>/simulador` | base | Fallas forzadas |
 | Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base | Placeholder hasta D2 |

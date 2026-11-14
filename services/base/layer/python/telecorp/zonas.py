@@ -43,3 +43,21 @@ def antenas() -> list:
 
 def zona_de_antena(antena_id: str):
     return next((a["zonaId"] for a in antenas() if a["antenaId"] == antena_id), None)
+
+
+def distancia_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Distancia aproximada en metros (equirectangular: suficiente a escala de ciudad)."""
+    import math
+    x = math.radians(lng2 - lng1) * math.cos(math.radians((lat1 + lat2) / 2))
+    y = math.radians(lat2 - lat1)
+    return 6371000 * math.hypot(x, y)
+
+
+def ubicar(lat: float, lng: float, tolerancia: float = 1.6):
+    """Zona más cercana cuya cobertura (radio × tolerancia) contiene el punto. None si está fuera de cobertura."""
+    candidatas = [(distancia_m(lat, lng, z["centro"]["lat"], z["centro"]["lng"]), z) for z in zonas()]
+    candidatas = [(d, z) for d, z in candidatas if d <= z["radioM"] * tolerancia]
+    if not candidatas:
+        return None
+    d, z = min(candidatas, key=lambda c: c[0] / c[1]["radioM"])
+    return {**z, "distanciaM": round(d)}
