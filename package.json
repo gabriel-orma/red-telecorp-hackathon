@@ -1,0 +1,12 @@
+{
+  "name": "red-telecorp-hackathon",
+  "private": true,
+  "description": "IaC de Red TeleCorp (Serverless Framework v3). Ver README.md > Despliegue.",
+  "scripts": {
+    "test": "python -m pytest -q"
+  },
+  "devDependencies": {
+    "serverless": "3.40.0",
+    "serverless-step-functions": "3.31.2"
+  }
+}
