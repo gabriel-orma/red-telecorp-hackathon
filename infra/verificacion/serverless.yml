@@ -1,0 +1,148 @@
+# Stack de humo (E0): crea un recurso mínimo de cada servicio con LabRole para verificar
+# qué permite el Learner Lab. Se despliega, se prueba y se elimina:
+#   npx serverless deploy --stage humo   →   curl <url>/sonda   →   npx serverless remove --stage humo
+service: telecorp-verificacion
+frameworkVersion: "3"
+
+plugins:
+  - serverless-step-functions
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  logRetentionInDays: 1
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+  environment:
+    TABLA: !Ref Tabla
+    COLA: !Ref Cola
+    TOPICO: !Ref Topico
+    SECRETO: !Ref Secreto
+    PARAMETRO: !Ref Parametro
+    BUCKET: !Ref Bucket
+
+package:
+  patterns: ["!**", "sonda.py"]
+
+functions:
+  sonda:
+    handler: sonda.sonda
+    timeout: 25
+    environment:
+      MAQUINA: !Ref MaquinaHumo
+    events:
+      - httpApi: GET /sonda
+  eco:
+    handler: sonda.eco
+    events:
+      - stream:
+          type: dynamodb
+          arn: !GetAtt Tabla.StreamArn
+          startingPosition: LATEST
+      - sqs:
+          arn: !GetAtt Cola.Arn
+          batchSize: 5
+  ws:
+    handler: sonda.ws
+    events:
+      - websocket: $connect
+      - websocket: $default
+
+stepFunctions:
+  validate: true
+  stateMachines:
+    humo:
+      id: MaquinaHumo
+      name: telecorp-humo-${sls:stage}
+      role: arn:aws:iam::${aws:accountId}:role/LabRole
+      definition:
+        StartAt: Esperar
+        States:
+          Esperar: { Type: Wait, Seconds: 1, Next: Repartir }
+          Repartir:
+            Type: Map
+            ItemsPath: $.items
+            ItemProcessor:
+              StartAt: Llamar
+              States:
+                Llamar:
+                  Type: Task
+                  Resource: { "Fn::GetAtt": [eco, Arn] }
+                  End: true
+            End: true
+
+resources:
+  Resources:
+    Tabla:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: telecorp-humo-${sls:stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions: [{ AttributeName: pk, AttributeType: S }]
+        KeySchema: [{ AttributeName: pk, KeyType: HASH }]
+        StreamSpecification: { StreamViewType: NEW_AND_OLD_IMAGES }
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+        TimeToLiveSpecification: { AttributeName: expira, Enabled: true }
+    ColaDLQ:
+      Type: AWS::SQS::Queue
+    Cola:
+      Type: AWS::SQS::Queue
+      Properties:
+        VisibilityTimeout: 60
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaDLQ.Arn, maxReceiveCount: 3 }
+    Topico:
+      Type: AWS::SNS::Topic
+    Secreto:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Name: telecorp/${sls:stage}/humo
+        SecretString: '{"apiKey":"prueba"}'
+    Parametro:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /telecorp/${sls:stage}/humo
+        Type: String
+        Value: '{"ok":true}'
+    Programacion:
+      Type: AWS::Scheduler::Schedule
+      Properties:
+        Name: telecorp-humo-${sls:stage}
+        State: DISABLED
+        ScheduleExpression: rate(1 minute)
+        FlexibleTimeWindow: { Mode: "OFF" }
+        Target:
+          Arn: !GetAtt SondaLambdaFunction.Arn
+          RoleArn: arn:aws:iam::${aws:accountId}:role/LabRole
+    Regla:
+      Type: AWS::Events::Rule
+      Properties:
+        State: DISABLED
+        ScheduleExpression: rate(1 day)
+        Targets:
+          - Id: maquina
+            Arn: !Ref MaquinaHumo
+            RoleArn: arn:aws:iam::${aws:accountId}:role/LabRole
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        VersioningConfiguration: { Status: Enabled }
+        WebsiteConfiguration: { IndexDocument: index.html }
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          IgnorePublicAcls: true
+          BlockPublicPolicy: false
+          RestrictPublicBuckets: false
+    PoliticaBucket:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref Bucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal: "*"
+              Action: s3:GetObject
+              Resource: !Sub "${Bucket.Arn}/*"
+  Outputs:
+    BucketName: { Value: !Ref Bucket }
+    WebsiteUrl: { Value: !GetAtt Bucket.WebsiteURL }
