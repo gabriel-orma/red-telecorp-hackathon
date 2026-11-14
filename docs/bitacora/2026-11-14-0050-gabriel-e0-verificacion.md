@@ -29,3 +29,4 @@ Ver `infra/verificacion/README.md`.
 - Las llamadas desde la CLI usan el rol `voclabs`, **distinto** a `LabRole`: prueba los permisos desde una Lambda.
 - En Git Bash: `export MSYS_NO_PATHCONV=1` antes de usar rutas `/aws/...` en la CLI.
 - Ignora el warning de Serverless v3 sobre `python3.12`.
+- **Gotcha de limpieza**: `serverless remove` falla si un bucket **versionado** tiene objetos (DELETE_FAILED). Hay que vaciar todas las versiones antes (`aws s3api list-object-versions` + `delete-objects`) y reintentar `aws cloudformation delete-stack`. `scripts/remove.sh` (E1) lo hará automáticamente.
