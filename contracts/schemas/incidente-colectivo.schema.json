@@ -104,6 +104,50 @@
     "taskToken": {
       "type": "string",
       "description": "INTERNO: token de Step Functions de la espera de resolución. El API no lo expone."
+    },
+    "pasoActual": {
+      "type": "string",
+      "enum": [
+        "DETECTADO",
+        "NOTIFICAR_EVALUACION",
+        "VERIFICAR_INFRAESTRUCTURA",
+        "PRIORIZAR",
+        "RESUMIR",
+        "CONFIRMAR",
+        "NOTIFICAR_CONFIRMADA",
+        "ALERTAR_OPERADOR",
+        "MONITOREAR",
+        "RESTABLECER",
+        "NOTIFICAR_RESTABLECIDO",
+        "CERRADO"
+      ],
+      "description": "Paso actual del flujo de Step Functions (para el diagrama)"
+    },
+    "ejecucionArn": {
+      "type": "string",
+      "description": "ARN de la ejecución de Step Functions"
+    },
+    "restablecimientoSolicitado": {
+      "type": "boolean",
+      "description": "El operador marcó el servicio como restablecido"
+    },
+    "primerReporteEn": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "primeraFallaEn": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Primera falla de antena detectada en la zona"
+    },
+    "notificacionesEnviadas": {
+      "type": "integer"
     }
   }
 }
