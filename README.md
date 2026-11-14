@@ -1,10 +1,11 @@
 # Red TeleCorp: gestión inteligente de incidencias
 
-Plataforma **serverless y multinube (AWS + GCP)** para Red TeleCorp: monitoreo de antenas, portal de incidencias para usuarios, detección de incidentes colectivos, notificaciones, priorización y analítica histórica.
+Plataforma **serverless y multinube (AWS + segunda nube por definir)** para Red TeleCorp: monitoreo de antenas, portal de incidencias para usuarios, detección de incidentes colectivos, notificaciones, priorización y analítica histórica.
 
 - El reto y la rúbrica: [`docs/reto.md`](docs/reto.md)
 - La arquitectura: [`docs/arquitectura.md`](docs/arquitectura.md)
 - Avance por dolor del cliente: [`docs/mapa-dolores.md`](docs/mapa-dolores.md)
+- **Roadmap por entregas**: [`docs/roadmap.md`](docs/roadmap.md)
 
 ## Cómo trabajamos (3 personas, cada una con su agente de IA)
 

@@ -31,7 +31,9 @@ Detalle completo: [`docs/reto.md`](docs/reto.md). Arquitectura: [`docs/arquitect
 - **Serverless Framework** como IaC, con un `serverless.yml` por servicio.
 - **Python** para todas las Lambdas.
 - **DynamoDB con tablas separadas** (incidencias, historial, métricas, incidentes colectivos).
-- Aún abiertas: segunda nube (D2), frontend (D5), fórmula de prioridad y umbral de recurrencia (D7). No las asumas.
+- **Frontend**: React + Vite + Tailwind + shadcn/ui + MapLibre, en S3 + CloudFront (D5).
+- Aún abiertas: segunda nube (D2), fórmula de prioridad y umbral de recurrencia (D7). No las asumas.
+- **Orden de trabajo**: [`docs/roadmap.md`](docs/roadmap.md), por entregas. No se empieza una entrega hasta que el equipo apruebe la anterior.
 - **Todo serverless**: nada de EC2, VMs ni contenedores encendidos 24/7.
 - **Step Functions** para automatizar flujos.
 - **Secretos en un servicio de AWS** (Secrets Manager o SSM Parameter Store). **Nunca** en el código ni en el repo.
