@@ -89,12 +89,13 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Tabla `estadisticas` (TTL 35 d, PITR) | AWS DynamoDB | `telecorp-<stage>-estadisticas` | base | D10: contadores de 15 min |
 | GSI `usuario-fecha` en `incidencias` | AWS DynamoDB | — | base | "Mis reportes" |
 | Autorizador JWT (Cognito) | AWS API Gateway v2 | `cognito` | api | Protege `POST /api/reportes` y `/api/mis-reportes` |
-| Step Function `escenario` | AWS Step Functions (Standard) | `telecorp-<stage>-escenario` | workflows | E5: tormenta o corte de energía en oleadas (Map secuencial + Wait) |
+| Step Function `escenario` | AWS Step Functions (Standard) | `telecorp-<stage>-escenario` | workflows | E5: tormenta o corte de energía en oleadas (Map secuencial + Wait). E7.5: simulación acelerada (60 pasos de 3 s) |
 | Parámetro del escenario en curso | AWS SSM | `/telecorp/<stage>/escenario` | base | Estado visible en el panel |
 | Step Function `recurrencia` + programación diaria | AWS Step Functions + EventBridge Scheduler | `telecorp-<stage>-recurrencia` | workflows | E6: cron 06:00 America/Lima; Choice + Map |
 | Parámetro de la última recurrencia | AWS SSM | `/telecorp/<stage>/recurrencia` | base | |
 | WebSocket API | AWS API Gateway v2 (WebSocket) | `telecorp-<stage>-tiempo-real` | api | E7: `$connect`, `$disconnect`, `$default` (ping) |
 | Tabla `conexiones` (TTL 2 h) | AWS DynamoDB | `telecorp-<stage>-conexiones` | base | Conexiones abiertas del panel |
+| Línea de tiempo | AWS Lambda + HTTP API | `telecorp-api-<stage>-lineaTiempo` | api | `GET /api/linea-tiempo?horas=`: reportes, cambios de antenas (historial) y vida de los colectivos de la ventana; consultas en paralelo, caché de 2 s |
 | Difusor | AWS Lambda (DynamoDB Streams ×3) | `telecorp-api-<stage>-difusor` | api | Avisa a los paneles cambios en antenas, colectivos e incidencias; borra conexiones caídas |
 | Stream de `colectivos` (KEYS_ONLY) | AWS DynamoDB | — | base | Para el difusor |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |

@@ -35,6 +35,7 @@ def preparar(event, context):
     config.escribir("escenario", {
         "activo": True, "tipo": event["tipo"], "zonaId": event["zonaId"], "oleada": 0, "total": len(plan),
         "inicio": util.ahora_iso(), "fin": None, "ejecucionArn": event.get("ejecucionArn"), "reportes": 0, "antenas": 0,
+        "narrativa": None, "acelerada": event["tipo"] == "ACELERADA",
     })
     return {"oleadas": [{**o, "tipo": event["tipo"]} for o in plan]}
 
@@ -63,19 +64,25 @@ def aplicar_oleada(event, context):
     if not estado.get("activo"):
         return {"omitida": "escenario reiniciado"}
 
-    if event["fallas"]:
+    recuperar = event.get("recuperar") or []
+    if event["fallas"] or recuperar:
         sim = config.leer("simulador", usar_cache=False)
-        sim["fallas"] = {**sim.get("fallas", {}), **event["fallas"]}
+        fallas = {**sim.get("fallas", {}), **event["fallas"]}
+        for antena_id in recuperar:  # la antena vuelve a su tráfico normal
+            fallas.pop(antena_id, None)
+        sim["fallas"] = fallas
         config.escribir("simulador", sim)
         _lambda.invoke(FunctionName=f"telecorp-{os.environ['STAGE']}-simulador", InvocationType="Event",
                        Payload=json.dumps({"unaVez": True}).encode())
 
     rng = random.Random()
     enviados = sum(_encolar(escenarios.reporte_simulado(zonas.zona(r["zonaId"]), r["tipo"], rng)) for r in event["reportes"])
+    if event.get("narrativa"):
+        estado["narrativa"] = event["narrativa"]
     estado.update(oleada=event["n"], reportes=int(estado.get("reportes", 0)) + enviados,
                   antenas=int(estado.get("antenas", 0)) + len(event["fallas"]))
     config.escribir("escenario", estado)
-    return {"oleada": event["n"], "reportes": enviados, "antenas": len(event["fallas"])}
+    return {"oleada": event["n"], "reportes": enviados, "antenas": len(event["fallas"]), "recuperadas": len(recuperar)}
 
 
 def finalizar(event, context):

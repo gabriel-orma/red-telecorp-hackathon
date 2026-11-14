@@ -64,20 +64,26 @@ export function useConexionTiempoReal(): boolean {
   return c;
 }
 
-/** Ejecuta `fn` cada vez que el servidor avisa un cambio de alguno de los `tipos` (con un pequeño agrupamiento). */
-export function useAlCambiar(tipos: TipoAviso[], fn: () => void) {
+/** Ejecuta `fn` cuando el servidor avisa un cambio de alguno de los `tipos`.
+ *
+ * Throttle (no debounce): con avisos continuos (simulación acelerada) un debounce nunca dispararía.
+ * Aquí se agrupan los avisos de ~150 ms y luego se ejecuta como máximo una vez cada `intervaloMs`,
+ * siempre con una ejecución final después del último aviso (no se pierde el estado final).
+ */
+export function useAlCambiar(tipos: TipoAviso[], fn: () => void, intervaloMs = 700) {
   const ref = useRef(fn);
   ref.current = fn;
   const clave = tipos.join(",");
   useEffect(() => {
     iniciar();
     let t: ReturnType<typeof setTimeout> | null = null;
+    let ultimo = 0;
     const oyente: Oyente = (tipo) => {
-      if (!clave.split(",").includes(tipo)) return;
-      if (t) clearTimeout(t);
-      t = setTimeout(() => ref.current(), 250);
+      if (!clave.split(",").includes(tipo) || t) return; // ya hay una ejecución agendada: la cubre
+      const espera = Math.max(150, ultimo + intervaloMs - Date.now());
+      t = setTimeout(() => { t = null; ultimo = Date.now(); ref.current(); }, espera);
     };
     oyentes.add(oyente);
     return () => { oyentes.delete(oyente); if (t) clearTimeout(t); };
-  }, [clave]);
+  }, [clave, intervaloMs]);
 }

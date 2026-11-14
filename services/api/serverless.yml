@@ -175,6 +175,13 @@ functions:
       MAQUINA_RECURRENCIA: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-recurrencia
     events:
       - httpApi: POST /api/recurrencia
+  # ---------- Línea de tiempo estilo editor de video ----------
+  lineaTiempo:
+    handler: src/linea_tiempo.linea_tiempo
+    memorySize: 512
+    timeout: 20
+    events:
+      - httpApi: GET /api/linea-tiempo
   # ---------- Escenarios de demo (E5) ----------
   escenarioObtener:
     handler: src/escenarios.obtener

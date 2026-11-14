@@ -27,7 +27,7 @@ interface Props {
 export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Props) {
   const sim = usePolling<EstadoSimulador>(api.simulador, 10_000);
   const reportes = usePolling<Incidencia[]>(useCallback(() => apiIncidencias.listar({ horas: 24 }).then((r) => r.incidencias), []), 10_000);
-  useAlCambiar(["incidencias"], reportes.refrescar);
+  useAlCambiar(["incidencias"], reportes.refrescar, 1500); // lista de 24 h: más pesada, se agrupa más
   const [verCalor, setVerCalor] = useState(true);
   const [modo3d, setModo3d] = useState(false);
   // ?antena=ANT-013 o ?zona=ZONA-05 (desde la paleta Ctrl+K de otras pantallas)
@@ -90,8 +90,11 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
             <section className="neu p-3">
               <div className="flex items-center gap-2 px-2 pb-2 pt-1 text-sm text-tenue"><ListOrdered className="size-4 text-acento" /> Cola de atención</div>
               <ol className="space-y-1">
+                <AnimatePresence initial={false}>
                 {cola.slice(0, 5).map((c, i) => (
-                  <li key={c.incidenteColectivoId}>
+                  // layout: al re-priorizarse, las filas se deslizan a su nuevo puesto en vez de saltar
+                  <motion.li key={c.incidenteColectivoId} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15, layout: { type: "spring", stiffness: 500, damping: 40 } }}>
                     <button onClick={() => navegar(`/colectivos?id=${c.incidenteColectivoId}`)}
                       className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-panel-2">
                       <span className={cn("grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold", i === 0 ? "degradado text-white" : "neu-hundido text-tenue")}>{i + 1}</span>
@@ -104,8 +107,9 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
                         <Cifra valor={Math.round(c.puntajePrioridad)} className="block text-[11px] text-tenue" />
                       </span>
                     </button>
-                  </li>
+                  </motion.li>
                 ))}
+                </AnimatePresence>
               </ol>
             </section>
           )}
@@ -175,7 +179,8 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
         <section className="order-1 flex min-h-0 flex-col gap-5 lg:order-2">
           <AnimatePresence>
             {principal && (
-              <motion.button key={principal.incidenteColectivoId}
+              // Clave fija: si cambia el incidente principal (re-priorización), se actualiza en su lugar sin parpadear.
+              <motion.button key="principal"
                 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
                 onClick={() => navegar(`/colectivos?id=${principal.incidenteColectivoId}`)}
                 className="neu flex items-center gap-4 p-3 pr-4 text-left">

@@ -72,6 +72,12 @@ const geoReportes = (reportes: Incidencia[], zonas: Zona[]): FeatureCollection =
   }),
 });
 
+export type PuntoCalor = { lng: number; lat: number; peso: number };
+const geoPuntos = (puntos: PuntoCalor[]): FeatureCollection => ({
+  type: "FeatureCollection",
+  features: puntos.map((p) => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lng, p.lat] }, properties: { peso: p.peso } })),
+});
+
 interface Props {
   antenas: Antena[];
   zonas: Zona[];
@@ -82,9 +88,11 @@ interface Props {
   enfocarZona: Zona | null;
   paleta?: PaletaMapa; // opcional: el mapa rediseñado usa su propia paleta
   modo3d?: boolean; // E7: zonas extruidas según los reportes de 24 h
+  /** Línea de tiempo: puntos con peso (1 = recién llegado) en lugar de `reportes`; los más nuevos destellan. */
+  puntosCalor?: PuntoCalor[];
 }
 
-export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona, paleta = PALETA_BASE, modo3d = false }: Props) {
+export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona, paleta = PALETA_BASE, modo3d = false, puntosCalor }: Props) {
   const colorPorEstado = exprEstados(paleta);
   const colorZona = exprZonas(paleta);
   const contenedor = useRef<HTMLDivElement>(null);
@@ -159,6 +167,7 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
       m.addLayer({
         id: "reportes-calor", type: "heatmap", source: "reportes",
         paint: {
+          "heatmap-weight": ["coalesce", ["get", "peso"], 1],
           "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 18, 14, 45],
           "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 14, 1.6],
           "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.75, 14, 0.4], // de cerca, que no tape las antenas
@@ -166,6 +175,19 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
             "interpolate", ["linear"], ["heatmap-density"],
             0, "rgba(0,0,0,0)", 0.2, "rgba(124,58,237,0.45)", 0.45, "#db2777", 0.7, "#f97316", 1, "#fde047",
           ],
+        },
+      });
+      // Línea de tiempo: destello de los reportes recién llegados (peso > 0.85), que se apaga al envejecer.
+      m.addLayer({
+        id: "reportes-chispa", type: "circle", source: "reportes",
+        filter: [">", ["coalesce", ["get", "peso"], 0], 0.85],
+        paint: {
+          "circle-color": "#f472b6",
+          "circle-radius": ["interpolate", ["linear"], ["get", "peso"], 0.85, 9, 1, 3],
+          "circle-opacity": ["interpolate", ["linear"], ["get", "peso"], 0.85, 0, 1, 0.9],
+          "circle-stroke-color": "#fde7f3",
+          "circle-stroke-width": 1,
+          "circle-stroke-opacity": ["interpolate", ["linear"], ["get", "peso"], 0.85, 0, 1, 0.8],
         },
       });
       // Propagación: onda que se expande ~900 m desde cada antena caída (visible a cualquier zoom).
@@ -252,11 +274,11 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
     const aplicar = () => {
       (m.getSource("antenas") as GeoJSONSource | undefined)?.setData(geoAntenas(antenas, seleccion));
       (m.getSource("zonas") as GeoJSONSource | undefined)?.setData(geoZonas(zonas, colectivos, reportes));
-      (m.getSource("reportes") as GeoJSONSource | undefined)?.setData(geoReportes(reportes, zonas));
+      (m.getSource("reportes") as GeoJSONSource | undefined)?.setData(puntosCalor ? geoPuntos(puntosCalor) : geoReportes(reportes, zonas));
     };
     if (listo.current) aplicar();
     else pendiente.current = aplicar;
-  }, [antenas, zonas, colectivos, reportes, seleccion]);
+  }, [antenas, zonas, colectivos, reportes, seleccion, puntosCalor]);
 
   // Etiquetas HTML de zona (nombre + tipo), recreadas solo si cambia el catálogo.
   const claveZonas = zonas.map((z) => z.zonaId).join();

@@ -82,7 +82,7 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - **Analítica**: zonas con más incidentes, antenas más problemáticas, tipos más frecuentes, duración y afectados (Recharts).
 - **Probar**: el panel de analítica con datos de las entregas anteriores.
 
-## E7: Tiempo real y experiencia avanzada 🧪
+## E7: Tiempo real y experiencia avanzada ✅
 > El asistente conversacional del operador pasa a E4 (necesita la IA de la 2.ª nube).
 - **WebSocket API** para el panel, con **polling de respaldo** y limpieza de conexiones caídas.
 - **Asistente conversacional** del operador ("¿qué zona atiendo primero?") con datos reales.
@@ -90,6 +90,11 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - **Reporte por voz** (API de voz del navegador).
 - Mapa de calor 3D / **extrusión** de zonas (MapLibre).
 - Paleta de comandos `Ctrl+K`, modo pantalla grande, alto contraste.
+
+## E7.5: Línea de tiempo y simulación acelerada 🧪
+- **Línea de tiempo estilo editor de video** (`/linea-tiempo`): pistas de incidentes (color por prioridad en cada momento, rombos en los cambios de estado), antenas (tramos en falla o saturación) y reportes (onda tipo audio). Al arrastrar el cabezal, el mapa muestra antenas, zonas, incidentes abiertos y el **mapa de calor** de ese instante. Reproducción a 1×–300×, ventanas de 15 min a 24 h, zoom y modo **en vivo**.
+- **Simulación acelerada** (escenario `ACELERADA`): ~3 min, 4 eventos encadenados en zonas distintas (detección proactiva y por reportes, correlación, re-priorización, recuperación y cierre automático), con monitoreo cada 4 s y tiempo ×60 para la prioridad.
+- **UI a prueba de cambios rápidos**: un solo pedido en vuelo por dato (sin respuestas viejas), avisos del WebSocket con throttle en vez de debounce, toasts agrupados, filas que se deslizan al re-priorizarse y destello en filas nuevas.
 
 ## E8: Extras de alcance ⬜
 - **Bot de Telegram** para reportar.

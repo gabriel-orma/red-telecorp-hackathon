@@ -11,6 +11,7 @@ import { Reportar } from "./pages/Reportar";
 import { Seguimiento } from "./pages/Seguimiento";
 import { Colectivos } from "./pages/Colectivos";
 import { MapaNeu } from "./pages/MapaNeu";
+import { LineaTiempoNeu } from "./pages/LineaTiempoNeu";
 import { Analitica } from "./pages/Analitica";
 import { ShellNeu } from "./components/neu/ShellNeu";
 import { PaletaComandos } from "./components/neu/PaletaComandos";
@@ -60,7 +61,7 @@ function Operador({ ruta }: { ruta: string }) {
 
   return (
     <div className="tema-neu h-full">
-      <Toaster position="top-center" theme="dark" toastOptions={{ unstyled: true }} />
+      <Toaster position="top-center" theme="dark" visibleToasts={3} toastOptions={{ unstyled: true }} />
       {ruta in TITULOS ? (
         <ShellNeu titulo={TITULOS[ruta]} enVivo={enVivo} colectivosActivos={activos} onBuscar={() => setBuscar(true)}>
           <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
@@ -68,6 +69,8 @@ function Operador({ ruta }: { ruta: string }) {
           {ruta === "/incidencias" ? <PanelIncidencias zonas={zonas} />
             : ruta === "/analitica" ? <Analitica /> : <Colectivos abiertos={colectivos.datos} />}
         </ShellNeu>
+      ) : ruta === "/linea-tiempo" ? (
+        <LineaTiempoNeu antenas={antenas} zonas={zonas} colectivosActivos={activos} enVivo={enVivo} refrescarRed={red.refrescar} />
       ) : (
         <MapaNeu antenas={antenas} zonas={zonas} colectivos={lista} enVivo={enVivo} refrescarRed={red.refrescar} />
       )}
