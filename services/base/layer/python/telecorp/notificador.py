@@ -8,10 +8,12 @@ Canales disponibles en Learner Lab (ver D1: SES y SMS bloqueados):
 """
 import json
 import os
+import time
 
 import boto3
+from botocore.exceptions import ClientError
 
-from telecorp import historial, zonas
+from telecorp import db, historial, zonas
 
 _sns = boto3.client("sns")
 
@@ -25,7 +27,51 @@ MENSAJES = {
     "SERVICIO_RESTABLECIDO": ("El servicio en tu zona fue restablecido",
                               "El servicio en {zona} ya fue restablecido. Si sigues con problemas, reinicia tu equipo "
                               "o vuelve a reportarlo. ¡Gracias por tu paciencia!"),
+    # Verificación de red SIN falla (H03): nunca se dice "falla confirmada" si las antenas de la zona están bien.
+    # No es un estado del colectivo: solo un tipo de aviso del flujo (el colectivo sigue EN_EVALUACION).
+    "SIN_FALLA_RED": ("Seguimos evaluando el problema en tu zona",
+                      "Revisamos las antenas de {zona} y por ahora no muestran fallas. Seguimos analizando los reportes "
+                      "de tus vecinos y te avisaremos apenas haya novedades. Si tu servicio sigue mal, reinicia tu equipo."),
 }
+
+AVISO_TTL_DIAS = 7
+AVISO_VIGENCIA_SEG = 180   # un aviso "ENVIANDO" más viejo que esto se considera caído y puede reintentarse
+
+
+def _reclamar_aviso(incidencia_id: str, estado: str) -> int | None:
+    """Idempotencia (H32): marca condicional en `dedup` ANTES de enviar. Devuelve la marca si ganó; None si otro ya avisó
+    (o está avisando). Un reintento tras un envío completo no duplica el correo, el historial ni los contadores."""
+    ahora = int(time.time())
+    try:
+        db.tabla("dedup").put_item(
+            Item={"clave": f"AVISO#{incidencia_id}#{estado}", "incidenciaId": incidencia_id, "fase": "ENVIANDO",
+                  "ts": ahora, "expiraEn": ahora + AVISO_TTL_DIAS * 86400},
+            ConditionExpression="attribute_not_exists(clave) OR (fase = :env AND ts < :viejo)",
+            ExpressionAttributeValues={":env": "ENVIANDO", ":viejo": ahora - AVISO_VIGENCIA_SEG})
+        return ahora
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return None
+        raise
+
+
+def _confirmar_aviso(incidencia_id: str, estado: str, marca: int) -> None:
+    """ENVIADO es definitivo. Si esta escritura falla el aviso YA salió: no se relanza (solo quedaría 'ENVIANDO')."""
+    try:
+        db.tabla("dedup").update_item(
+            Key={"clave": f"AVISO#{incidencia_id}#{estado}"}, UpdateExpression="SET fase = :ok",
+            ConditionExpression="ts = :m", ExpressionAttributeValues={":ok": "ENVIADO", ":m": marca})
+    except ClientError:
+        pass
+
+
+def _soltar_aviso(incidencia_id: str, estado: str, marca: int) -> None:
+    """Si el envío falló, se libera la marca para que el reintento sí envíe (sin esto el aviso se perdería)."""
+    try:
+        db.tabla("dedup").delete_item(Key={"clave": f"AVISO#{incidencia_id}#{estado}"},
+                                      ConditionExpression="ts = :m", ExpressionAttributeValues={":m": marca})
+    except ClientError:
+        pass
 
 
 def mensaje(estado: str, zona_id: str) -> tuple[str, str]:
@@ -35,24 +81,33 @@ def mensaje(estado: str, zona_id: str) -> tuple[str, str]:
 
 
 def notificar(incidencia: dict, estado_colectivo: str, colectivo_id: str) -> dict:
-    """Avisa a un usuario. Devuelve el resultado por canal (y siempre lo deja en el historial)."""
-    asunto, cuerpo = mensaje(estado_colectivo, incidencia["zonaId"])
-    canales = {"app": "ok"}
-    topico = os.environ.get("TOPICO_AVISOS")
-    if topico:
-        try:
-            _sns.publish(
-                TopicArn=topico, Subject=f"Red TeleCorp: {asunto}"[:100], Message=cuerpo,
-                MessageAttributes={"usuarioId": {"DataType": "String", "StringValue": incidencia["usuarioId"]}},
-            )
-            canales["email"] = "publicado"  # entregado solo si el usuario confirmó su suscripción
-        except Exception as e:  # noqa: BLE001 - un canal caído no detiene los demás
-            canales["email"] = f"error: {type(e).__name__}"
-    historial.registrar(
-        incidencia["incidenciaId"], "INCIDENCIA", "NOTIFICACION_ENVIADA", "STEP_FUNCTION",
-        detalle=json.dumps({"asunto": asunto, "mensaje": cuerpo, "canales": canales,
-                            "colectivo": colectivo_id, "estado": estado_colectivo}, ensure_ascii=False),
-    )
+    """Avisa a un usuario UNA sola vez por (incidencia, estado). Devuelve el resultado por canal; si ya se había avisado
+    (reintento de Step Functions, o el usuario ya recibió el aviso al sumarse al colectivo) devuelve {"omitido": ...}."""
+    marca = _reclamar_aviso(incidencia["incidenciaId"], estado_colectivo)
+    if marca is None:
+        return {"omitido": "ya avisado"}
+    try:
+        asunto, cuerpo = mensaje(estado_colectivo, incidencia["zonaId"])
+        canales = {"app": "ok"}
+        topico = os.environ.get("TOPICO_AVISOS")
+        if topico:
+            try:
+                _sns.publish(
+                    TopicArn=topico, Subject=f"Red TeleCorp: {asunto}"[:100], Message=cuerpo,
+                    MessageAttributes={"usuarioId": {"DataType": "String", "StringValue": incidencia["usuarioId"]}},
+                )
+                canales["email"] = "publicado"  # entregado solo si el usuario confirmó su suscripción
+            except Exception as e:  # noqa: BLE001 - un canal caído no detiene los demás
+                canales["email"] = f"error: {type(e).__name__}"
+        historial.registrar(
+            incidencia["incidenciaId"], "INCIDENCIA", "NOTIFICACION_ENVIADA", "STEP_FUNCTION",
+            detalle=json.dumps({"asunto": asunto, "mensaje": cuerpo, "canales": canales,
+                                "colectivo": colectivo_id, "estado": estado_colectivo}, ensure_ascii=False),
+        )
+    except Exception:
+        _soltar_aviso(incidencia["incidenciaId"], estado_colectivo, marca)  # que el reintento sí envíe
+        raise
+    _confirmar_aviso(incidencia["incidenciaId"], estado_colectivo, marca)
     return canales
 
 

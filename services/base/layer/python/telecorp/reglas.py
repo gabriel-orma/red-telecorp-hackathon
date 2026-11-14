@@ -86,6 +86,9 @@ def enmascarar_email(email):
 # ---------------- Incidentes colectivos (E3) ----------------
 ESTADOS_COLECTIVO_ABIERTOS = {"EN_EVALUACION", "INCIDENCIA_CONFIRMADA"}
 ESTADOS_ANTENA_FALLA = {"INHABILITADA", "CAIDA"}  # disparan detección proactiva
+# La VERIFICACIÓN de un colectivo (H24) también considera SATURADA: con 10 usuarios reportando "Internet lento" una antena
+# saturada ES la causa. No dispara detección proactiva (una saturación pasajera no justifica abrir un incidente).
+ESTADOS_ANTENA_VERIFICACION = ESTADOS_ANTENA_FALLA | {"SATURADA"}
 
 
 def es_colectivo(usuarios_distintos: int, umbral: int = 10) -> bool:

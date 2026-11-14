@@ -68,16 +68,19 @@ functions:
             - dynamodb: { NewImage: { estado: { S: [CAIDA, INHABILITADA] } } }
 
   # Pasos de la Step Function
+  # (los timeouts de las Lambdas de lote/cierre son mayores que el estándar de 30 s: procesan cientos de usuarios)
   prepararNotificacion: { handler: src/pasos.preparar_notificacion }
-  notificarUno: { handler: src/pasos.notificar_uno }
+  notificarLote: { handler: src/pasos.notificar_lote, timeout: 120 }
   verificarInfraestructura: { handler: src/pasos.verificar_infraestructura }
   priorizar: { handler: src/pasos.priorizar }
-  resumir: { handler: src/pasos.resumir }
-  confirmar: { handler: src/pasos.confirmar }
+  resumir: { handler: src/pasos.resumir }             # HOOK 2.ª nube (IA)
+  confirmar: { handler: src/pasos.confirmar, timeout: 300 }
   reverificar: { handler: src/pasos.reverificar }
   restablecer: { handler: src/pasos.restablecer }
-  cerrar: { handler: src/pasos.cerrar }
+  cerrar: { handler: src/pasos.cerrar, timeout: 300 }
   sinResolver: { handler: src/pasos.sin_resolver }
+  manejarFallo: { handler: src/pasos.manejar_fallo }
+  replicarNube2: { handler: src/pasos.replicar_nube2 }  # HOOK 2.ª nube (réplica al histórico)
 
 stepFunctions:
   validate: true
@@ -86,8 +89,22 @@ stepFunctions:
       id: MaquinaIncidenteColectivo
       name: ${self:custom.prefijo}-incidente-colectivo
       role: arn:aws:iam::${aws:accountId}:role/LabRole
+      # Solo errores y sin datos de ejecución: los logs no deben contener datos personales (AGENTS.md R3).
+      # NO VERIFICADO EN AWS: LabRole debe permitir la entrega de logs (logs:CreateLogDelivery...); si el primer
+      # despliegue falla por esto, quitar loggingConfig y el LogGroup (no afecta al flujo).
+      loggingConfig:
+        level: ERROR
+        includeExecutionData: false
+        destinations:
+          - Fn::GetAtt: [LogsMaquinaIncidenteColectivo, Arn]
       definition: ${file(./statemachines/incidente-colectivo.yml)}
 
 resources:
+  Resources:
+    LogsMaquinaIncidenteColectivo:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/vendedlogs/states/${self:custom.prefijo}-incidente-colectivo
+        RetentionInDays: 7
   Outputs:
     MaquinaIncidenteColectivoArn: { Value: !Ref MaquinaIncidenteColectivo }

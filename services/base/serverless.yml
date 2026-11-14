@@ -209,7 +209,8 @@ resources:
         Type: String
         Description: "Reglas de negocio ajustables sin desplegar código (prioridad = TODO D7)"
         Value: >-
-          {"colectivo": {"umbralUsuarios": 10, "ventanaHoras": 24, "esperaVerificacionSegundos": 30, "maxIteraciones": 5760},
+          {"colectivo": {"umbralUsuarios": 10, "ventanaHoras": 24, "esperaVerificacionSegundos": 300, "maxIteraciones": 2000,
+          "maxMonitoreoMinutos": 2880, "cierreSinReportesMinutos": 60, "loteAvisos": 50},
           "prioridad": {"_todo": "TODO(D7) fórmula provisional", "pesoAfectado": 1, "pesoAntenaEnFalla": 10,
           "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}}}
 
