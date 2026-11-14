@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "analitica.schema.json",
+  "title": "Analítica operativa (GET /api/analitica)",
+  "type": "object",
+  "properties": {
+    "dias": {
+      "type": "integer"
+    },
+    "generadoEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "kpis": {
+      "type": "object",
+      "properties": {
+        "incidentes": {
+          "type": "integer"
+        },
+        "duracionPromedioMin": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "afectadosTotales": {
+          "type": "integer"
+        },
+        "deteccionAnticipadaPromedioMin": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "detectadosPrimeroPorLaRed": {
+          "type": "integer"
+        },
+        "reportes": {
+          "type": "integer"
+        }
+      }
+    },
+    "zonas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "zonaId": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "incidentes": {
+            "type": "integer"
+          },
+          "reportes": {
+            "type": "integer"
+          },
+          "afectados": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "antenas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "antenaId": {
+            "type": "string"
+          },
+          "zonaId": {
+            "type": "string"
+          },
+          "fallas": {
+            "type": "integer"
+          },
+          "estructural": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "tipos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "pct": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "incidentes": {
+      "type": "array",
+      "description": "Incidentes colectivos del periodo (para duración y afectados)",
+      "items": {
+        "type": "object"
+      }
+    },
+    "recurrencia": {
+      "type": "object",
+      "properties": {
+        "umbralFallas": {
+          "type": "integer"
+        },
+        "ventanaDias": {
+          "type": "integer"
+        },
+        "ultimaEjecucion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
