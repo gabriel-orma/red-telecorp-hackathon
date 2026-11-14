@@ -12,6 +12,20 @@ const colorPorEstado = [
   ESTADO.SIN_DATOS.color,
 ] as unknown as maplibregl.ExpressionSpecification;
 
+// Colores de zona desaturados: el contorno es contexto, no protagonista. Solo las fallas llaman la atención.
+const colorZona = [
+  "match", ["get", "estado"],
+  "CAIDA", "#e07070", "INHABILITADA", "#a3acb9", "SATURADA", "#d4a65a",
+  "#7f93a8",
+] as unknown as maplibregl.ExpressionSpecification;
+
+// Nivel de zoom desde el que aparecen las antenas (con fundido) y los nombres de zona.
+const ZOOM_ANTENAS = 11;
+const ZOOM_ANTENAS_PLENO = 11.8;
+const ZOOM_ETIQUETAS = 12;
+const aparecer = (max = 1) =>
+  ["interpolate", ["linear"], ["zoom"], ZOOM_ANTENAS, 0, ZOOM_ANTENAS_PLENO, max] as unknown as maplibregl.ExpressionSpecification;
+
 const geoAntenas = (antenas: Antena[], seleccion: string | null): FeatureCollection => ({
   type: "FeatureCollection",
   features: antenas.map((a) => ({
@@ -66,6 +80,15 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
   const onSel = useRef(onSeleccionar);
   onSel.current = onSeleccionar;
 
+  // Nombres de zona solo con zoom suficiente (de lejos se amontonan).
+  const actualizarEtiquetas = () => {
+    const visibles = (mapa.current?.getZoom() ?? 0) >= ZOOM_ETIQUETAS;
+    etiquetas.current.forEach((mk) => {
+      const interior = mk.getElement().firstElementChild as HTMLElement | null;
+      if (interior) interior.style.opacity = visibles ? "1" : "0";
+    });
+  };
+
   // Crear el mapa una sola vez.
   useEffect(() => {
     if (!contenedor.current) return;
@@ -88,20 +111,24 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
       m.addLayer({
         id: "zonas-relleno", type: "fill", source: "zonas",
         paint: {
-          "fill-color": colorPorEstado,
-          "fill-opacity": ["match", ["get", "estado"], ["CAIDA", "INHABILITADA"], 0.16, "SATURADA", 0.1, 0.05],
+          "fill-color": colorZona,
+          "fill-opacity": ["match", ["get", "estado"], ["CAIDA", "INHABILITADA"], 0.14, "SATURADA", 0.06, 0.025],
         },
       });
       m.addLayer({
         id: "zonas-borde", type: "line", source: "zonas",
-        paint: { "line-color": colorPorEstado, "line-opacity": 0.55, "line-width": 1.2, "line-dasharray": [2, 2] },
+        paint: {
+          "line-color": colorZona,
+          "line-opacity": ["match", ["get", "estado"], ["CAIDA", "INHABILITADA"], 0.55, "SATURADA", 0.35, 0.2],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.6, 14, 1.1],
+        },
       });
       m.addLayer({
         id: "reportes-calor", type: "heatmap", source: "reportes",
         paint: {
           "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 18, 14, 45],
           "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 14, 1.6],
-          "heatmap-opacity": 0.75,
+          "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.75, 14, 0.4], // de cerca, que no tape las antenas
           "heatmap-color": [
             "interpolate", ["linear"], ["heatmap-density"],
             0, "rgba(0,0,0,0)", 0.2, "rgba(124,58,237,0.45)", 0.45, "#db2777", 0.7, "#f97316", 1, "#fde047",
@@ -109,18 +136,20 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
         },
       });
       m.addLayer({
-        id: "antenas-pulso", type: "circle", source: "antenas",
+        id: "antenas-pulso", type: "circle", source: "antenas", minzoom: ZOOM_ANTENAS,
         filter: ["in", ["get", "estado"], ["literal", ["CAIDA", "INHABILITADA"]]],
         paint: { "circle-color": colorPorEstado, "circle-radius": 10, "circle-opacity": 0.5, "circle-blur": 0.4 },
       });
       m.addLayer({
-        id: "antenas-halo", type: "circle", source: "antenas",
-        paint: { "circle-color": colorPorEstado, "circle-radius": 13, "circle-opacity": 0.22, "circle-blur": 0.8 },
+        id: "antenas-halo", type: "circle", source: "antenas", minzoom: ZOOM_ANTENAS,
+        paint: { "circle-color": colorPorEstado, "circle-radius": 13, "circle-opacity": aparecer(0.22), "circle-blur": 0.8 },
       });
       m.addLayer({
-        id: "antenas-punto", type: "circle", source: "antenas",
+        id: "antenas-punto", type: "circle", source: "antenas", minzoom: ZOOM_ANTENAS,
         paint: {
           "circle-color": colorPorEstado,
+          "circle-opacity": aparecer(),
+          "circle-stroke-opacity": aparecer(),
           "circle-radius": ["case", ["get", "seleccionada"], 8, 5.5],
           "circle-stroke-color": ["case", ["get", "seleccionada"], "#ffffff", "#060912"],
           "circle-stroke-width": ["case", ["get", "seleccionada"], 2.5, 1.5],
@@ -141,14 +170,17 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
       let frame = 0;
       const animar = (t: number) => {
         const fase = (t % 1600) / 1600;
+        const visible = Math.min(1, Math.max(0, (m.getZoom() - ZOOM_ANTENAS) / (ZOOM_ANTENAS_PLENO - ZOOM_ANTENAS)));
         if (m.getLayer("antenas-pulso")) {
           m.setPaintProperty("antenas-pulso", "circle-radius", 8 + fase * 26);
-          m.setPaintProperty("antenas-pulso", "circle-opacity", 0.55 * (1 - fase));
+          m.setPaintProperty("antenas-pulso", "circle-opacity", 0.55 * (1 - fase) * visible);
         }
         frame = requestAnimationFrame(animar);
       };
       frame = requestAnimationFrame(animar);
       m.once("remove", () => cancelAnimationFrame(frame));
+
+      m.on("zoom", actualizarEtiquetas);
 
       listo.current = true;
       pendiente.current?.();
@@ -191,11 +223,14 @@ export function MapaRed({ antenas, zonas, reportes, seleccion, onSeleccionar, en
     etiquetas.current = zonas.map((z) => {
       const el = document.createElement("div");
       el.className = "pointer-events-none select-none text-center";
-      el.innerHTML = `<div style="font:600 11px var(--font-sans);color:#cbd5e1;text-shadow:0 1px 6px #000,0 0 2px #000;letter-spacing:.02em">${z.nombre}</div>
-        <div style="font:500 9px var(--font-mono);color:#64748b;text-transform:uppercase;letter-spacing:.08em">${TIPO_ZONA[z.tipo].etiqueta}</div>`;
+      el.innerHTML = `<div style="transition:opacity 250ms ease;opacity:0">
+        <div style="font:600 11px var(--font-sans);color:#cbd5e1;text-shadow:0 1px 6px #000,0 0 2px #000;letter-spacing:.02em">${z.nombre}</div>
+        <div style="font:500 9px var(--font-mono);color:#64748b;text-transform:uppercase;letter-spacing:.08em">${TIPO_ZONA[z.tipo].etiqueta}</div>
+      </div>`;
       const lat = z.centro.lat - (z.radioM * 0.75) / 111320;
       return new maplibregl.Marker({ element: el }).setLngLat([z.centro.lng, lat]).addTo(m);
     });
+    actualizarEtiquetas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claveZonas]);
 
