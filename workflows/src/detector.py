@@ -1,10 +1,16 @@
-"""Detector de incidentes colectivos (DynamoDB Streams).
+"""Detector de incidentes colectivos (DynamoDB Streams + barrido periódico).
 
 Fuentes:
-- Stream de `incidencias` (INSERT): si ya hay un colectivo abierto en la zona, la incidencia se suma. Si no, cuenta
-  los usuarios DISTINTOS con incidencias activas en la zona dentro de la ventana (<24 h): con ≥10 crea el colectivo.
-- Stream de `antenas` (filtrado a CAIDA / INHABILITADA): cuando una antena ENTRA en falla, detección proactiva
-  (el sistema se entera antes que los usuarios), o se suma la antena al colectivo abierto.
+- Stream de `incidencias` (INSERT): si ya hay un colectivo abierto en la zona, la incidencia se suma. Si no, se anota al
+  usuario en la ventana atómica de la zona y se cuentan los usuarios DISTINTOS de las últimas 24 h (estrictamente
+  menos de 24 h, de cualquier estado, relacionados con el servicio y aún sin colectivo): con ≥10 se crea el colectivo.
+- Stream de `antenas` (solo la TRANSICIÓN a CAIDA / INHABILITADA): detección proactiva (el sistema se entera antes que
+  los usuarios), o se suma la antena al colectivo abierto.
+- `reconciliar` (EventBridge, cada 5 min): reevalúa cada zona y arranca la Step Function de colectivos "zombi".
+  Es la red de seguridad si algún evento del stream se perdió o llegó fuera de orden.
+
+El conteo no depende solo del GSI `zona-fecha` (eventualmente consistente): se une con la ventana de la zona
+(`comun_colectivos.registrar_en_ventana`), que se escribe y se lee con consistencia fuerte.
 """
 import os as _os
 import sys as _sys
@@ -15,7 +21,7 @@ import os
 
 from boto3.dynamodb.types import TypeDeserializer
 
-from telecorp import config, reglas, zonas
+from telecorp import config, reglas, util, zonas
 import comun_colectivos as cc  # noqa: E402
 
 _des = TypeDeserializer()
@@ -25,24 +31,50 @@ def _imagen(registro: dict, clave: str) -> dict:
     return {k: _des.deserialize(v) for k, v in registro["dynamodb"].get(clave, {}).items()}
 
 
+def _parametros() -> tuple:
+    cfg = config.leer("reglas").get("colectivo", {})
+    return int(cfg.get("ventanaHoras", 24)), int(cfg.get("umbralUsuarios", 10))
+
+
+def evaluar_zona(zona_id: str, horas: int, umbral: int, entrante: dict | None = None, ventana: dict | None = None):
+    """Cuenta usuarios distintos de la zona (GSI ∪ ventana atómica ∪ incidencia entrante) y crea el colectivo si
+    llegan al umbral. Devuelve el id del colectivo o None."""
+    if ventana is None:
+        ventana = cc.leer_ventana(zona_id, horas)
+    candidatas = {i["incidenciaId"]: i for i in cc.incidencias_ventana_zona(zona_id, horas) if cc.relacionada_con_servicio(i)}
+    if entrante:
+        candidatas[entrante["incidenciaId"]] = entrante
+    usuarios = {i["usuarioId"] for i in candidatas.values()} | set(ventana)
+    if not reglas.es_colectivo(len(usuarios), umbral):
+        return None
+    # Decisión: se confirma con las incidencias REALES (la ventana puede arrastrar rezagadas ya agrupadas o borradas).
+    faltan = [e["inc"] for e in ventana.values() if e["inc"] not in candidatas]
+    for i in cc.cargar_incidencias(faltan, horas):
+        if cc.relacionada_con_servicio(i):
+            candidatas[i["incidenciaId"]] = i
+    usuarios = {i["usuarioId"] for i in candidatas.values()}
+    if not reglas.es_colectivo(len(usuarios), umbral):
+        return None
+    nombre = (zonas.zona(zona_id) or {}).get("nombre", zona_id)
+    return cc.crear(zona_id, "REPORTES_USUARIOS", f"{len(usuarios)} usuarios distintos reportaron en {nombre} (< {horas} h)",
+                    list(candidatas.values()), [], consumidos=ventana)
+
+
 def nueva_incidencia(inc: dict) -> None:
     if inc.get("estado") not in reglas.ESTADOS_INCIDENCIA_ACTIVOS:
         return
     zona_id = inc["zonaId"]
     abierto = cc.colectivo_abierto(zona_id)
     if abierto:
-        cc.agrupar_incidencias(cc.obtener(abierto), [inc], notificar_estado=True)
+        cc.unir(abierto, [inc], [])  # suma la incidencia y cura un colectivo sin Step Function
         return
-
-    cfg = config.leer("reglas").get("colectivo", {})
-    horas, umbral = int(cfg.get("ventanaHoras", 24)), int(cfg.get("umbralUsuarios", 10))
-    activas = {i["incidenciaId"]: i for i in cc.incidencias_activas_zona(zona_id, horas)}
-    activas[inc["incidenciaId"]] = inc  # el GSI es eventualmente consistente: incluir la recién llegada
-    usuarios = {i["usuarioId"] for i in activas.values()}
-    if reglas.es_colectivo(len(usuarios), umbral):
-        nombre = (zonas.zona(zona_id) or {}).get("nombre", zona_id)
-        cc.crear(zona_id, "REPORTES_USUARIOS", f"{len(usuarios)} usuarios distintos reportaron en {nombre} (< {horas} h)",
-                 list(activas.values()), [])
+    horas, umbral = _parametros()
+    if not cc.relacionada_con_servicio(inc):  # H11: un reporte "OTRO" no dispara colectivos por sí solo
+        return
+    if inc["creadaEn"] <= util.hace_iso(hours=horas):  # H09: reproceso tardío (p. ej. desde la DLQ) fuera de la ventana
+        return
+    ventana = cc.registrar_en_ventana(zona_id, inc, horas)
+    evaluar_zona(zona_id, horas, umbral, entrante=inc, ventana=ventana)
 
 
 def cambio_antena(anterior: dict, nueva: dict) -> None:
@@ -52,11 +84,30 @@ def cambio_antena(anterior: dict, nueva: dict) -> None:
     antena = {"antenaId": nueva["antenaId"], "estado": nueva["estado"], "desde": nueva.get("estadoDesde") or nueva.get("actualizadoEn")}
     abierto = cc.colectivo_abierto(zona_id)
     if abierto:
-        cc.agregar_antenas(cc.obtener(abierto), [antena])
+        cc.unir(abierto, [], [antena])
         return
-    horas = int(config.leer("reglas").get("colectivo", {}).get("ventanaHoras", 24))
+    horas, _ = _parametros()
     cc.crear(zona_id, "METRICAS_ANTENA", f"Antena {antena['antenaId']} {antena['estado']} (detección proactiva)",
              cc.incidencias_activas_zona(zona_id, horas), [antena])
+
+
+def reconciliar(event, context) -> dict:
+    """Barrido periódico (H08): reevalúa cada zona y arranca la Step Function de los colectivos que no la tengan."""
+    horas, umbral = _parametros()
+    creados, curados = [], []
+    for z in zonas.zonas():
+        abierto = cc.colectivo_abierto(z["zonaId"])
+        if abierto:
+            col = cc.obtener(abierto)
+            if not col.get("ejecucionArn"):
+                cc.asegurar_ejecucion(col)
+                curados.append(abierto)
+            continue
+        nuevo = evaluar_zona(z["zonaId"], horas, umbral)
+        if nuevo:
+            creados.append(nuevo)
+    print(f"reconciliar: {len(creados)} colectivos creados, {len(curados)} curados")
+    return {"creados": creados, "curados": curados}
 
 
 def handler(event, context):

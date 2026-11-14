@@ -1,4 +1,5 @@
 """Reglas de negocio puras (sin AWS). Fuente de verdad: docs/arquitectura.md > Reglas de negocio."""
+import math
 
 ESTADOS_ANTENA = ("INHABILITADA", "CAIDA", "NORMAL", "SATURADA")
 # Orden de gravedad para resumir una zona por su peor antena (mayor = peor).
@@ -6,7 +7,16 @@ GRAVEDAD_ANTENA = {"SIN_DATOS": 0, "NORMAL": 1, "SATURADA": 2, "CAIDA": 3, "INHA
 
 
 def clasificar_antena(gb_por_minuto: float) -> str:
-    """0 → INHABILITADA; <60 → CAIDA; 60..129 → NORMAL; >129 → SATURADA."""
+    """0 → INHABILITADA; <60 → CAIDA; 60..129 → NORMAL; >129 → SATURADA.
+
+    Una métrica no física (NaN, ±inf, negativa o booleana) NO se clasifica en silencio: `ValueError`/`TypeError`.
+    Las comparaciones usan el valor original (int, float o Decimal) para no perder precisión en las fronteras.
+    """
+    if isinstance(gb_por_minuto, bool):
+        raise TypeError("gbPorMinuto no puede ser booleano")
+    numero = float(gb_por_minuto)
+    if not math.isfinite(numero) or numero < 0:
+        raise ValueError(f"gbPorMinuto inválido (debe ser finito y >= 0): {gb_por_minuto!r}")
     if gb_por_minuto <= 0:
         return "INHABILITADA"
     if gb_por_minuto < 60:

@@ -176,7 +176,8 @@ def test_usuarioId_es_el_sub_y_cambiar_custom_dni_no_cambia_la_identidad(entorno
     assert _reportar(_claims(**{"custom:dni": "99999999"}))["statusCode"] == 202   # el usuario "editó" su DNI
     ids = {m["reporte"]["usuarioId"] for m in cola.mensajes}
     assert ids == {"11111111-2222-3333-4444-555555555555"}                           # sigue siendo UNA identidad
-    assert {p["Item"]["clave"] for p in tabla.puestos} == {"11111111-2222-3333-4444-555555555555#ZONA-05"}
+    # Una sola reserva de dedup, con el `sub` como identidad (prefijo USR# del diseño de detección).
+    assert {p["Item"]["clave"] for p in tabla.puestos} == {"USR#11111111-2222-3333-4444-555555555555#ZONA-05"}
 
 
 def test_crear_reporte_exige_sub_y_valida_su_formato(entorno):
