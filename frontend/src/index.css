@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* Paleta del centro de control. Los colores de estado son la fuente única para mapa, chips y gráficos. */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --color-fondo: #060912;
+  --color-panel: #0b1222;
+  --color-panel-2: #101a30;
+  --color-borde: #1c2a45;
+  --color-texto: #e6edf7;
+  --color-tenue: #8796b0;
+  --color-acento: #22d3ee;
+
+  --color-normal: #22c55e;
+  --color-saturada: #f59e0b;
+  --color-caida: #ef4444;
+  --color-inhabilitada: #94a3b8;
+  --color-sindatos: #475569;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fondo con rejilla sutil tipo sala de operaciones */
+.fondo-rejilla {
+  background-image:
+    radial-gradient(ellipse at 20% -10%, rgba(34, 211, 238, 0.08), transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+}
+
+.panel {
+  background: color-mix(in srgb, var(--color-panel) 88%, transparent);
+  border: 1px solid var(--color-borde);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar discreta */
+.scroll-fino::-webkit-scrollbar { width: 6px; }
+.scroll-fino::-webkit-scrollbar-thumb { background: var(--color-borde); border-radius: 3px; }
+
+/* Popups de MapLibre con el estilo del panel */
+.maplibregl-popup-content {
+  background: var(--color-panel) !important;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+}
+.maplibregl-popup-tip { border-top-color: var(--color-panel) !important; border-bottom-color: var(--color-panel) !important; }
+.maplibregl-popup-close-button { color: var(--color-tenue); font-size: 18px; padding: 2px 8px; }
+.maplibregl-ctrl-attrib { background: rgba(6, 9, 18, 0.7) !important; color: var(--color-tenue) !important; }
+.maplibregl-ctrl-attrib a { color: var(--color-tenue) !important; }
+
+@keyframes latido {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.latido { animation: latido 1.6s ease-in-out infinite; }

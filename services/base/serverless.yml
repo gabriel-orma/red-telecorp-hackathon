@@ -1,0 +1,140 @@
+# Stack BASE: datos y recursos compartidos (sin lógica de negocio).
+# Lo crea UNA sola vez y lo exporta como Outputs; los demás stacks lo leen con ${cf:telecorp-base-<stage>.<Output>}.
+# Desplegar con: bash scripts/deploy.sh <stage>   (copia el catálogo de zonas al layer antes)
+service: telecorp-base
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::${aws:accountId}:role/LabRole
+
+custom:
+  prefijo: telecorp-${sls:stage}
+
+layers:
+  comun:
+    path: layer
+    name: ${self:custom.prefijo}-comun
+    description: Código compartido de Red TeleCorp (telecorp.*)
+    compatibleRuntimes: [python3.12]
+
+resources:
+  Resources:
+    # ---------- DynamoDB: tablas separadas, on-demand, PITR (D8) ----------
+    TablaIncidencias:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-incidencias
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+        AttributeDefinitions:
+          - { AttributeName: incidenciaId, AttributeType: S }
+          - { AttributeName: zonaId, AttributeType: S }
+          - { AttributeName: creadaEn, AttributeType: S }
+        KeySchema: [{ AttributeName: incidenciaId, KeyType: HASH }]
+        GlobalSecondaryIndexes:
+          - IndexName: zona-fecha
+            KeySchema: [{ AttributeName: zonaId, KeyType: HASH }, { AttributeName: creadaEn, KeyType: RANGE }]
+            Projection: { ProjectionType: ALL }
+        StreamSpecification: { StreamViewType: NEW_AND_OLD_IMAGES }
+
+    TablaHistorial:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-historial
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+        AttributeDefinitions:
+          - { AttributeName: entidadId, AttributeType: S }
+          - { AttributeName: sk, AttributeType: S }
+        KeySchema: [{ AttributeName: entidadId, KeyType: HASH }, { AttributeName: sk, KeyType: RANGE }]
+
+    TablaMetricas:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-metricas
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+        AttributeDefinitions:
+          - { AttributeName: antenaId, AttributeType: S }
+          - { AttributeName: medidoEn, AttributeType: S }
+        KeySchema: [{ AttributeName: antenaId, KeyType: HASH }, { AttributeName: medidoEn, KeyType: RANGE }]
+        TimeToLiveSpecification: { AttributeName: expiraEn, Enabled: true }
+
+    TablaAntenas:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-antenas
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+        AttributeDefinitions: [{ AttributeName: antenaId, AttributeType: S }]
+        KeySchema: [{ AttributeName: antenaId, KeyType: HASH }]
+        StreamSpecification: { StreamViewType: NEW_AND_OLD_IMAGES }
+
+    TablaColectivos:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.prefijo}-colectivos
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+        AttributeDefinitions:
+          - { AttributeName: incidenteColectivoId, AttributeType: S }
+          - { AttributeName: zonaId, AttributeType: S }
+          - { AttributeName: estado, AttributeType: S }
+        KeySchema: [{ AttributeName: incidenteColectivoId, KeyType: HASH }]
+        GlobalSecondaryIndexes:
+          - IndexName: zona-estado
+            KeySchema: [{ AttributeName: zonaId, KeyType: HASH }, { AttributeName: estado, KeyType: RANGE }]
+            Projection: { ProjectionType: ALL }
+
+    # ---------- SQS: colchón anti-avalancha con DLQ ----------
+    ColaReportesDLQ:
+      Type: AWS::SQS::Queue
+      Properties: { QueueName: "${self:custom.prefijo}-reportes-dlq", MessageRetentionPeriod: 1209600 }
+    ColaReportes:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.prefijo}-reportes
+        VisibilityTimeout: 180
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 3 }
+    ColaMetricasDLQ:
+      Type: AWS::SQS::Queue
+      Properties: { QueueName: "${self:custom.prefijo}-metricas-dlq", MessageRetentionPeriod: 1209600 }
+    ColaMetricas:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.prefijo}-metricas
+        VisibilityTimeout: 180
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 3 }
+
+    # ---------- Configuración (SSM) y secretos (Secrets Manager) ----------
+    ParametroSimulador:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /telecorp/${sls:stage}/simulador
+        Type: String
+        Description: "Simulador de antenas. fallas = {antenaId: GB/min forzado}"
+        Value: '{"fallas": {}, "probSaturacion": 0.03, "muestrasPorMinuto": 4}'
+    SecretoIA:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Name: telecorp/${sls:stage}/ia
+        Description: "API key del servicio de IA de la segunda nube (D2). Se carga con: aws secretsmanager put-secret-value"
+        SecretString: '{"apiKey": "PENDIENTE-D2"}'
+
+  Outputs:
+    TablaIncidenciasNombre: { Value: !Ref TablaIncidencias }
+    TablaIncidenciasStreamArn: { Value: !GetAtt TablaIncidencias.StreamArn }
+    TablaHistorialNombre: { Value: !Ref TablaHistorial }
+    TablaMetricasNombre: { Value: !Ref TablaMetricas }
+    TablaAntenasNombre: { Value: !Ref TablaAntenas }
+    TablaAntenasStreamArn: { Value: !GetAtt TablaAntenas.StreamArn }
+    TablaColectivosNombre: { Value: !Ref TablaColectivos }
+    ColaReportesUrl: { Value: !Ref ColaReportes }
+    ColaReportesArn: { Value: !GetAtt ColaReportes.Arn }
+    ColaMetricasUrl: { Value: !Ref ColaMetricas }
+    ColaMetricasArn: { Value: !GetAtt ColaMetricas.Arn }
+    SecretoIAArn: { Value: !Ref SecretoIA }
