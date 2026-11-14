@@ -81,6 +81,11 @@ export function DetalleAntenaNeu({ antena, zona, forzada, onCerrar, onForzar }: 
             <button onClick={onCerrar} aria-label="Cerrar" className="boton-neu -mr-1 -mt-1 grid size-7 shrink-0 place-items-center text-tenue"><X className="size-3.5" /></button>
           </div>
 
+          {antena.estructural && (
+            <div className="mt-3 rounded-xl bg-caida/10 px-3 py-2 text-[11px] text-caida">
+              <b>Problema estructural:</b> {antena.estructural.fallas} fallas en {antena.estructural.ventanaDias} días. Requiere mantenimiento especializado.
+            </div>
+          )}
           <div className="mt-3 flex items-baseline gap-1.5">
             {antena.gbPorMinuto === null ? <span className="text-3xl font-bold">—</span>
               : <Cifra valor={antena.gbPorMinuto} decimales={1} className="text-3xl font-bold" />}

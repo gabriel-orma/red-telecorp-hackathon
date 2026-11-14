@@ -1,0 +1,42 @@
+# Recurrencia (E6): todos los días, marca las antenas con fallas repetidas como problema estructural.
+Comment: Antenas con fallas repetidas en la ventana -> problema estructural + alerta al NOC
+StartAt: ContarFallas
+States:
+  ContarFallas:
+    Type: Task
+    Resource: { "Fn::GetAtt": [recurrenciaContar, Arn] }
+    ResultPath: $.conteo
+    Retry: &reintentos
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException]
+        IntervalSeconds: 2
+        MaxAttempts: 3
+        BackoffRate: 2
+    Next: HayEstructurales
+  HayEstructurales:
+    Type: Choice
+    Choices:
+      - Variable: $.conteo.hay
+        BooleanEquals: true
+        Next: MarcarEstructurales
+    Default: Resumen
+  MarcarEstructurales:
+    Type: Map
+    ItemsPath: $.conteo.estructurales
+    MaxConcurrency: 5
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: Marcar
+      States:
+        Marcar:
+          Type: Task
+          Resource: { "Fn::GetAtt": [recurrenciaMarcar, Arn] }
+          Retry: *reintentos
+          End: true
+    ResultPath: $.marcadas
+    Next: Resumen
+  Resumen:
+    Type: Task
+    Resource: { "Fn::GetAtt": [recurrenciaResumen, Arn] }
+    ResultPath: $.resumen
+    Retry: *reintentos
+    End: true

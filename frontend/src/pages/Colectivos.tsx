@@ -7,6 +7,7 @@ import { usePolling } from "../hooks/usePolling";
 import { navegar } from "../lib/router";
 import { cn, haceCuanto, numero } from "../lib/utils";
 import { FlujoColectivo, FlujoMini } from "../components/FlujoColectivo";
+import { Anticipacion } from "./MapaNeu";
 import { ChipEstado, Historial } from "../components/LineaTiempo";
 
 const ORIGEN = { REPORTES_USUARIOS: "Reportes de usuarios", METRICAS_ANTENA: "Detección proactiva (antena)", AMBOS: "Usuarios + antenas" };
@@ -117,6 +118,8 @@ function Detalle({ id }: { id: string }) {
             <Kpi icono={RadioTower} valor={c.antenasEnFalla.length} etiqueta="antenas en falla" color={c.antenasEnFalla.length ? ESTADO.CAIDA.color : undefined} />
             <Kpi icono={Megaphone} valor={c.notificacionesEnviadas} etiqueta="avisos enviados" />
           </div>
+
+          <Anticipacion minutos={c.deteccionAnticipadaMin} proactivo={c.origen === "METRICAS_ANTENA"} grande />
 
           {c.resumenIA && (
             <div className="mt-3 rounded-xl bg-fondo/60 p-3 text-sm">

@@ -12,6 +12,7 @@ export interface Antena {
   gbPorMinuto: number | null;
   actualizadoEn: string | null;
   estadoDesde: string | null;
+  estructural?: { desde: string; fallas: number; ventanaDias: number } | null;
 }
 
 export interface Zona {
@@ -164,6 +165,7 @@ export interface Colectivo {
   primeraFallaEn: string | null;
   ejecucionArn?: string;
   duracionMinutos?: number;
+  deteccionAnticipadaMin?: number | null;
 }
 
 export interface DetalleColectivo {
@@ -221,4 +223,22 @@ export const apiEscenarios = {
   estado: () => pedir<EstadoEscenario>("/escenarios"),
   lanzar: (tipo: TipoEscenario, zonaId: string) => pedir<{ ejecucionArn: string }>("/escenarios", { method: "POST", body: JSON.stringify({ tipo, zonaId }) }),
   reiniciar: () => pedir<{ colectivosRestablecidos: number }>("/escenarios/reiniciar", { method: "POST" }),
+};
+
+// ---------------- Analítica operativa (E6) ----------------
+export interface Analitica {
+  dias: number; generadoEn: string;
+  kpis: { incidentes: number; abiertos: number; duracionPromedioMin: number | null; afectadosTotales: number;
+          deteccionAnticipadaPromedioMin: number | null; detectadosPrimeroPorLaRed: number; reportes: number };
+  zonas: { zonaId: string; nombre: string; tipo: TipoZona; incidentes: number; reportes: number; afectados: number }[];
+  antenas: { antenaId: string; zonaId: string; zona: string; fallas: number; estructural: boolean }[];
+  tipos: { tipo: TipoProblema; total: number; pct: number }[];
+  incidentes: { incidenteColectivoId: string; zonaId: string; nombre: string; detectadoEn: string; estado: EstadoColectivo;
+                abierto: boolean; duracionMin: number | null; afectados: number; prioridad: Prioridad; puntaje: number;
+                origen: string; deteccionAnticipadaMin: number | null }[];
+  recurrencia: { umbralFallas: number; ventanaDias: number; ultimaEjecucion: string | null; estructurales: number };
+}
+export const apiAnalitica = {
+  obtener: (dias: number) => pedir<Analitica>(`/analitica?dias=${dias}`),
+  recurrencia: () => pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST" }),
 };

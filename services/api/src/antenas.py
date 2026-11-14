@@ -20,6 +20,7 @@ def listar_antenas(event, context):
             "gbPorMinuto": act.get("gbPorMinuto"),
             "actualizadoEn": act.get("actualizadoEn"),
             "estadoDesde": act.get("estadoDesde"),
+            "estructural": act.get("estructural"),
         })
     return http.ok({"antenas": salida, "generadoEn": util.ahora_iso()})
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Flame, RotateCcw, Siren, Users, Zap } from "lucide-react";
+import { ChevronRight, Flame, ListOrdered, Radar, RotateCcw, Siren, Users, Zap } from "lucide-react";
 import { api, apiIncidencias, type Antena, type Colectivo, type EstadoSimulador, type Incidencia, type Zona } from "../lib/api";
 import { ESTADO, ESTADO_COLECTIVO, GRAVEDAD, ORDEN_ESTADOS, PRIORIDAD, TIPO_ZONA } from "../lib/estados";
 import { usePolling } from "../hooks/usePolling";
@@ -42,7 +42,9 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
 
   const antenaSel = antenas.find((a) => a.antenaId === seleccion) ?? null;
   const activos = colectivos.filter((c) => c.estado !== "CERRADO");
-  const principal = activos[0];
+  // Cola de atención: incidentes abiertos ordenados por puntaje (sube con afectados, criticidad, antenas y tiempo activo).
+  const cola = [...activos].sort((a, b) => b.puntajePrioridad - a.puntajePrioridad);
+  const principal = cola[0];
   const cuenta = (e: string) => antenas.filter((a) => a.estado === e).length;
   const operativas = cuenta("NORMAL") + cuenta("SATURADA");
   const trafico = antenas.reduce((s, a) => s + (a.gbPorMinuto ?? 0), 0);
@@ -81,6 +83,29 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
         {/* Columna de indicadores */}
         <aside className="scroll-fino order-2 flex min-h-0 flex-col gap-5 overflow-y-auto p-1 lg:order-1">
+          {cola.length > 0 && (
+            <section className="neu p-3">
+              <div className="flex items-center gap-2 px-2 pb-2 pt-1 text-sm text-tenue"><ListOrdered className="size-4 text-acento" /> Cola de atención</div>
+              <ol className="space-y-1">
+                {cola.slice(0, 5).map((c, i) => (
+                  <li key={c.incidenteColectivoId}>
+                    <button onClick={() => navegar(`/colectivos?id=${c.incidenteColectivoId}`)}
+                      className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-panel-2">
+                      <span className={cn("grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold", i === 0 ? "degradado text-white" : "neu-hundido text-tenue")}>{i + 1}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{c.zona.nombre}</span>
+                        <span className="block text-[11px] text-tenue">{c.afectados} afectados · activo {haceCuanto(c.detectadoEn).replace("hace ", "")}</span>
+                      </span>
+                      <span className="text-right">
+                        <span className="block text-[11px] font-semibold" style={{ color: PRIORIDAD[c.prioridad].color }}>{PRIORIDAD[c.prioridad].etiqueta}</span>
+                        <Cifra valor={Math.round(c.puntajePrioridad)} className="block text-[11px] text-tenue" />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
           <section className="neu flex flex-col items-center gap-4 p-5">
             <div className="self-start text-sm text-tenue">Antenas operativas</div>
             <Anillo proporcion={antenas.length ? operativas / antenas.length : 0}>
@@ -159,6 +184,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
                     {activos.length > 1 && ` · +${activos.length - 1} más`}
                   </span>
                 </span>
+                <Anticipacion minutos={principal.deteccionAnticipadaMin} proactivo={principal.origen === "METRICAS_ANTENA"} />
                 <span className="rounded-full px-3 py-1 text-[10px] font-bold text-white"
                   style={{ background: PRIORIDAD[principal.prioridad].color }}>{PRIORIDAD[principal.prioridad].etiqueta}</span>
                 <ChevronRight className="size-4 text-tenue" />
@@ -193,5 +219,39 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
         </section>
       </div>
     </ShellNeu>
+  );
+}
+
+/** "Detectado X min antes que el primer reporte": el valor de correlacionar la red con los reportes. */
+export function Anticipacion({ minutos, proactivo, grande }: { minutos?: number | null; proactivo?: boolean; grande?: boolean }) {
+  if (grande) {
+    if ((minutos === null || minutos === undefined) && !proactivo) return null;
+    const antes = minutos === null || minutos === undefined || minutos >= 0;
+    const valor = minutos === null || minutos === undefined ? null : Math.abs(minutos) < 1 ? "< 1" : String(Math.round(Math.abs(minutos)));
+    return (
+      <div className={cn("mt-3 flex items-center gap-4 rounded-2xl px-4 py-3", antes ? "bg-normal/10" : "bg-saturada/10")}>
+        <Radar className={cn("size-8 shrink-0", antes ? "text-normal" : "text-saturada")} />
+        <div>
+          <div className={cn("text-2xl font-bold", antes ? "text-normal" : "text-saturada")}>
+            {valor === null ? "Antes que cualquier reporte" : `${valor} min ${antes ? "antes" : "después"}`}
+          </div>
+          <div className="text-xs text-tenue">
+            {valor === null ? "La red detectó la falla y aún no había reportes de usuarios" : antes ? "La red detectó la falla antes que el primer reporte de un usuario" : "Los usuarios reportaron antes de que la red mostrara la falla"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (minutos === null || minutos === undefined) {
+    if (!proactivo) return null;
+    return <span className="hidden items-center gap-1.5 rounded-full bg-normal/15 px-3 py-1 text-[11px] font-semibold text-normal sm:flex"><Radar className="size-3.5" />Detectado antes que cualquier reporte</span>;
+  }
+  const antes = minutos >= 0;
+  const valor = Math.abs(minutos) < 1 ? "< 1 min" : `${Math.round(Math.abs(minutos))} min`;
+  return (
+    <span className={cn("hidden items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold sm:flex",
+      antes ? "bg-normal/15 text-normal" : "bg-saturada/15 text-saturada")}>
+      <Radar className="size-3.5" />{antes ? `Detectado ${valor} antes que el primer reporte` : `Los usuarios avisaron ${valor} antes`}
+    </span>
   );
 }

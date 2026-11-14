@@ -87,6 +87,11 @@ functions:
       COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
   escenarioFinalizar: { handler: src/escenario.finalizar }
 
+  # Recurrencia (E6)
+  recurrenciaContar: { handler: src/recurrencia.contar, timeout: 60 }
+  recurrenciaMarcar: { handler: src/recurrencia.marcar }
+  recurrenciaResumen: { handler: src/recurrencia.resumen }
+
 stepFunctions:
   validate: true
   stateMachines:
@@ -100,7 +105,25 @@ stepFunctions:
       name: ${self:custom.prefijo}-escenario
       role: arn:aws:iam::${aws:accountId}:role/LabRole
       definition: ${file(./statemachines/escenario.yml)}
+    recurrencia:
+      id: MaquinaRecurrencia
+      name: ${self:custom.prefijo}-recurrencia
+      role: arn:aws:iam::${aws:accountId}:role/LabRole
+      definition: ${file(./statemachines/recurrencia.yml)}
 
 resources:
+  Resources:
+    # Todos los días a las 06:00 de Lima: análisis de recurrencia (costo: 1 ejecución diaria).
+    ProgramacionRecurrencia:
+      Type: AWS::Scheduler::Schedule
+      Properties:
+        Name: ${self:custom.prefijo}-recurrencia
+        ScheduleExpression: cron(0 6 * * ? *)
+        ScheduleExpressionTimezone: America/Lima
+        FlexibleTimeWindow: { Mode: "OFF" }
+        Target:
+          Arn: !Ref MaquinaRecurrencia
+          RoleArn: arn:aws:iam::${aws:accountId}:role/LabRole
+          Input: "{}"
   Outputs:
     MaquinaIncidenteColectivoArn: { Value: !Ref MaquinaIncidenteColectivo }

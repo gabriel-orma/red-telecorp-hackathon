@@ -68,14 +68,14 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 ## Rediseño de la UI (D11) ✅
 > Estilo neumórfico oscuro aprobado por el equipo, aplicado a todas las pantallas (#28).
 
-## E5: Simulación de tormenta + resiliencia 🧪
+## E5: Simulación de tormenta + resiliencia ✅
 - **Step Function `escenario`** ("tormenta" y "corte de energía" por zona): genera reportes y caídas escalonadas durante ~60 s.
 - Botones **"Simular tormenta"** y **"Reiniciar demo"** (datos semilla).
 - **Propagación animada** desde la antena caída (círculo del área afectada) y **contadores animados**: afectados, antenas caídas, tiempo promedio de detección.
 - **Prueba de carga** (cientos de reportes en segundos): DLQ vacía, sin pérdidas.
 - **Probar**: presionar "Simular tormenta" y ver cómo se llena el mapa en vivo.
 
-## E6: Inteligencia operativa ⬜
+## E6: Inteligencia operativa 🧪
 - **Correlación**: tarjeta "**detectado X min antes que el primer reporte**".
 - **Puntaje de prioridad** (afectados × criticidad × tiempo activo; D7) → **lista ordenada** con colores.
 - **Step Function `recurrencia`** (diaria): antenas con N fallas en 7 días → **problema estructural**.

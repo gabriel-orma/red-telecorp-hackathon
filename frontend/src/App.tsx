@@ -10,6 +10,7 @@ import { Reportar } from "./pages/Reportar";
 import { Seguimiento } from "./pages/Seguimiento";
 import { Colectivos } from "./pages/Colectivos";
 import { MapaNeu } from "./pages/MapaNeu";
+import { Analitica } from "./pages/Analitica";
 import { ShellNeu } from "./components/neu/ShellNeu";
 import { PaletaComandos } from "./components/neu/PaletaComandos";
 import { useAlertasColectivos } from "./components/neu/alertas";
@@ -30,7 +31,7 @@ export default function App() {
   return <Operador ruta={ruta} />;
 }
 
-const TITULOS: Record<string, string> = { "/incidencias": "Incidencias", "/colectivos": "Incidentes colectivos" };
+const TITULOS: Record<string, string> = { "/incidencias": "Incidencias", "/colectivos": "Incidentes colectivos", "/analitica": "Analítica operativa" };
 
 function Operador({ ruta }: { ruta: string }) {
   const red = usePolling(
@@ -53,11 +54,12 @@ function Operador({ ruta }: { ruta: string }) {
   return (
     <div className="tema-neu h-full">
       <Toaster position="top-center" theme="dark" toastOptions={{ unstyled: true }} />
-      {ruta === "/incidencias" || ruta === "/colectivos" ? (
+      {ruta in TITULOS ? (
         <ShellNeu titulo={TITULOS[ruta]} enVivo={enVivo} colectivosActivos={activos} onBuscar={() => setBuscar(true)}>
           <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
             onZona={(z) => navegar(`/?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/?antena=${a.antenaId}`)} />
-          {ruta === "/incidencias" ? <PanelIncidencias zonas={zonas} /> : <Colectivos abiertos={colectivos.datos} />}
+          {ruta === "/incidencias" ? <PanelIncidencias zonas={zonas} />
+            : ruta === "/analitica" ? <Analitica /> : <Colectivos abiertos={colectivos.datos} />}
         </ShellNeu>
       ) : (
         <MapaNeu antenas={antenas} zonas={zonas} colectivos={lista} enVivo={enVivo} refrescarRed={red.refrescar} />

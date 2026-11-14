@@ -7,7 +7,8 @@ Rutas (router mínimo en `lib/router.ts`; la Lambda `web` devuelve `index.html` 
 | Ruta | Pantalla |
 |---|---|
 | `/` | Centro de control: mapa en vivo, KPIs, simulador, mapa de calor, incidente activo (`?zona=`, `?antena=` para enfocar) |
-| `/colectivos` | Incidentes colectivos y el flujo de Step Functions |
+| `/colectivos` | Incidentes colectivos y el flujo de Step Functions (con la tarjeta "detectado X min antes") |
+| `/analitica` | Analítica operativa: KPIs, zonas, antenas, tipos, duración y recurrencia |
 | `/incidencias` | Panel del operador: lista filtrable, detalle, cambio de estado e historial |
 | `/portal` | **Estado público** estilo Downdetector: semáforo, gráfico de 24 h vs lo normal, tipos, zonas, mapa e incidentes |
 | `/portal/cuenta` | Ingresar / crear cuenta (Cognito) · perfil · mis reportes |

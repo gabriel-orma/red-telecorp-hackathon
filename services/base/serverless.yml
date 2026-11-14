@@ -209,6 +209,13 @@ resources:
         Type: String
         Description: "Estado del escenario de demo en curso (E5)"
         Value: '{"activo": false}'
+    ParametroRecurrencia:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /telecorp/${sls:stage}/recurrencia
+        Type: String
+        Description: "Última ejecución del análisis de recurrencia (E6)"
+        Value: '{"ultimaEjecucion": null}'
     ParametroReglas:
       Type: AWS::SSM::Parameter
       Properties:
@@ -217,8 +224,9 @@ resources:
         Description: "Reglas de negocio ajustables sin desplegar código (prioridad = TODO D7)"
         Value: >-
           {"colectivo": {"umbralUsuarios": 10, "ventanaHoras": 24, "esperaVerificacionSegundos": 30, "maxIteraciones": 5760},
-          "prioridad": {"_todo": "TODO(D7) fórmula provisional", "pesoAfectado": 1, "pesoAntenaEnFalla": 10,
-          "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}}}
+          "prioridad": {"_todo": "TODO(D7) fórmula provisional", "pesoAfectado": 1, "pesoAntenaEnFalla": 10, "pesoHora": 0.25,
+          "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}},
+          "recurrencia": {"_todo": "TODO(D7) umbral provisional", "umbralFallas": 3, "ventanaDias": 7}}
 
     # ---------- SNS: avisos a usuarios (email con FilterPolicy) y alertas al operador ----------
     TopicoAvisos:

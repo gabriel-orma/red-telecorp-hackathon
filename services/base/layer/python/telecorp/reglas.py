@@ -97,12 +97,14 @@ def entra_en_falla(estado_anterior, estado_nuevo) -> bool:
     return estado_nuevo in ESTADOS_ANTENA_FALLA and estado_anterior not in ESTADOS_ANTENA_FALLA
 
 
-def calcular_prioridad(afectados: int, criticidad: int, antenas_en_falla: int, cfg: dict) -> tuple:
+def calcular_prioridad(afectados: int, criticidad: int, antenas_en_falla: int, cfg: dict, horas_activo: float = 0) -> tuple:
     """(puntaje, prioridad). TODO(D7): fórmula y pesos provisionales; se ajustan en SSM sin tocar código.
 
-    puntaje = (afectados × pesoAfectado + antenasEnFalla × pesoAntenaEnFalla) × criticidad de la zona
+    puntaje = (afectados × pesoAfectado + antenasEnFalla × pesoAntenaEnFalla) × criticidad × (1 + horasActivo × pesoHora)
+    El factor de tiempo hace que un incidente que lleva horas sin resolverse suba en la cola de atención.
     """
-    puntaje = (afectados * cfg.get("pesoAfectado", 1) + antenas_en_falla * cfg.get("pesoAntenaEnFalla", 10)) * criticidad
+    base = (afectados * cfg.get("pesoAfectado", 1) + antenas_en_falla * cfg.get("pesoAntenaEnFalla", 10)) * criticidad
+    puntaje = base * (1 + max(0.0, horas_activo) * cfg.get("pesoHora", 0.25))
     umbrales = cfg.get("umbrales", {"MEDIA": 20, "ALTA": 50, "CRITICA": 100})
     prioridad = "BAJA"
     for nivel in ("MEDIA", "ALTA", "CRITICA"):
@@ -140,3 +142,27 @@ def construir_reporte(cuerpo: dict, perfil: dict, zona_gps: str | None, ahora_is
     if ubic:
         reporte["ubicacion"] = {"lat": float(ubic["lat"]), "lng": float(ubic["lng"])}
     return {k: v for k, v in reporte.items() if v is not None}
+
+
+# ---------------- Inteligencia operativa (E6) ----------------
+def deteccion_anticipada_min(primera_falla_iso, primer_reporte_iso):
+    """Minutos entre la primera falla de antena y el primer reporte de usuario.
+    Positivo: la red lo detectó antes que los usuarios. None si falta alguno de los dos."""
+    if not primera_falla_iso or not primer_reporte_iso:
+        return None
+    from datetime import datetime
+    a = datetime.fromisoformat(primera_falla_iso.replace("Z", "+00:00"))
+    b = datetime.fromisoformat(primer_reporte_iso.replace("Z", "+00:00"))
+    return round((b - a).total_seconds() / 60, 1)
+
+
+def contar_fallas(eventos: list, desde_iso: str) -> int:
+    """Veces que una antena ENTRÓ en falla (caída o inhabilitada) desde `desde_iso`, según su historial."""
+    return sum(1 for e in eventos
+               if e.get("tipoEvento") == "CAMBIO_ESTADO" and e.get("ocurridoEn", "") >= desde_iso
+               and entra_en_falla(e.get("estadoAnterior"), e.get("estadoNuevo")))
+
+
+def es_estructural(fallas: int, cfg: dict) -> bool:
+    """TODO(D7): umbral provisional (3 fallas en 7 días), configurable en SSM."""
+    return fallas >= cfg.get("umbralFallas", 3)

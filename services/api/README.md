@@ -18,6 +18,8 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 | `GET /api/incidencias?zonaId=&estado=&horas=` | `incidencias.listar` | Lista con datos personales enmascarados |
 | `GET /api/incidencias/{id}` | `incidencias.obtener` | Detalle + historial + `transicionesPermitidas` + estado de la zona |
 | `PATCH /api/incidencias/{id}/estado` | `incidencias.cambiar_estado` | `{estado, comentario}`; valida la transición (409 si no se permite) y libera la clave de deduplicación al resolverse |
+| `GET /api/analitica?dias=7` | `analitica.analitica` | KPIs, zonas, antenas más problemáticas, tipos, duración y alcance de incidentes, recurrencia (caché de 60 s) |
+| `POST /api/recurrencia` | `analitica.ejecutar_recurrencia` | Ejecuta ahora la Step Function de recurrencia |
 | `GET /api/escenarios` | `escenarios.obtener` | Estado del escenario de demo (oleada, reportes, antenas) |
 | `POST /api/escenarios` | `escenarios.lanzar` | `{tipo: TORMENTA o CORTE_ENERGIA, zonaId}` arranca la Step Function `escenario` (409 si ya hay uno en curso) |
 | `POST /api/escenarios/reiniciar` | `escenarios.reiniciar` | Reiniciar demo: detiene el escenario, quita fallas, restablece y reanuda incidentes |
