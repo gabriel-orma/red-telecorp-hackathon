@@ -11,18 +11,20 @@ Un archivo por decisión: `AAAA-MM-DD-<slug>.md`, con este formato:
 ## Consecuencias (costo, rúbrica, qué cambia para cada módulo)
 ```
 
-## Decisiones abiertas (resolver por un issue `decision` antes de construir encima)
+## Resumen
 
-| # | Tema | Opciones / notas |
-|---|---|---|
-| D1 | Cuentas AWS | ¿AWS Academy Learner Lab o cuentas personales? En Learner Lab no se pueden crear roles IAM (se usa `LabRole`) y SES/SNS SMS pueden estar limitados. |
-| D2 | Segunda nube | Propuesta: GCP (Gemini + BigQuery + Looker Studio). Alternativa: Azure. |
-| D3 | IaC | AWS SAM / Serverless Framework / Terraform (Terraform cubre AWS y GCP a la vez). |
-| D4 | Runtime de las Lambdas | Python / Node.js (TypeScript). Uno solo para todo el equipo. |
-| D5 | Frontend | Framework y hosting (S3 + CloudFront o Firebase Hosting). |
-| D6 | Región AWS y proyecto GCP | Ej.: `us-east-1` (obligatoria en Learner Lab). |
-| D7 | Fórmula de prioridad y umbral de recurrencia | Ver `docs/arquitectura.md`, "Reglas de negocio". |
-| D8 | Diseño de las tablas DynamoDB | Una sola tabla o varias; claves y GSI para la consulta por zona y ventana de 24 h. |
+| # | Tema | Estado | Decisión |
+|---|---|---|---|
+| D1 | Cuentas AWS | ✅ aceptada | AWS Academy Learner Lab → [2026-11-13-aws-academy-us-east-1](2026-11-13-aws-academy-us-east-1.md) |
+| D2 | Segunda nube | ⏳ abierta | Por definir. Propuesta inicial: GCP (Gemini + BigQuery + Looker Studio). Alternativa: Azure. |
+| D3 | IaC | ✅ aceptada | Serverless Framework → [2026-11-13-serverless-framework](2026-11-13-serverless-framework.md) |
+| D4 | Runtime de las Lambdas | ✅ aceptada | Python → [2026-11-13-python-lambdas](2026-11-13-python-lambdas.md) |
+| D5 | Frontend | ⏳ abierta | Por definir: se esperan las ideas de frontend del equipo. |
+| D6 | Región AWS | ✅ aceptada | `us-east-1` → [2026-11-13-aws-academy-us-east-1](2026-11-13-aws-academy-us-east-1.md) |
+| D7 | Fórmula de prioridad y umbral de recurrencia | ⏳ abierta | Por definir. Ver `docs/arquitectura.md`, "Reglas de negocio". |
+| D8 | Tablas DynamoDB | ✅ aceptada | Tablas separadas → [2026-11-13-dynamodb-tablas-separadas](2026-11-13-dynamodb-tablas-separadas.md) |
 
-## Aceptadas
+Las decisiones **abiertas no las resuelve un agente solo**: van por un issue `decision`. Mientras tanto, no construyas nada que dependa de ellas. Si no queda otra, deja un `TODO(D2)`, `TODO(D5)` o `TODO(D7)`.
+
+## Otras aceptadas
 - [2026-11-13-coordinacion-por-issues](2026-11-13-coordinacion-por-issues.md)

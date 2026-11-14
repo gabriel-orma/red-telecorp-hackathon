@@ -1,6 +1,9 @@
 # Arquitectura
 
 > **Estado: propuesta base.** Es el punto de partida acordado para que todos los agentes diseñen sobre lo mismo. Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
+>
+> **Ya decidido:** AWS Academy Learner Lab (`LabRole`), `us-east-1`, Serverless Framework, Python y DynamoDB con tablas separadas.
+> **Por definir:** la segunda nube (el bloque GCP del diagrama es solo la **propuesta inicial**), el frontend y la fórmula de prioridad. Ver [`decisiones/README.md`](decisiones/README.md).
 
 ## Vista general
 
@@ -11,7 +14,7 @@
                                    └─ consultas / cambios de estado ──────────────────────────────►│
                                                                                                    ▼
 [Simulador antenas] ─ EventBridge Scheduler ─► Lambda ─► SQS métricas (+DLQ) ─► Lambda clasificador ─► DynamoDB
-                                                                                (PITR, on-demand, multi-AZ)
+                                                                (tablas separadas, PITR, on-demand, multi-AZ)
                                                                                          │ DynamoDB Streams
                                                                                          ▼
                                                     Lambda detector (regla de 10 usuarios/zona/24 h,
