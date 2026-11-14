@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Inbox, Loader2, MapPin, X } from "lucide-react";
-import { apiIncidencias, type DetalleIncidencia, type EstadoIncidencia, type Incidencia, type Zona } from "../lib/api";
+import { apiIncidencias, apiOperador, type DetalleIncidencia, type EstadoIncidencia, type Incidencia, type Zona } from "../lib/api";
 import { ESTADO, ESTADO_INCIDENCIA, ORDEN_INCIDENCIA, TIPO_PROBLEMA, TIPO_ZONA } from "../lib/estados";
 import { usePolling } from "../hooks/usePolling";
 import { ChipEstado, Historial, Progreso } from "../components/LineaTiempo";
@@ -13,7 +13,7 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
   const [seleccion, setSeleccion] = useState<string | null>(null);
 
   const lista = usePolling(
-    useCallback(() => apiIncidencias.listar({ zonaId, horas: 24 * 7 }), [zonaId]),
+    useCallback(() => apiOperador.listar({ zonaId, horas: 24 * 7 }), [zonaId]),
     5000,
   );
   const todas = lista.datos?.incidencias ?? [];
@@ -99,7 +99,7 @@ function FilaIncidencia({ i, zona, activa, onClick }: { i: Incidencia; zona: str
 }
 
 function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void; onCambio: () => void }) {
-  const det = usePolling<DetalleIncidencia>(useCallback(() => apiIncidencias.obtener(id), [id]), 4000);
+  const det = usePolling<DetalleIncidencia>(useCallback(() => apiOperador.obtener(id), [id]), 4000);
   const [comentario, setComentario] = useState("");
   const [enviando, setEnviando] = useState<EstadoIncidencia | null>(null);
   const [error, setError] = useState<string | null>(null);

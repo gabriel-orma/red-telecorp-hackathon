@@ -1,4 +1,6 @@
 """Lectura del estado de la red: antenas, zonas y serie de métricas."""
+import math
+
 from boto3.dynamodb.conditions import Key
 
 from telecorp import db, http, reglas, util, zonas
@@ -50,6 +52,8 @@ def ubicar_zona(event, context):
         lat, lng = float(q["lat"]), float(q["lng"])
     except (KeyError, TypeError, ValueError):
         return http.error(400, "lat y lng son obligatorios y numéricos")
+    if not (math.isfinite(lat) and math.isfinite(lng) and -90 <= lat <= 90 and -180 <= lng <= 180):
+        return http.error(400, "lat debe estar entre -90 y 90, y lng entre -180 y 180")
     z = zonas.ubicar(lat, lng)
     if not z:
         return http.error(404, "Ubicación fuera de nuestras zonas de cobertura")

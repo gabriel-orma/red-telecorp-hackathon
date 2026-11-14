@@ -4,6 +4,7 @@ import { ChevronRight, Flame, ListOrdered, Radar, RotateCcw, Siren, Users, Zap }
 import { api, apiIncidencias, type Antena, type Colectivo, type EstadoSimulador, type Incidencia, type Zona } from "../lib/api";
 import { ESTADO, ESTADO_COLECTIVO, GRAVEDAD, ORDEN_ESTADOS, PRIORIDAD, TIPO_ZONA } from "../lib/estados";
 import { usePolling } from "../hooks/usePolling";
+import { useEsOperador } from "../lib/auth";
 import { navegar } from "../lib/router";
 import { cn, haceCuanto, numero } from "../lib/utils";
 import { MapaRed } from "../components/MapaRed";
@@ -22,9 +23,13 @@ interface Props {
   refrescarRed: () => void;
 }
 
+const sinSimulador = async (): Promise<EstadoSimulador | null> => null;
+
 /** Centro de control rediseñado (estilo neumórfico, issue #28). */
 export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Props) {
-  const sim = usePolling<EstadoSimulador>(api.simulador, 10_000);
+  // El simulador es solo de operador (JWT + grupo): a un visitante no se le consulta ni se le muestra.
+  const esOperador = useEsOperador();
+  const sim = usePolling<EstadoSimulador | null>(esOperador ? api.simulador : sinSimulador, 10_000);
   const reportes = usePolling<Incidencia[]>(useCallback(() => apiIncidencias.listar({ horas: 24 }).then((r) => r.incidencias), []), 10_000);
   const [verCalor, setVerCalor] = useState(true);
   // ?antena=ANT-013 o ?zona=ZONA-05 (desde la paleta Ctrl+K de otras pantallas)
@@ -60,7 +65,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
 
   return (
     <ShellNeu titulo="Centro de control" enVivo={enVivo} colectivosActivos={activos.length} onBuscar={() => setBuscar(true)}
-      acciones={<>
+      acciones={esOperador && (<>
         <ControlEscenario zonas={zonas} zonaSugerida={zonaFoco?.zonaId ?? antenaSel?.zonaId} onCambio={refrescarRed} />
         <div className="neu-chico flex h-11 items-center gap-3 pl-4 pr-2">
           <Zap className="size-4 text-acento" />
@@ -75,7 +80,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
           <Interruptor etiqueta="Encender o apagar el simulador" activo={!!sim.datos?.activo} deshabilitado={!sim.datos || ocupado}
             onClick={() => cambiarSimulador({ activo: !sim.datos?.activo })} />
         </div>
-      </>}>
+      </>)}>
       <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
         onZona={(z) => { setZonaFoco({ ...z }); setSeleccion(null); }}
         onAntena={(a) => { setSeleccion(a.antenaId); const z = zonas.find((x) => x.zonaId === a.zonaId); if (z) setZonaFoco({ ...z }); }} />

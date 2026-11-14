@@ -7,11 +7,15 @@ POST /api/escenarios/reiniciar → "Reiniciar demo": detiene el escenario, quita
 """
 import json
 import os
+import sys as _sys
 
 import boto3
 from boto3.dynamodb.conditions import Attr
 
 from telecorp import config, db, escenarios, historial, http, reglas, util, zonas
+
+_sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
+import acceso  # noqa: E402
 
 _sfn = boto3.client("stepfunctions")
 _lambda = boto3.client("lambda")
@@ -21,6 +25,7 @@ def obtener(event, context):
     return http.ok(config.leer("escenario", usar_cache=False))
 
 
+@acceso.solo_operadores
 def lanzar(event, context):
     try:
         cuerpo = http.cuerpo_json(event)
@@ -38,6 +43,7 @@ def lanzar(event, context):
     return http.respuesta(202, {"ejecucionArn": ejecucion["executionArn"], "tipo": tipo, "zonaId": zona_id})
 
 
+@acceso.solo_operadores
 def reiniciar(event, context):
     estado = config.leer("escenario", usar_cache=False)
     if estado.get("activo") and estado.get("ejecucionArn"):
@@ -54,10 +60,11 @@ def reiniciar(event, context):
                    Payload=json.dumps({"unaVez": True}).encode())
 
     abiertos = db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+    actor = f"operador:{acceso.identidad(event)}"   # quién reinició la demo (contrato evento-historial: operador:<sub>)
     for c in abiertos:
         db.tabla("colectivos").update_item(Key={"incidenteColectivoId": c["incidenteColectivoId"]},
                                            UpdateExpression="SET restablecimientoSolicitado = :v", ExpressionAttributeValues={":v": True})
-        historial.registrar(c["incidenteColectivoId"], "INCIDENTE_COLECTIVO", "COMENTARIO", "OPERADOR",
+        historial.registrar(c["incidenteColectivoId"], "INCIDENTE_COLECTIVO", "COMENTARIO", actor,
                             detalle="Reinicio de la demo: servicio marcado como restablecido")
     try:  # en Lambda el handler se carga como src.escenarios
         from src.colectivos import reanudar_huerfanos

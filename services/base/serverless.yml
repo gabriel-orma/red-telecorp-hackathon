@@ -132,6 +132,9 @@ resources:
           - { Name: email, AttributeDataType: String, Required: true, Mutable: true }
           - { Name: name, AttributeDataType: String, Required: true, Mutable: true }
           - { Name: phone_number, AttributeDataType: String, Required: false, Mutable: true }
+          # H13: `dni` debería ser Mutable: false, pero CloudFormation REEMPLAZA el user pool al cambiar `Schema` (se pierden
+          # las cuentas). Mitigado en el backend: la identidad es el `sub` del token, no `custom:dni` (services/api/src/acceso.py).
+          # En un stage NUEVO (sin cuentas) sí conviene ponerlo en false; en uno existente, solo si se aceptan cuentas nuevas.
           - { Name: dni, AttributeDataType: String, Mutable: true, StringAttributeConstraints: { MinLength: "8", MaxLength: "12" } }
           - { Name: numeroServicio, AttributeDataType: String, Mutable: true }
           - { Name: zonaId, AttributeDataType: String, Mutable: true }
@@ -152,6 +155,14 @@ resources:
         TokenValidityUnits: { IdToken: minutes, AccessToken: minutes, RefreshToken: days }
         ReadAttributes: [email, name, phone_number, custom:dni, custom:numeroServicio, custom:zonaId, custom:avisosEmail]
         WriteAttributes: [email, name, phone_number, custom:dni, custom:numeroServicio, custom:zonaId, custom:avisosEmail]
+    # Rol de operador (H01): el autorizador JWT del API valida el token y las rutas de administración exigen que el claim
+    # `cognito:groups` contenga `operadores`. Alta de un operador: services/api/README.md ("Operadores").
+    GrupoOperadores:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        GroupName: operadores
+        Description: Personal de Red TeleCorp con acceso al centro de operaciones
+        UserPoolId: !Ref UserPool
     PermisoCognitoPreRegistro:
       Type: AWS::Lambda::Permission
       Properties:
@@ -179,7 +190,7 @@ resources:
       Properties:
         QueueName: ${self:custom.prefijo}-reportes
         VisibilityTimeout: 180
-        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 3 }
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 5 }  # AWS recomienda ≥5 con Lambda (H27)
     # Eventos del detector (DynamoDB Streams) que fallaron tras los reintentos: no se pierden.
     ColaDetectorDLQ:
       Type: AWS::SQS::Queue
@@ -192,7 +203,55 @@ resources:
       Properties:
         QueueName: ${self:custom.prefijo}-metricas
         VisibilityTimeout: 180
-        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 3 }
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 5 }
+
+    # Alarmas: cualquier mensaje en una DLQ es un registro que NO se procesó (H27). Aviso por el tópico del operador.
+    # Reproceso manual: aws sqs start-message-move-task --source-arn <arn de la DLQ>. Las 3 entran en la capa gratuita (10).
+    AlarmaReportesDLQ:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijo}-reportes-dlq-con-mensajes
+        AlarmDescription: "Hay reportes de usuarios que no se pudieron registrar (DLQ de reportes)"
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions: [{ Name: QueueName, Value: !GetAtt ColaReportesDLQ.QueueName }]
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions: [!Ref TopicoAlertasOperador]
+    AlarmaMetricasDLQ:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijo}-metricas-dlq-con-mensajes
+        AlarmDescription: "Hay métricas de antenas que no se pudieron clasificar (DLQ de métricas)"
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions: [{ Name: QueueName, Value: !GetAtt ColaMetricasDLQ.QueueName }]
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions: [!Ref TopicoAlertasOperador]
+    AlarmaDetectorDLQ:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:custom.prefijo}-detector-dlq-con-mensajes
+        AlarmDescription: "El detector de colectivos descartó eventos tras sus reintentos (DLQ del detector)"
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions: [{ Name: QueueName, Value: !GetAtt ColaDetectorDLQ.QueueName }]
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions: [!Ref TopicoAlertasOperador]
 
     # ---------- Configuración (SSM) y secretos (Secrets Manager) ----------
     ParametroSimulador:
@@ -223,7 +282,8 @@ resources:
         Type: String
         Description: "Reglas de negocio ajustables sin desplegar código (prioridad = TODO D7)"
         Value: >-
-          {"colectivo": {"umbralUsuarios": 10, "ventanaHoras": 24, "esperaVerificacionSegundos": 30, "maxIteraciones": 5760},
+          {"colectivo": {"umbralUsuarios": 10, "ventanaHoras": 24, "esperaVerificacionSegundos": 300, "maxIteraciones": 2000,
+          "maxMonitoreoMinutos": 2880, "cierreSinReportesMinutos": 60, "loteAvisos": 50},
           "prioridad": {"_todo": "TODO(D7) fórmula provisional", "pesoAfectado": 1, "pesoAntenaEnFalla": 10, "pesoHora": 0.25,
           "umbrales": {"MEDIA": 20, "ALTA": 50, "CRITICA": 100}},
           "recurrencia": {"_todo": "TODO(D7) umbral provisional", "umbralFallas": 3, "ventanaDias": 7}}

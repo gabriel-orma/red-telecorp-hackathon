@@ -1,8 +1,23 @@
 # Ciclo de vida de un incidente colectivo (Red TeleCorp).
-# Entrada: {"colectivoId": "COL-...", "esperaSegundos": 30, "monitoreo": {"iteracion": 0}}
+# Entrada: {"colectivoId": "COL-...", "esperaSegundos": 300, "monitoreo": {"iteracion": 0}}
 # Reanudar (p. ej. tras detenerse el Learner Lab): {..., "reanudar": true, "prioridad": {"afectados": N}} → directo al monitoreo.
+#
+# Grafo (resumen):
+#   avisar evaluación → VerificarInfraestructura → Priorizar → Resumir (IA, 2.ª nube) → HayFalla?
+#     sí → Confirmar → avisar "incidencia identificada" ─┐
+#     no → avisar "seguimos evaluando" (NUNCA "falla confirmada") ─┤→ EsCritico? → [AlertarOperador] → Monitorear
+#   Monitorear (Wait) → Reverificar → EstaRestablecido?
+#     restablecido → Restablecer → avisar → Cerrar → ReplicarNube2 (hook 2.ª nube) → fin
+#     agotado      → SinResolver (atención manual, libera la zona) → Fail MonitoreoAgotado
+#     escalar      → EscalarConfirmar → avisar → Monitorear   (la falla apareció DESPUÉS de verificar)
+#   Cualquier error irrecuperable de un paso crítico → ManejarFallo (atención manual, libera la zona) → Fail
+#
+# Límites de Step Functions respetados (Standard): 25.000 eventos de historial y 256 KiB por estado.
+#   - Avisos por LOTES de 50 (un solo Map por aviso; 7 eventos por lote), no un evento por usuario.
+#   - Monitoreo acotado: 9 eventos por vuelta × maxIteraciones (2000) = 18.000, y además maxMonitoreoMinutos (48 h).
 Comment: Incidente colectivo - evaluar, verificar la red, priorizar, avisar, monitorear y cerrar
 StartAt: EsReanudacion
+TimeoutSeconds: 216000   # 60 h: 48 h de monitoreo + avisos y cierre; si se excede, la ejecución falla (no queda colgada)
 States:
   EsReanudacion:
     Type: Choice
@@ -15,41 +30,56 @@ States:
         Next: Monitorear
     Default: PrepararAvisoEvaluacion
 
-  # 1. Aviso a todos los afectados: "estamos evaluando"
+  # 1. Aviso a todos los afectados: "estamos evaluando" (por lotes)
   PrepararAvisoEvaluacion:
     Type: Task
     Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId", "estado": "EN_EVALUACION", "paso": "NOTIFICAR_EVALUACION" }
     ResultPath: $.aviso
+    TimeoutSeconds: 60
     Retry: &reintentos
-      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException, States.TaskFailed]
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException, States.TaskFailed, States.Timeout]
         IntervalSeconds: 2
         MaxAttempts: 3
         BackoffRate: 2
+    Catch:   # un aviso fallido no debe impedir verificar la red
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: VerificarInfraestructura }
     Next: NotificarEvaluacion
   NotificarEvaluacion:
     Type: Map
-    ItemsPath: $.aviso.destinatarios
-    MaxConcurrency: 10
+    ItemsPath: $.aviso.lotes
+    MaxConcurrency: 5
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
-      StartAt: AvisarUsuarioEvaluacion
+      StartAt: AvisarLoteEvaluacion
       States:
-        AvisarUsuarioEvaluacion:
+        AvisarLoteEvaluacion:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarUno, Arn] }
+          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          TimeoutSeconds: 150
           Retry: *reintentos
+          Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
+            - { ErrorEquals: [States.ALL], Next: LoteOmitidoEvaluacion }
+          End: true
+        LoteOmitidoEvaluacion:
+          Type: Pass
+          Result: { omitido: true }
           End: true
     ResultPath: null
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: VerificarInfraestructura }
     Next: VerificarInfraestructura
 
-  # 2. Verificación de la infraestructura (correlación con las antenas de la zona)
+  # 2. Verificación de la infraestructura (correlación con las antenas de la zona, incluye SATURADA)
   VerificarInfraestructura:
     Type: Task
     Resource: { "Fn::GetAtt": [verificarInfraestructura, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId" }
     ResultPath: $.verificacion
+    TimeoutSeconds: 60
     Retry: *reintentos
+    Catch: &fatal   # error irrecuperable de un paso crítico → estado consistente y fin controlado
+      - { ErrorEquals: [States.ALL], ResultPath: $.error, Next: ManejarFallo }
     Next: Priorizar
 
   # 3. Prioridad: afectados × criticidad de la zona (+ antenas en falla)
@@ -58,51 +88,111 @@ States:
     Resource: { "Fn::GetAtt": [priorizar, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId" }
     ResultPath: $.prioridad
+    TimeoutSeconds: 60
     Retry: *reintentos
+    Catch: *fatal
     Next: Resumir
 
-  # 4. Resumen para el operador (IA de la 2.ª nube en E4; si falla, el flujo sigue)
+  # 4. Resumen para el operador. HOOK 2.ª NUBE (IA): si falla, el flujo sigue
   Resumir:
     Type: Task
     Resource: { "Fn::GetAtt": [resumir, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId" }
     ResultPath: $.resumen
+    TimeoutSeconds: 60
     Retry: *reintentos
     Catch:
-      - ErrorEquals: [States.ALL]
-        ResultPath: $.errorResumen
-        Next: Confirmar
-    Next: Confirmar
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorResumen, Next: HayFalla }
+    Next: HayFalla
 
-  # 5. Incidencia confirmada en la zona + aviso a todos
+  # 5. La verificación DECIDE cómo se informa (H03): con falla confirmada en la red o sin ella
+  HayFalla:
+    Type: Choice
+    Choices:
+      - Variable: $.verificacion.hayFalla
+        BooleanEquals: true
+        Next: Confirmar
+    Default: PrepararAvisoSinFalla
+
+  # 5a. Con falla: incidencia confirmada en la zona + aviso a todos
   Confirmar:
     Type: Task
     Resource: { "Fn::GetAtt": [confirmar, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId" }
     ResultPath: null
+    TimeoutSeconds: 330
     Retry: *reintentos
+    Catch: *fatal
     Next: PrepararAvisoConfirmada
   PrepararAvisoConfirmada:
     Type: Task
     Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
     ResultPath: $.aviso
+    TimeoutSeconds: 60
     Retry: *reintentos
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: EsCritico }
     Next: NotificarConfirmada
   NotificarConfirmada:
     Type: Map
-    ItemsPath: $.aviso.destinatarios
-    MaxConcurrency: 10
+    ItemsPath: $.aviso.lotes
+    MaxConcurrency: 5
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
-      StartAt: AvisarUsuarioConfirmada
+      StartAt: AvisarLoteConfirmada
       States:
-        AvisarUsuarioConfirmada:
+        AvisarLoteConfirmada:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarUno, Arn] }
+          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          TimeoutSeconds: 150
           Retry: *reintentos
+          Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
+            - { ErrorEquals: [States.ALL], Next: LoteOmitidoConfirmada }
+          End: true
+        LoteOmitidoConfirmada:
+          Type: Pass
+          Result: { omitido: true }
           End: true
     ResultPath: null
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: EsCritico }
+    Next: EsCritico
+
+  # 5b. Sin falla en la red: aviso honesto ("seguimos evaluando"); el colectivo sigue EN_EVALUACION y se monitorea
+  PrepararAvisoSinFalla:
+    Type: Task
+    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "SIN_FALLA_RED", "paso": "NOTIFICAR_SIN_FALLA" }
+    ResultPath: $.aviso
+    TimeoutSeconds: 60
+    Retry: *reintentos
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: EsCritico }
+    Next: NotificarSinFalla
+  NotificarSinFalla:
+    Type: Map
+    ItemsPath: $.aviso.lotes
+    MaxConcurrency: 5
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: AvisarLoteSinFalla
+      States:
+        AvisarLoteSinFalla:
+          Type: Task
+          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          TimeoutSeconds: 150
+          Retry: *reintentos
+          Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
+            - { ErrorEquals: [States.ALL], Next: LoteOmitidoSinFalla }
+          End: true
+        LoteOmitidoSinFalla:
+          Type: Pass
+          Result: { omitido: true }
+          End: true
+    ResultPath: null
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: EsCritico }
     Next: EsCritico
 
   # 6. ¿Crítico? → alerta inmediata al centro de operaciones (integración directa con SNS)
@@ -121,10 +211,13 @@ States:
       Subject: "Red TeleCorp - Incidente CRITICO"
       "Message.$": "States.Format('Incidente colectivo {} en {}: {} usuarios afectados, {} antenas en falla, puntaje {}.', $.colectivoId, $.verificacion.zona, $.prioridad.afectados, $.verificacion.antenasEnFalla, $.prioridad.puntaje)"
     ResultPath: null
+    TimeoutSeconds: 30
     Retry: *reintentos
+    Catch:   # la alerta es importante pero no debe tumbar el ciclo de vida
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAlerta, Next: Monitorear }
     Next: Monitorear
 
-  # 7. Monitoreo: re-verificar cada N segundos hasta que la red se normalice o el operador lo marque
+  # 7. Monitoreo ACOTADO: re-verificar cada `esperaSegundos` (300 por defecto) hasta restablecer, escalar o agotar
   Monitorear:
     Type: Wait
     SecondsPath: $.esperaSegundos
@@ -134,7 +227,13 @@ States:
     Resource: { "Fn::GetAtt": [reverificar, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId", "iteracion.$": "$.monitoreo.iteracion", "afectados.$": "$.prioridad.afectados" }
     ResultPath: $.monitoreo
-    Retry: *reintentos
+    TimeoutSeconds: 60
+    Retry:   # reintentos más pacientes: una vuelta fallida por un parpadeo de DynamoDB no debe matar el incidente
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException, States.TaskFailed, States.Timeout]
+        IntervalSeconds: 5
+        MaxAttempts: 5
+        BackoffRate: 2
+    Catch: *fatal
     Next: EstaRestablecido
   EstaRestablecido:
     Type: Choice
@@ -145,52 +244,151 @@ States:
       - Variable: $.monitoreo.agotado
         BooleanEquals: true
         Next: SinResolver
+      - Variable: $.monitoreo.escalar
+        BooleanEquals: true
+        Next: EscalarConfirmar
     Default: Monitorear
+  # La falla apareció después de verificar (la red estaba bien): ahora sí se confirma y se avisa
+  EscalarConfirmar:
+    Type: Task
+    Resource: { "Fn::GetAtt": [confirmar, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: null
+    TimeoutSeconds: 330
+    Retry: *reintentos
+    Catch: *fatal
+    Next: PrepararAvisoEscalada
+  PrepararAvisoEscalada:
+    Type: Task
+    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
+    ResultPath: $.aviso
+    TimeoutSeconds: 60
+    Retry: *reintentos
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: Monitorear }
+    Next: NotificarEscalada
+  NotificarEscalada:
+    Type: Map
+    ItemsPath: $.aviso.lotes
+    MaxConcurrency: 5
+    ItemProcessor:
+      ProcessorConfig: { Mode: INLINE }
+      StartAt: AvisarLoteEscalada
+      States:
+        AvisarLoteEscalada:
+          Type: Task
+          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          TimeoutSeconds: 150
+          Retry: *reintentos
+          Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
+            - { ErrorEquals: [States.ALL], Next: LoteOmitidoEscalada }
+          End: true
+        LoteOmitidoEscalada:
+          Type: Pass
+          Result: { omitido: true }
+          End: true
+    ResultPath: null
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: Monitorear }
+    Next: Monitorear
+
+  # Monitoreo agotado: atención manual (el colectivo deja de bloquear la zona) y la ejecución termina en Fail
   SinResolver:
     Type: Task
     Resource: { "Fn::GetAtt": [sinResolver, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId" }
     ResultPath: null
+    TimeoutSeconds: 60
+    Retry: *reintentos
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.error, Next: RequiereAtencionManual }
     Next: RequiereAtencionManual
   RequiereAtencionManual:
     Type: Fail
     Error: MonitoreoAgotado
     Cause: El servicio no se restableció dentro del tiempo máximo de monitoreo
 
-  # 8. Restablecido → aviso a todos → cierre (incidencias solucionadas, duración registrada)
+  # 8. Restablecido → aviso a todos → cierre (incidencias solucionadas, duración registrada) → réplica a la 2.ª nube
   Restablecer:
     Type: Task
     Resource: { "Fn::GetAtt": [restablecer, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
     ResultPath: null
+    TimeoutSeconds: 60
     Retry: *reintentos
+    Catch: *fatal
     Next: PrepararAvisoRestablecido
   PrepararAvisoRestablecido:
     Type: Task
     Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
     Parameters: { "colectivoId.$": "$.colectivoId", "estado": "SERVICIO_RESTABLECIDO", "paso": "NOTIFICAR_RESTABLECIDO" }
     ResultPath: $.aviso
+    TimeoutSeconds: 60
     Retry: *reintentos
+    Catch:   # el cierre barre a los rezagados: si falla el aviso masivo igual se cierra
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: Cerrar }
     Next: NotificarRestablecido
   NotificarRestablecido:
     Type: Map
-    ItemsPath: $.aviso.destinatarios
-    MaxConcurrency: 10
+    ItemsPath: $.aviso.lotes
+    MaxConcurrency: 5
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
-      StartAt: AvisarUsuarioRestablecido
+      StartAt: AvisarLoteRestablecido
       States:
-        AvisarUsuarioRestablecido:
+        AvisarLoteRestablecido:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarUno, Arn] }
+          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          TimeoutSeconds: 150
           Retry: *reintentos
+          Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
+            - { ErrorEquals: [States.ALL], Next: LoteOmitidoRestablecido }
+          End: true
+        LoteOmitidoRestablecido:
+          Type: Pass
+          Result: { omitido: true }
           End: true
     ResultPath: null
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorAviso, Next: Cerrar }
     Next: Cerrar
   Cerrar:
     Type: Task
     Resource: { "Fn::GetAtt": [cerrar, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Parameters: { "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
     ResultPath: $.cierre
+    TimeoutSeconds: 330
     Retry: *reintentos
+    Catch: *fatal
+    Next: ReplicarNube2
+  # HOOK 2.ª NUBE: replica el colectivo cerrado al histórico/analítica. Opcional: no bloquea el cierre si falla.
+  ReplicarNube2:
+    Type: Task
+    Resource: { "Fn::GetAtt": [replicarNube2, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId" }
+    ResultPath: $.replica
+    TimeoutSeconds: 60
+    Retry: *reintentos
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorReplica, Next: ReplicaOmitida }
     End: true
+  ReplicaOmitida:
+    Type: Pass
+    End: true
+
+  # Fin controlado ante un error irrecuperable: deja el colectivo en REQUIERE_ATENCION, libera la zona y falla
+  ManejarFallo:
+    Type: Task
+    Resource: { "Fn::GetAtt": [manejarFallo, Arn] }
+    Parameters: { "colectivoId.$": "$.colectivoId", "error.$": "$.error" }
+    ResultPath: null
+    TimeoutSeconds: 60
+    Retry: *reintentos
+    Catch:
+      - { ErrorEquals: [States.ALL], ResultPath: $.errorManejo, Next: FalloEnFlujo }
+    Next: FalloEnFlujo
+  FalloEnFlujo:
+    Type: Fail
+    Error: FalloEnFlujo
+    Cause: Un paso crítico falló tras los reintentos; el colectivo quedó en REQUIERE_ATENCION
