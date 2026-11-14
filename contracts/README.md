@@ -12,7 +12,7 @@ Definen la forma de los datos que cruzan entre módulos. **Programa contra estos
 | Métrica de antena | [`schemas/metrica-antena.schema.json`](schemas/metrica-antena.schema.json) | Simulador → clasificador |
 | Estado actual de antena | [`schemas/antena-estado.schema.json`](schemas/antena-estado.schema.json) | Clasificador → detector, correlación, API |
 | Incidente colectivo | [`schemas/incidente-colectivo.schema.json`](schemas/incidente-colectivo.schema.json) | Detector → Step Functions → notificaciones, analítica |
-| Catálogo de zonas y antenas | [`zonas.json`](zonas.json) | Referencia para todos |
+| Catálogo de zonas (centro, radio, clientes) y antenas (lat/lng) | [`zonas.json`](zonas.json) | Referencia para todos (mapa, simulador, prioridad) |
 
 Hay ejemplos válidos en [`ejemplos/`](ejemplos/). Úsalos como mocks y en las pruebas.
 

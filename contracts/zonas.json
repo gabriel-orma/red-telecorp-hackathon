@@ -1,5 +1,5 @@
 {
-  "_nota": "Catálogo v0 de prueba. criticidad: 1 (baja) a 5 (máxima). Cambiar vía issue 'contrato'.",
+  "_nota": "Catálogo de zonas reales de Lima (datos simulados). criticidad: 1 (baja) a 5 (máxima). Cambiar vía issue 'contrato'.",
   "tiposZona": {
     "RESIDENCIAL": 1,
     "COMERCIAL": 2,
@@ -9,11 +9,341 @@
     "SERVICIOS_CRITICOS": 5
   },
   "zonas": [
-    { "zonaId": "ZONA-01", "nombre": "Barranco Residencial", "tipo": "RESIDENCIAL", "antenas": ["ANT-001", "ANT-002"] },
-    { "zonaId": "ZONA-02", "nombre": "Centro Comercial Miraflores", "tipo": "COMERCIAL", "antenas": ["ANT-003", "ANT-004"] },
-    { "zonaId": "ZONA-03", "nombre": "Parque Industrial Callao", "tipo": "INDUSTRIAL", "antenas": ["ANT-005", "ANT-006"] },
-    { "zonaId": "ZONA-04", "nombre": "Campus Universitario", "tipo": "EDUCATIVA", "antenas": ["ANT-007"] },
-    { "zonaId": "ZONA-05", "nombre": "Hospital Central", "tipo": "MEDICA", "antenas": ["ANT-008", "ANT-009"] },
-    { "zonaId": "ZONA-06", "nombre": "Centro de Emergencias", "tipo": "SERVICIOS_CRITICOS", "antenas": ["ANT-010"] }
+    {
+      "zonaId": "ZONA-01",
+      "nombre": "San Isidro Financiero",
+      "tipo": "COMERCIAL",
+      "centro": {
+        "lat": -12.0965,
+        "lng": -77.031
+      },
+      "radioM": 1100,
+      "clientesEstimados": 48000,
+      "antenas": [
+        {
+          "antenaId": "ANT-001",
+          "lat": -12.09107,
+          "lng": -77.031
+        },
+        {
+          "antenaId": "ANT-002",
+          "lat": -12.09922,
+          "lng": -77.03581
+        },
+        {
+          "antenaId": "ANT-003",
+          "lat": -12.09922,
+          "lng": -77.02619
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-02",
+      "nombre": "Miraflores",
+      "tipo": "RESIDENCIAL",
+      "centro": {
+        "lat": -12.1215,
+        "lng": -77.03
+      },
+      "radioM": 1300,
+      "clientesEstimados": 95000,
+      "antenas": [
+        {
+          "antenaId": "ANT-004",
+          "lat": -12.11508,
+          "lng": -77.03
+        },
+        {
+          "antenaId": "ANT-005",
+          "lat": -12.12471,
+          "lng": -77.03569
+        },
+        {
+          "antenaId": "ANT-006",
+          "lat": -12.12471,
+          "lng": -77.02431
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-03",
+      "nombre": "Barranco",
+      "tipo": "RESIDENCIAL",
+      "centro": {
+        "lat": -12.147,
+        "lng": -77.021
+      },
+      "radioM": 900,
+      "clientesEstimados": 35000,
+      "antenas": [
+        {
+          "antenaId": "ANT-007",
+          "lat": -12.14255,
+          "lng": -77.021
+        },
+        {
+          "antenaId": "ANT-008",
+          "lat": -12.14922,
+          "lng": -77.02494
+        },
+        {
+          "antenaId": "ANT-009",
+          "lat": -12.14922,
+          "lng": -77.01706
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-04",
+      "nombre": "Callao Industrial",
+      "tipo": "INDUSTRIAL",
+      "centro": {
+        "lat": -12.048,
+        "lng": -77.1
+      },
+      "radioM": 1500,
+      "clientesEstimados": 30000,
+      "antenas": [
+        {
+          "antenaId": "ANT-010",
+          "lat": -12.04059,
+          "lng": -77.1
+        },
+        {
+          "antenaId": "ANT-011",
+          "lat": -12.05171,
+          "lng": -77.10656
+        },
+        {
+          "antenaId": "ANT-012",
+          "lat": -12.05171,
+          "lng": -77.09344
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-05",
+      "nombre": "Hospital Rebagliati",
+      "tipo": "MEDICA",
+      "centro": {
+        "lat": -12.0795,
+        "lng": -77.0405
+      },
+      "radioM": 700,
+      "clientesEstimados": 22000,
+      "antenas": [
+        {
+          "antenaId": "ANT-013",
+          "lat": -12.07604,
+          "lng": -77.0405
+        },
+        {
+          "antenaId": "ANT-014",
+          "lat": -12.08123,
+          "lng": -77.04356
+        },
+        {
+          "antenaId": "ANT-015",
+          "lat": -12.08123,
+          "lng": -77.03744
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-06",
+      "nombre": "Ciudad Universitaria San Marcos",
+      "tipo": "EDUCATIVA",
+      "centro": {
+        "lat": -12.056,
+        "lng": -77.084
+      },
+      "radioM": 900,
+      "clientesEstimados": 40000,
+      "antenas": [
+        {
+          "antenaId": "ANT-016",
+          "lat": -12.05155,
+          "lng": -77.084
+        },
+        {
+          "antenaId": "ANT-017",
+          "lat": -12.05822,
+          "lng": -77.08794
+        },
+        {
+          "antenaId": "ANT-018",
+          "lat": -12.05822,
+          "lng": -77.08006
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-07",
+      "nombre": "Aeropuerto Jorge Chávez",
+      "tipo": "SERVICIOS_CRITICOS",
+      "centro": {
+        "lat": -12.023,
+        "lng": -77.112
+      },
+      "radioM": 1400,
+      "clientesEstimados": 26000,
+      "antenas": [
+        {
+          "antenaId": "ANT-019",
+          "lat": -12.01608,
+          "lng": -77.112
+        },
+        {
+          "antenaId": "ANT-020",
+          "lat": -12.02646,
+          "lng": -77.11812
+        },
+        {
+          "antenaId": "ANT-021",
+          "lat": -12.02646,
+          "lng": -77.10588
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-08",
+      "nombre": "Centro de Lima",
+      "tipo": "COMERCIAL",
+      "centro": {
+        "lat": -12.0465,
+        "lng": -77.031
+      },
+      "radioM": 1200,
+      "clientesEstimados": 110000,
+      "antenas": [
+        {
+          "antenaId": "ANT-022",
+          "lat": -12.04057,
+          "lng": -77.031
+        },
+        {
+          "antenaId": "ANT-023",
+          "lat": -12.04946,
+          "lng": -77.03625
+        },
+        {
+          "antenaId": "ANT-024",
+          "lat": -12.04946,
+          "lng": -77.02575
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-09",
+      "nombre": "Santiago de Surco",
+      "tipo": "RESIDENCIAL",
+      "centro": {
+        "lat": -12.136,
+        "lng": -76.993
+      },
+      "radioM": 1600,
+      "clientesEstimados": 120000,
+      "antenas": [
+        {
+          "antenaId": "ANT-025",
+          "lat": -12.12809,
+          "lng": -76.993
+        },
+        {
+          "antenaId": "ANT-026",
+          "lat": -12.13995,
+          "lng": -77.0
+        },
+        {
+          "antenaId": "ANT-027",
+          "lat": -12.13995,
+          "lng": -76.986
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-10",
+      "nombre": "Ate Industrial",
+      "tipo": "INDUSTRIAL",
+      "centro": {
+        "lat": -12.04,
+        "lng": -76.93
+      },
+      "radioM": 1500,
+      "clientesEstimados": 45000,
+      "antenas": [
+        {
+          "antenaId": "ANT-028",
+          "lat": -12.03259,
+          "lng": -76.93
+        },
+        {
+          "antenaId": "ANT-029",
+          "lat": -12.04371,
+          "lng": -76.93656
+        },
+        {
+          "antenaId": "ANT-030",
+          "lat": -12.04371,
+          "lng": -76.92344
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-11",
+      "nombre": "La Molina Universitaria",
+      "tipo": "EDUCATIVA",
+      "centro": {
+        "lat": -12.085,
+        "lng": -76.96
+      },
+      "radioM": 1200,
+      "clientesEstimados": 38000,
+      "antenas": [
+        {
+          "antenaId": "ANT-031",
+          "lat": -12.07907,
+          "lng": -76.96
+        },
+        {
+          "antenaId": "ANT-032",
+          "lat": -12.08796,
+          "lng": -76.96525
+        },
+        {
+          "antenaId": "ANT-033",
+          "lat": -12.08796,
+          "lng": -76.95475
+        }
+      ]
+    },
+    {
+      "zonaId": "ZONA-12",
+      "nombre": "Hospital Almenara",
+      "tipo": "MEDICA",
+      "centro": {
+        "lat": -12.061,
+        "lng": -77.019
+      },
+      "radioM": 700,
+      "clientesEstimados": 25000,
+      "antenas": [
+        {
+          "antenaId": "ANT-034",
+          "lat": -12.05754,
+          "lng": -77.019
+        },
+        {
+          "antenaId": "ANT-035",
+          "lat": -12.06273,
+          "lng": -77.02206
+        },
+        {
+          "antenaId": "ANT-036",
+          "lat": -12.06273,
+          "lng": -77.01594
+        }
+      ]
+    }
   ]
 }
