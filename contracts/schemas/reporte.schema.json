@@ -14,7 +14,7 @@
   "properties": {
     "usuarioId": {
       "type": "string",
-      "description": "Identificación del usuario (DNI u otro documento)"
+      "description": "Identidad del usuario: el `sub` del ID token de Cognito (inmutable). NO es el DNI: custom:dni es un dato de perfil que el usuario puede editar y no identifica a nadie. La API pública no lo devuelve."
     },
     "nombre": {
       "type": "string"

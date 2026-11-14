@@ -1,4 +1,5 @@
 // Cliente del API (mismo origen: /api). Los tipos siguen contracts/.
+import { tokenVigente } from "./auth";
 
 export type EstadoAntena = "NORMAL" | "SATURADA" | "CAIDA" | "INHABILITADA" | "SIN_DATOS";
 export type TipoZona = "RESIDENCIAL" | "COMERCIAL" | "INDUSTRIAL" | "EDUCATIVA" | "MEDICA" | "SERVICIOS_CRITICOS";
@@ -42,11 +43,14 @@ export interface Metrica {
 }
 
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
+  // Con sesión, el ID token acompaña a toda llamada: las rutas de operador lo exigen y las públicas lo ignoran.
+  const token = await tokenVigente();
   const r = await fetch(`/api${ruta}`, {
     ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "content-type": "application/json", ...(token ? { authorization: token } : {}), ...(init?.headers ?? {}) },
   });
   const datos = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error("Inicia sesión para continuar (las pantallas de operador requieren una cuenta con rol de operador).");
   if (!r.ok) throw new Error(datos.error ?? `Error ${r.status} en ${ruta}`);
   return datos as T;
 }
@@ -132,6 +136,16 @@ export const apiIncidencias = {
       method: "PATCH", body: JSON.stringify({ estado, comentario }),
     }),
   ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${lat}&lng=${lng}`),
+};
+
+// Vista de OPERADOR (JWT + grupo `operadores`): con el detalle del reporte. `apiIncidencias.listar/obtener` es la vista
+// pública (solo tipo, zona, estado y fechas: sin nombre, GPS exacto ni descripción).
+export const apiOperador = {
+  listar: (filtros: { zonaId?: string; estado?: string; horas?: number } = {}) => {
+    const q = new URLSearchParams(Object.entries(filtros).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
+    return pedir<{ incidencias: Incidencia[]; total: number }>(`/operador/incidencias?${q}`);
+  },
+  obtener: (id: string) => pedir<DetalleIncidencia>(`/operador/incidencias/${id}`),
 };
 
 // ---------------- Incidentes colectivos (E3) ----------------

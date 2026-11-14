@@ -102,10 +102,6 @@
       "type": "string",
       "description": "Explicación breve de por qué se detectó (ej. '12 usuarios en 24 h', 'ANT-008 INHABILITADA')"
     },
-    "taskToken": {
-      "type": "string",
-      "description": "INTERNO: token de Step Functions de la espera de resolución. El API no lo expone."
-    },
     "pasoActual": {
       "type": "string",
       "enum": [

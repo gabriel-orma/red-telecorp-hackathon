@@ -66,7 +66,9 @@ def test_validar_reporte():
 
 
 def test_enmascarar():
-    assert reglas.enmascarar("70123456") == "70***456"
+    # H02: un DNI de 8 dígitos deja visibles como máximo 4 (con 5 quedaban 1.000 combinaciones por fuerza bruta)
+    assert reglas.enmascarar("70123456") == "70***56"
+    assert len(reglas.enmascarar("70123456").replace("*", "")) <= 4
     assert reglas.enmascarar_email("gabriel@example.com") == "g***@example.com"
 
 
