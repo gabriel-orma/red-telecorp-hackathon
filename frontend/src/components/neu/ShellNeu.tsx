@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { BarChart3, ChartArea, Cloud, Contrast, Film, ListChecks, Map, Maximize2, Minimize2, Search, Siren, Smartphone } from "lucide-react";
 import { useConexionTiempoReal } from "../../lib/tiempoReal";
 import { enlace, useRuta } from "../../lib/router";
+import { useSesionCaducada } from "../../lib/auth";
+import { AvisoSesion } from "../AvisoSesion";
 import { cn, horaLima } from "../../lib/utils";
 
 const SECCIONES = [
@@ -28,6 +30,7 @@ interface Props {
 export function ShellNeu({ titulo, enVivo, colectivosActivos, onBuscar, acciones, children }: Props) {
   const ruta = useRuta().split("?")[0];
   const tiempoReal = useConexionTiempoReal();
+  const sesionCaducada = useSesionCaducada();
   const [sala, setSala] = usePreferencia("modo-sala");
   const [contraste, setContraste] = usePreferencia("alto-contraste");
   const [ahora, setAhora] = useState(() => new Date());
@@ -52,6 +55,11 @@ export function ShellNeu({ titulo, enVivo, colectivosActivos, onBuscar, acciones
 
   return (
     <div className="tema-neu flex h-full gap-5 p-3 md:p-5">
+      {/* Salto al contenido (teclado y lectores de pantalla): visible solo al enfocarlo */}
+      <a href="#contenido" onClick={(e) => { e.preventDefault(); document.getElementById("contenido")?.focus(); }}
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-fondo focus:px-4 focus:py-2 focus:text-sm focus:text-texto focus:ring-2 focus:ring-acento">
+        Saltar al contenido
+      </a>
       {/* Barra lateral (escritorio) */}
       <aside className="neu ocultar-en-sala hidden w-[68px] shrink-0 flex-col items-center gap-3 py-4 md:flex">
         <div className="degradado mb-3 grid size-10 place-items-center rounded-2xl text-sm font-bold text-white">TC</div>
@@ -65,7 +73,7 @@ export function ShellNeu({ titulo, enVivo, colectivosActivos, onBuscar, acciones
             <h1 className="text-xl font-bold tracking-tight">{titulo}</h1>
             <div className="flex items-center gap-2 text-xs text-tenue">
               <span className={cn("size-2 rounded-full", enVivo ? "latido bg-normal" : "bg-caida")} />
-              {enVivo ? (tiempoReal ? "En vivo · WebSocket" : "En vivo · polling") : "Sin conexión"} · Lima <span className="cifra text-texto">{horaLima(ahora)}</span>
+              {enVivo ? (tiempoReal ? "En vivo · WebSocket" : "En vivo · polling") : sesionCaducada ? "Sesión caducada" : "Sin conexión"} · Lima <span className="cifra text-texto">{horaLima(ahora)}</span>
             </div>
           </div>
           <button onClick={onBuscar}
@@ -81,7 +89,8 @@ export function ShellNeu({ titulo, enVivo, colectivosActivos, onBuscar, acciones
             {sala ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
         </header>
-        {children}
+        <AvisoSesion />
+        <div id="contenido" tabIndex={-1} className="flex min-h-0 flex-1 flex-col gap-5 outline-none">{children}</div>
       </div>
 
       {/* Navegación inferior (celular) */}

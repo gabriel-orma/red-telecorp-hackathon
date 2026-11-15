@@ -3,6 +3,7 @@ import { Activity, Megaphone, Radio, UserRound } from "lucide-react";
 import { usePerfil } from "../lib/auth";
 import { enlace, useRuta } from "../lib/router";
 import { cn } from "../lib/utils";
+import { AvisoSesion } from "./AvisoSesion";
 
 /** Marco del portal de clientes: mobile-first, con navegación Estado · Reportar · Cuenta. */
 export function PortalLayout({ children }: { children: ReactNode }) {
@@ -36,7 +37,10 @@ export function PortalLayout({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-6">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 pb-16 pt-6">
+        <div className="mb-4 empty:hidden"><AvisoSesion /></div>
+        {children}
+      </main>
     </div>
   );
 }

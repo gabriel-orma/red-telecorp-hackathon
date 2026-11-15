@@ -1,5 +1,6 @@
 // Cliente del API (mismo origen: /api). Los tipos siguen contracts/.
-import { tokenVigente } from "./auth";
+import { caducarSesion, tokenVigente } from "./auth";
+import { aproximarCoordenada } from "./utils";
 
 export type EstadoAntena = "NORMAL" | "SATURADA" | "CAIDA" | "INHABILITADA" | "SIN_DATOS";
 export type TipoZona = "RESIDENCIAL" | "COMERCIAL" | "INDUSTRIAL" | "EDUCATIVA" | "MEDICA" | "SERVICIOS_CRITICOS";
@@ -45,15 +46,22 @@ export interface Metrica {
   estado: EstadoAntena;
 }
 
+// Consultas de lectura que no usan la identidad: no llevan el ID token (que contiene DNI y teléfono).
+const RUTAS_PUBLICAS = /^\/(estado|config|zonas|antenas)(\/|\?|$)|^\/colectivos(\?|$)/;
+
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  // Con sesión, el ID token acompaña a toda llamada: las rutas de operador lo exigen y las públicas lo ignoran.
-  const token = await tokenVigente();
+  // Con sesión, el ID token acompaña a las llamadas que lo necesitan; las consultas públicas de lectura van sin él.
+  const publica = (init?.method ?? "GET").toUpperCase() === "GET" && RUTAS_PUBLICAS.test(ruta);
+  const token = publica ? null : await tokenVigente();
   const r = await fetch(`/api${ruta}`, {
     ...init,
     headers: { "content-type": "application/json", ...(token ? { authorization: token } : {}), ...(init?.headers ?? {}) },
   });
   const datos = await r.json().catch(() => ({}));
-  if (r.status === 401) throw new Error("Inicia sesión para continuar (las pantallas de operador requieren una cuenta con rol de operador).");
+  if (r.status === 401) {
+    if (token) { caducarSesion(); throw new Error("Tu sesión caducó. Ingresa de nuevo para continuar."); }
+    throw new Error("Inicia sesión para continuar (las pantallas de operador requieren una cuenta con rol de operador).");
+  }
   if (!r.ok) throw new Error(datos.error ?? `Error ${r.status} en ${ruta}`);
   return datos as T;
 }
@@ -144,7 +152,7 @@ export const apiIncidencias = {
     pedir<{ incidencia: Incidencia }>(`/incidencias/${id}/estado`, {
       method: "PATCH", body: JSON.stringify({ estado, comentario }),
     }),
-  ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${lat}&lng=${lng}`),
+  ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${aproximarCoordenada(lat)}&lng=${aproximarCoordenada(lng)}`),
 };
 
 // Vista de OPERADOR (JWT + grupo `operadores`): con el detalle del reporte. `apiIncidencias.listar/obtener` es la vista
@@ -237,7 +245,10 @@ export const apiPortal = {
   estado: (zonaId?: string) => pedir<EstadoRed>(`/estado${zonaId ? `?zonaId=${zonaId}` : ""}`),
   reportar: (token: string, cuerpo: { tipo: TipoProblema; descripcion: string; ubicacion?: { lat: number; lng: number } }) =>
     conToken<{ incidenciaId: string; duplicado: boolean; zonaId?: string; ubicacionFuente?: "GPS" | "CUENTA"; mensaje?: string }>(
-      "/reportes", token, { method: "POST", body: JSON.stringify(cuerpo) }),
+      "/reportes", token, { method: "POST", body: JSON.stringify({
+        ...cuerpo,   // la posición exacta nunca sale del dispositivo: se envía redondeada (≈ 110 m)
+        ...(cuerpo.ubicacion ? { ubicacion: { lat: aproximarCoordenada(cuerpo.ubicacion.lat), lng: aproximarCoordenada(cuerpo.ubicacion.lng) } } : {}),
+      }) }),
   misReportes: (token: string) => conToken<{ reportes: MiReporte[] }>("/mis-reportes", token),
 };
 
