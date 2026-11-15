@@ -295,7 +295,7 @@ const Pistas = memo(function Pistas({ linea, clipsCol, clipsAnt, alto, desde, ha
 });
 
 function Vacio({ texto }: { texto: string }) {
-  return <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-tenue/60">{texto}</span>;
+  return <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-tenue">{texto}</span>;
 }
 
 /** Cantidad de reportes por columna de ~3 px, en espejo (como la forma de onda de un audio). */
