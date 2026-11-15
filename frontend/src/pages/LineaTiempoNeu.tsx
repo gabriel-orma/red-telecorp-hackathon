@@ -204,7 +204,7 @@ export function LineaTiempoNeu({ antenas, zonas, colectivosActivos, enVivo: apiV
 
       <EditorTiempo linea={linea} desde={desde} hasta={hasta} t={t} onT={moverCabezal}
         reproduciendo={reproduciendo} onReproducir={alternarReproduccion} velocidad={velocidad} onVelocidad={setVelocidad}
-        horas={horas} onHoras={cambiarHoras} enVivo={vivo} onEnVivo={irEnVivo} cargando={!datos.datos}
+        horas={horas} onHoras={cambiarHoras} enVivo={vivo} onEnVivo={irEnVivo} cargando={esOperador && !datos.datos}
         seleccion={seleccion} onColectivo={(id) => {
           setSeleccion(id);
           const c = linea?.colectivos.find((x) => x.id === id);

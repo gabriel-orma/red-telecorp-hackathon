@@ -21,7 +21,9 @@ POOL="$(aws cloudformation describe-stacks --stack-name "telecorp-base-$STAGE" \
 
 if [ -z "$CLAVE" ]; then
   # Cumple la política de Cognito: mayúscula, minúscula, número y símbolo.
-  CLAVE="Op-$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 14)9a"
+  # (sin `tr | head`: con pipefail, el SIGPIPE de head abortaría el script)
+  CLAVE="Op-$(od -An -N10 -tx1 /dev/urandom | tr -d ' 
+')9aZ"
 fi
 
 # El trigger PreSignUp exige DNI, número de servicio y zona (los de un operador son de relleno).
