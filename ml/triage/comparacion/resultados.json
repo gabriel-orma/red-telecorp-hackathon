@@ -1,0 +1,1363 @@
+{
+ "comprobacion_previa": {
+  "minilm": {
+   "repo": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+   "revision_api": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+   "licencia": "apache-2.0",
+   "parametros": 117654272,
+   "pesos_fp32_MB": 470.6,
+   "onnx_int8_MB": {
+    "onnx/model_qint8_arm64.onnx": 118.4,
+    "onnx/model_qint8_avx512.onnx": 118.4,
+    "onnx/model_qint8_avx512_vnni.onnx": 118.4
+   },
+   "onnx_fp32_MB": 470.3,
+   "dim_embedding": 384,
+   "capas": 12,
+   "vocabulario": 250037,
+   "evaluado_aqui": true,
+   "fecha_comprobacion": "2026-11-15",
+   "prefijo": "",
+   "max_seq_usado": 128,
+   "dependencias_inferencia": {
+    "torch+sentence-transformers (fp32)": "torch, transformers, sentence-transformers, numpy",
+    "onnx int8": "onnxruntime, tokenizers, numpy"
+   }
+  },
+  "e5small": {
+   "repo": "intfloat/multilingual-e5-small",
+   "revision_api": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+   "licencia": "mit",
+   "parametros": 117654272,
+   "pesos_fp32_MB": 470.6,
+   "onnx_int8_MB": {
+    "onnx/model_qint8_avx512_vnni.onnx": 118.3
+   },
+   "onnx_fp32_MB": 470.3,
+   "dim_embedding": 384,
+   "capas": 12,
+   "vocabulario": 250037,
+   "evaluado_aqui": true,
+   "fecha_comprobacion": "2026-11-15",
+   "prefijo": "query: ",
+   "max_seq_usado": 128,
+   "dependencias_inferencia": {
+    "torch+sentence-transformers (fp32)": "torch, transformers, sentence-transformers, numpy",
+    "onnx int8": "onnxruntime, tokenizers, numpy"
+   }
+  },
+  "potion": {
+   "repo": "minishlab/potion-multilingual-128M",
+   "revision_api": "73908c3438cf03b6a01bcb9611d62b23d0726f08",
+   "licencia": "mit",
+   "parametros": 128090368,
+   "pesos_fp32_MB": 512.4,
+   "onnx_int8_MB": {},
+   "onnx_fp32_MB": 512.4,
+   "dim_embedding": 256,
+   "capas": null,
+   "vocabulario": null,
+   "evaluado_aqui": false,
+   "fecha_comprobacion": "2026-11-15"
+  }
+ },
+ "congelado": {
+  "creado": "2026-11-15 10:54:57",
+  "nota": "Escrito ANTES de abrir la prueba nueva. `medir` aborta si los ajustes recalculados no coinciden.",
+  "semilla": 20261114,
+  "datos": {
+   "entrenamiento": {
+    "n": 770,
+    "sha256": "6451fd01839d970a2bd2ef4be5680a3e96e42d5db2952dc23c6175c452dbf698"
+   },
+   "validacion_ya_vista": {
+    "n": 245,
+    "repetidos_quitados": 0,
+    "sha256": "709813c65edb5759a0709e57ac48e96b4c7ea844e5c03f5f902dd611db7fa4a8"
+   },
+   "prueba_antigua_ya_vista": {
+    "n": 245,
+    "repetidos_quitados": 0,
+    "sha256": "59f717d5dd12b1a7e84782ed96648b7bc7cc8d37a788cea2e3878c49f20201cb"
+   }
+  },
+  "versiones": {
+   "python": "3.13.2",
+   "scikit-learn": "1.9.1",
+   "numpy": "2.5.4",
+   "so": "Windows-11-10.0.26300-SP0",
+   "cpu": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel",
+   "torch": "2.15.0+cpu",
+   "sentence_transformers": "6.3.0",
+   "onnxruntime": "1.32.0",
+   "tokenizers": "0.23.3",
+   "huggingface_hub": "2.4.0"
+  },
+  "regla_de_decision_fijada": {
+   "i": "F1 macro del candidato supera al de la línea base por >= 0,03 y el IC bootstrap pareado (1000) de la diferencia excluye 0",
+   "ii": "falsos positivos del conteo binario <= los de la línea base Y precisión de servicio >= la de la línea base",
+   "iii": "viable en Lambda: paquete (código+dependencias+modelo) <= 250 MB descomprimidos, memoria estimada <= 1024 MB, arranque en frío <= 5 s (proxy), sin GPU ni pago",
+   "iv": "licencia permisiva (Apache-2.0/MIT)",
+   "lectura": "(i) y (ii) se evalúan con los embeddings fp32 (lo congelado); (iii) se juzga con la forma realizable más pequeña (ONNX int8), cuyas métricas se reportan aparte como comprobación de implementabilidad. Si no se cumple TODO: conservar el modelo actual."
+  },
+  "variantes": [
+   "int8"
+  ],
+  "modelos": {
+   "base": {
+    "C": 10.0,
+    "f1_macro_cv_por_C": {
+     "0.3": 0.8835,
+     "1.0": 0.9019,
+     "3.0": 0.9137,
+     "10.0": 0.9228,
+     "30.0": 0.9216
+    },
+    "umbral": 0.5,
+    "conteo_cv_con_umbral": {
+     "umbral": 0.5,
+     "suman": 586,
+     "precision_servicio": 0.9932,
+     "precision_clase_exacta": 0.9505,
+     "cobertura": 0.8818
+    },
+    "huella_coeficientes": "1277444ccb1ebd7351656821",
+    "n_iter": 35
+   },
+   "minilm_int8": {
+    "hf": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "rev": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+    "prefijo": "",
+    "max_len": 128,
+    "licencia": "apache-2.0",
+    "variante": "int8",
+    "C": 3.0,
+    "f1_macro_cv_por_C": {
+     "0.1": 0.8467,
+     "0.3": 0.8706,
+     "1.0": 0.8878,
+     "3.0": 0.8971,
+     "10.0": 0.8932,
+     "30.0": 0.892,
+     "100.0": 0.8893,
+     "300.0": 0.8879,
+     "1000.0": 0.8894
+    },
+    "umbral": 0.5,
+    "conteo_cv_con_umbral": {
+     "umbral": 0.5,
+     "suman": 566,
+     "precision_servicio": 0.9841,
+     "precision_clase_exacta": 0.9488,
+     "cobertura": 0.8439
+    },
+    "huella_coeficientes": "576c489cd6027fe927e1df6c",
+    "n_iter": 34,
+    "embeddings_npz_sha256": "4537e4c76e05e093715e5020",
+    "tokens": {
+     "versiones": {
+      "onnxruntime": "1.32.0"
+     }
+    }
+   },
+   "e5small_int8": {
+    "hf": "intfloat/multilingual-e5-small",
+    "rev": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+    "prefijo": "query: ",
+    "max_len": 128,
+    "licencia": "mit",
+    "variante": "int8",
+    "C": 100.0,
+    "f1_macro_cv_por_C": {
+     "0.1": 0.8667,
+     "0.3": 0.875,
+     "1.0": 0.8901,
+     "3.0": 0.9046,
+     "10.0": 0.9152,
+     "30.0": 0.9154,
+     "100.0": 0.9206,
+     "300.0": 0.9194,
+     "1000.0": 0.9167
+    },
+    "umbral": 0.5,
+    "conteo_cv_con_umbral": {
+     "umbral": 0.5,
+     "suman": 630,
+     "precision_servicio": 0.9873,
+     "precision_clase_exacta": 0.9413,
+     "cobertura": 0.9424
+    },
+    "huella_coeficientes": "dd12d506c51e4f2138c79eba",
+    "n_iter": 82,
+    "embeddings_npz_sha256": "54f4ddd857285ba1501ffa86",
+    "tokens": {
+     "versiones": {
+      "onnxruntime": "1.32.0"
+     }
+    }
+   }
+  },
+  "chequeo_linea_base": {
+   "C_base_igual_a_produccion": true,
+   "umbral_base_igual_a_produccion": true
+  },
+  "referencia_ya_vista": {
+   "validacion_ya_vista": {
+    "base": {
+     "exactitud": 0.9061,
+     "f1_macro": 0.9058,
+     "conteo": {
+      "umbral": 0.5,
+      "suman": 171,
+      "precision_servicio": 1.0,
+      "precision_clase_exacta": 0.9766,
+      "cobertura": 0.8143
+     }
+    },
+    "minilm_int8": {
+     "exactitud": 0.8612,
+     "f1_macro": 0.8598,
+     "conteo": {
+      "umbral": 0.5,
+      "suman": 178,
+      "precision_servicio": 0.9888,
+      "precision_clase_exacta": 0.9101,
+      "cobertura": 0.8381
+     }
+    },
+    "e5small_int8": {
+     "exactitud": 0.902,
+     "f1_macro": 0.9008,
+     "conteo": {
+      "umbral": 0.5,
+      "suman": 195,
+      "precision_servicio": 1.0,
+      "precision_clase_exacta": 0.9282,
+      "cobertura": 0.9286
+     }
+    }
+   },
+   "prueba_antigua_ya_vista": {
+    "base": {
+     "exactitud": 0.9347,
+     "f1_macro": 0.9349,
+     "conteo": {
+      "umbral": 0.5,
+      "suman": 179,
+      "precision_servicio": 0.9944,
+      "precision_clase_exacta": 0.9721,
+      "cobertura": 0.8476
+     }
+    },
+    "minilm_int8": {
+     "exactitud": 0.8653,
+     "f1_macro": 0.8655,
+     "conteo": {
+      "umbral": 0.5,
+      "suman": 166,
+      "precision_servicio": 0.988,
+      "precision_clase_exacta": 0.9458,
+      "cobertura": 0.781
+     }
+    },
+    "e5small_int8": {
+     "exactitud": 0.9061,
+     "f1_macro": 0.9057,
+     "conteo": {
+      "umbral": 0.5,
+      "suman": 181,
+      "precision_servicio": 0.9945,
+      "precision_clase_exacta": 0.9448,
+      "cobertura": 0.8571
+     }
+    }
+   }
+  }
+ },
+ "costos": {
+  "aviso": "PROXY medido en esta máquina (i7-1255U, sin GPU, Windows, otros procesos activos), no en AWS. Hilos de inferencia = 2. Arranque = importaciones + carga + primera inferencia; 3 repeticiones en procesos nuevos, se reporta la mediana.",
+  "ejecuciones": {
+   "base": {
+    "import_s": 0.003,
+    "carga_s": 0.006,
+    "primera_s": 0.0,
+    "arranque_total_s": 0.009,
+    "lat_mediana_ms": 0.22,
+    "lat_p95_ms": 0.36,
+    "rss_pico_mb": 23,
+    "rss_final_mb": 23,
+    "repeticiones": 3,
+    "arranque_total_s_por_repeticion": [
+     0.01,
+     0.009,
+     0.009
+    ]
+   },
+   "ort:minilm": {
+    "import_s": 0.213,
+    "carga_s": 1.048,
+    "primera_s": 0.011,
+    "arranque_total_s": 1.247,
+    "lat_mediana_ms": 6.46,
+    "lat_p95_ms": 10.0,
+    "rss_pico_mb": 441,
+    "rss_final_mb": 438,
+    "repeticiones": 3,
+    "arranque_total_s_por_repeticion": [
+     1.081,
+     1.247,
+     1.289
+    ]
+   },
+   "ort:e5small": {
+    "import_s": 0.223,
+    "carga_s": 0.864,
+    "primera_s": 0.011,
+    "arranque_total_s": 1.117,
+    "lat_mediana_ms": 7.17,
+    "lat_p95_ms": 11.87,
+    "rss_pico_mb": 447,
+    "rss_final_mb": 437,
+    "repeticiones": 3,
+    "arranque_total_s_por_repeticion": [
+     1.118,
+     1.117,
+     1.098
+    ]
+   }
+  },
+  "disco": {
+   "minilm": {
+    "pesos_fp32_safetensors_MB": null,
+    "onnx_int8_MB": 112.9,
+    "tokenizer_json_MB": 8.7
+   },
+   "e5small": {
+    "pesos_fp32_safetensors_MB": null,
+    "onnx_int8_MB": 112.9,
+    "tokenizer_json_MB": 16.3
+   },
+   "base": {
+    "triage_modelo.json_KB": 329,
+    "triage.py_KB": 4.4
+   }
+  },
+  "dependencias_instaladas_windows_MB": {
+   "torch": 513.7,
+   "onnxruntime": 52.2,
+   "numpy": 30.9,
+   "tokenizers": 7.8,
+   "transformers": 105.5,
+   "sentence_transformers": 5.2,
+   "scipy": 108.5,
+   "sklearn": 40.2
+  }
+ },
+ "lambda": {
+  "ruedas_linux_x86_64_cp312": {
+   "numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl": {
+    "zip_MB": 16.0,
+    "descomprimido_MB": 53.8
+   },
+   "onnxruntime-1.32.0-cp312-cp312-manylinux_2_28_x86_64.whl": {
+    "zip_MB": 26.5,
+    "descomprimido_MB": 72.2
+   },
+   "tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl": {
+    "zip_MB": 3.2,
+    "descomprimido_MB": 11.2
+   }
+  },
+  "dependencias_onnx_descomprimidas_MB": 137.2,
+  "limites": {
+   "capa_descomprimida_MB": 250,
+   "memoria_MB": 1024,
+   "arranque_s": 5
+  },
+  "nota": "Paquete = modelo ONNX int8 + tokenizer.json + ruedas Linux (onnxruntime, numpy, tokenizers; sin sympy/coloredlogs/protobuf: ver README) + 0,5 MB de código.",
+  "minilm": {
+   "forma_viable": "ONNX int8 + onnxruntime + tokenizers (sin torch)",
+   "paquete_MB": 259.3,
+   "rss_pico_MB_proxy": 441,
+   "arranque_s_proxy": 1.247,
+   "cumple_iii": false,
+   "torch_fp32": {
+    "paquete_MB_minimo": 984.3,
+    "cumple": false,
+    "razon": "solo los pesos fp32 + la carpeta de torch instalada superan 250 MB descomprimidos"
+   }
+  },
+  "e5small": {
+   "forma_viable": "ONNX int8 + onnxruntime + tokenizers (sin torch)",
+   "paquete_MB": 266.9,
+   "rss_pico_MB_proxy": 447,
+   "arranque_s_proxy": 1.117,
+   "cumple_iii": false,
+   "torch_fp32": {
+    "paquete_MB_minimo": 984.3,
+    "cumple": false,
+    "razon": "solo los pesos fp32 + la carpeta de torch instalada superan 250 MB descomprimidos"
+   }
+  }
+ },
+ "prueba_nueva": {
+  "congelado_creado": "2026-11-15 10:54:57",
+  "n": 280,
+  "por_clase_n": {
+   "SIN_INTERNET": 40,
+   "INTERNET_LENTO": 40,
+   "SIN_LLAMADAS": 40,
+   "SIN_SMS": 40,
+   "SIN_SENAL": 40,
+   "INTERMITENCIA": 40,
+   "OTRO": 40
+  },
+  "por_perfil_n": {
+   "normal": 56,
+   "negacion": 56,
+   "faltas": 56,
+   "peruanismo": 56,
+   "voz": 28,
+   "ambiguo": 28
+  },
+  "sha256_original": "23e355421bf849802790b5902263ab1d7e19a86f120fa73aa32cad176a552936",
+  "sha256_copia_lf": "23e355421bf849802790b5902263ab1d7e19a86f120fa73aa32cad176a552936",
+  "textos_ya_vistos_en_entrenamiento_validacion_o_prueba_antigua": 0,
+  "bootstrap": {
+   "n": 1000,
+   "semilla": 20261114,
+   "nota": "mismas remuestras para todos los modelos; IC percentil 2,5-97,5"
+  },
+  "umbrales": {
+   "base": 0.5,
+   "minilm_int8": 0.5,
+   "e5small_int8": 0.5
+  },
+  "modelos": {
+   "base": {
+    "exactitud": 0.9464,
+    "f1_macro": 0.9466,
+    "por_clase": {
+     "SIN_INTERNET": {
+      "precision": 0.907,
+      "recall": 0.975,
+      "f1": 0.94,
+      "n": 40
+     },
+     "INTERNET_LENTO": {
+      "precision": 0.902,
+      "recall": 0.925,
+      "f1": 0.914,
+      "n": 40
+     },
+     "SIN_LLAMADAS": {
+      "precision": 0.951,
+      "recall": 0.975,
+      "f1": 0.963,
+      "n": 40
+     },
+     "SIN_SMS": {
+      "precision": 0.974,
+      "recall": 0.95,
+      "f1": 0.962,
+      "n": 40
+     },
+     "SIN_SENAL": {
+      "precision": 0.974,
+      "recall": 0.95,
+      "f1": 0.962,
+      "n": 40
+     },
+     "INTERMITENCIA": {
+      "precision": 0.927,
+      "recall": 0.95,
+      "f1": 0.938,
+      "n": 40
+     },
+     "OTRO": {
+      "precision": 1.0,
+      "recall": 0.9,
+      "f1": 0.947,
+      "n": 40
+     }
+    },
+    "exactitud_ic95": [
+     0.9143,
+     0.9714
+    ],
+    "f1_macro_ic95": [
+     0.9155,
+     0.9711
+    ],
+    "matriz_confusion": {
+     "clases": [
+      "SIN_INTERNET",
+      "INTERNET_LENTO",
+      "SIN_LLAMADAS",
+      "SIN_SMS",
+      "SIN_SENAL",
+      "INTERMITENCIA",
+      "OTRO"
+     ],
+     "filas_real_columnas_predicha": [
+      [
+       39,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       2,
+       37,
+       1,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       39,
+       0,
+       0,
+       1,
+       0
+      ],
+      [
+       0,
+       1,
+       1,
+       38,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       38,
+       2,
+       0
+      ],
+      [
+       1,
+       1,
+       0,
+       0,
+       0,
+       38,
+       0
+      ],
+      [
+       1,
+       1,
+       0,
+       1,
+       1,
+       0,
+       36
+      ]
+     ]
+    },
+    "binaria_conteo": {
+     "umbral": 0.5,
+     "suman": 229,
+     "precision_servicio": 0.9913,
+     "precision_clase_exacta": 0.9651,
+     "cobertura": 0.9458,
+     "falsos_positivos": 2,
+     "n_otro": 40,
+     "tasa_fp_sobre_otro": 0.05,
+     "servicio_que_no_suma": 13,
+     "fp_ic95": [
+      0.0,
+      5.0
+     ],
+     "precision_servicio_ic95": [
+      0.9779,
+      1.0
+     ],
+     "cobertura_ic95": [
+      0.9153,
+      0.9737
+     ]
+    },
+    "por_perfil": {
+     "normal": {
+      "n": 56,
+      "errores": 0,
+      "exactitud": 1.0,
+      "n_otro": 8,
+      "falsos_positivos": 0,
+      "suman": 48,
+      "servicio_que_no_suma": 0,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     },
+     "negacion": {
+      "n": 56,
+      "errores": 5,
+      "exactitud": 0.9107,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 43,
+      "servicio_que_no_suma": 6,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 1,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 1,
+       "OTRO": 1
+      }
+     },
+     "faltas": {
+      "n": 56,
+      "errores": 3,
+      "exactitud": 0.9464,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 47,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 0,
+       "OTRO": 2
+      }
+     },
+     "peruanismo": {
+      "n": 56,
+      "errores": 3,
+      "exactitud": 0.9464,
+      "n_otro": 8,
+      "falsos_positivos": 0,
+      "suman": 47,
+      "servicio_que_no_suma": 1,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 1,
+       "OTRO": 1
+      }
+     },
+     "voz": {
+      "n": 28,
+      "errores": 1,
+      "exactitud": 0.9643,
+      "n_otro": 4,
+      "falsos_positivos": 0,
+      "suman": 22,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 1,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     },
+     "ambiguo": {
+      "n": 28,
+      "errores": 3,
+      "exactitud": 0.8929,
+      "n_otro": 4,
+      "falsos_positivos": 0,
+      "suman": 22,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 1,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     }
+    }
+   },
+   "minilm_int8": {
+    "exactitud": 0.875,
+    "f1_macro": 0.8754,
+    "por_clase": {
+     "SIN_INTERNET": {
+      "precision": 0.795,
+      "recall": 0.775,
+      "f1": 0.785,
+      "n": 40
+     },
+     "INTERNET_LENTO": {
+      "precision": 0.923,
+      "recall": 0.9,
+      "f1": 0.911,
+      "n": 40
+     },
+     "SIN_LLAMADAS": {
+      "precision": 0.892,
+      "recall": 0.825,
+      "f1": 0.857,
+      "n": 40
+     },
+     "SIN_SMS": {
+      "precision": 0.907,
+      "recall": 0.975,
+      "f1": 0.94,
+      "n": 40
+     },
+     "SIN_SENAL": {
+      "precision": 0.739,
+      "recall": 0.85,
+      "f1": 0.791,
+      "n": 40
+     },
+     "INTERMITENCIA": {
+      "precision": 0.907,
+      "recall": 0.975,
+      "f1": 0.94,
+      "n": 40
+     },
+     "OTRO": {
+      "precision": 1.0,
+      "recall": 0.825,
+      "f1": 0.904,
+      "n": 40
+     }
+    },
+    "exactitud_ic95": [
+     0.8357,
+     0.9143
+    ],
+    "f1_macro_ic95": [
+     0.8356,
+     0.9123
+    ],
+    "matriz_confusion": {
+     "clases": [
+      "SIN_INTERNET",
+      "INTERNET_LENTO",
+      "SIN_LLAMADAS",
+      "SIN_SMS",
+      "SIN_SENAL",
+      "INTERMITENCIA",
+      "OTRO"
+     ],
+     "filas_real_columnas_predicha": [
+      [
+       31,
+       1,
+       0,
+       1,
+       5,
+       2,
+       0
+      ],
+      [
+       4,
+       36,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       1,
+       0,
+       33,
+       1,
+       4,
+       1,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       39,
+       1,
+       0,
+       0
+      ],
+      [
+       3,
+       0,
+       3,
+       0,
+       34,
+       0,
+       0
+      ],
+      [
+       0,
+       1,
+       0,
+       0,
+       0,
+       39,
+       0
+      ],
+      [
+       0,
+       1,
+       1,
+       2,
+       2,
+       1,
+       33
+      ]
+     ]
+    },
+    "binaria_conteo": {
+     "umbral": 0.5,
+     "suman": 220,
+     "precision_servicio": 0.9818,
+     "precision_clase_exacta": 0.9182,
+     "cobertura": 0.9,
+     "falsos_positivos": 4,
+     "n_otro": 40,
+     "tasa_fp_sobre_otro": 0.1,
+     "servicio_que_no_suma": 24,
+     "fp_ic95": [
+      1.0,
+      8.0
+     ],
+     "precision_servicio_ic95": [
+      0.9626,
+      0.9956
+     ],
+     "cobertura_ic95": [
+      0.8613,
+      0.938
+     ]
+    },
+    "por_perfil": {
+     "normal": {
+      "n": 56,
+      "errores": 4,
+      "exactitud": 0.9286,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 47,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 1,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 0,
+       "OTRO": 1
+      }
+     },
+     "negacion": {
+      "n": 56,
+      "errores": 9,
+      "exactitud": 0.8393,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 44,
+      "servicio_que_no_suma": 5,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 2,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 2,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 0,
+       "OTRO": 3
+      }
+     },
+     "faltas": {
+      "n": 56,
+      "errores": 13,
+      "exactitud": 0.7679,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 40,
+      "servicio_que_no_suma": 9,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 4,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 3,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 3,
+       "INTERMITENCIA": 0,
+       "OTRO": 2
+      }
+     },
+     "peruanismo": {
+      "n": 56,
+      "errores": 5,
+      "exactitud": 0.9107,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 44,
+      "servicio_que_no_suma": 5,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 2,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 1,
+       "OTRO": 1
+      }
+     },
+     "voz": {
+      "n": 28,
+      "errores": 3,
+      "exactitud": 0.8929,
+      "n_otro": 4,
+      "falsos_positivos": 0,
+      "suman": 22,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 1,
+       "SIN_SMS": 1,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     },
+     "ambiguo": {
+      "n": 28,
+      "errores": 1,
+      "exactitud": 0.9643,
+      "n_otro": 4,
+      "falsos_positivos": 0,
+      "suman": 23,
+      "servicio_que_no_suma": 1,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     }
+    },
+    "pareada_vs_base": {
+     "dif_f1_macro": -0.0712,
+     "dif_f1_macro_ic95": [
+      -0.1143,
+      -0.0305
+     ],
+     "dif_exactitud": -0.0714,
+     "dif_exactitud_ic95": [
+      -0.1143,
+      -0.0286
+     ],
+     "dif_falsos_positivos": 2,
+     "dif_fp_ic95": [
+      -2.0,
+      6.0
+     ],
+     "acierta_solo_candidato": 9,
+     "acierta_solo_base": 29,
+     "por_perfil_[solo_candidato, solo_base]": {
+      "normal": [
+       0,
+       4
+      ],
+      "negacion": [
+       3,
+       7
+      ],
+      "faltas": [
+       1,
+       11
+      ],
+      "peruanismo": [
+       2,
+       4
+      ],
+      "voz": [
+       0,
+       2
+      ],
+      "ambiguo": [
+       3,
+       1
+      ]
+     }
+    }
+   },
+   "e5small_int8": {
+    "exactitud": 0.9107,
+    "f1_macro": 0.9108,
+    "por_clase": {
+     "SIN_INTERNET": {
+      "precision": 0.897,
+      "recall": 0.875,
+      "f1": 0.886,
+      "n": 40
+     },
+     "INTERNET_LENTO": {
+      "precision": 0.9,
+      "recall": 0.9,
+      "f1": 0.9,
+      "n": 40
+     },
+     "SIN_LLAMADAS": {
+      "precision": 0.864,
+      "recall": 0.95,
+      "f1": 0.905,
+      "n": 40
+     },
+     "SIN_SMS": {
+      "precision": 0.925,
+      "recall": 0.925,
+      "f1": 0.925,
+      "n": 40
+     },
+     "SIN_SENAL": {
+      "precision": 0.927,
+      "recall": 0.95,
+      "f1": 0.938,
+      "n": 40
+     },
+     "INTERMITENCIA": {
+      "precision": 0.881,
+      "recall": 0.925,
+      "f1": 0.902,
+      "n": 40
+     },
+     "OTRO": {
+      "precision": 1.0,
+      "recall": 0.85,
+      "f1": 0.919,
+      "n": 40
+     }
+    },
+    "exactitud_ic95": [
+     0.8714,
+     0.9429
+    ],
+    "f1_macro_ic95": [
+     0.8718,
+     0.942
+    ],
+    "matriz_confusion": {
+     "clases": [
+      "SIN_INTERNET",
+      "INTERNET_LENTO",
+      "SIN_LLAMADAS",
+      "SIN_SMS",
+      "SIN_SENAL",
+      "INTERMITENCIA",
+      "OTRO"
+     ],
+     "filas_real_columnas_predicha": [
+      [
+       35,
+       1,
+       1,
+       0,
+       1,
+       2,
+       0
+      ],
+      [
+       2,
+       36,
+       1,
+       0,
+       0,
+       1,
+       0
+      ],
+      [
+       1,
+       0,
+       38,
+       1,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       1,
+       2,
+       37,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       1,
+       0,
+       38,
+       1,
+       0
+      ],
+      [
+       0,
+       1,
+       0,
+       0,
+       2,
+       37,
+       0
+      ],
+      [
+       1,
+       1,
+       1,
+       2,
+       0,
+       1,
+       34
+      ]
+     ]
+    },
+    "binaria_conteo": {
+     "umbral": 0.5,
+     "suman": 232,
+     "precision_servicio": 0.9784,
+     "precision_clase_exacta": 0.9267,
+     "cobertura": 0.9458,
+     "falsos_positivos": 5,
+     "n_otro": 40,
+     "tasa_fp_sobre_otro": 0.125,
+     "servicio_que_no_suma": 13,
+     "fp_ic95": [
+      1.0,
+      9.025
+     ],
+     "precision_servicio_ic95": [
+      0.9595,
+      0.9956
+     ],
+     "cobertura_ic95": [
+      0.916,
+      0.9715
+     ]
+    },
+    "por_perfil": {
+     "normal": {
+      "n": 56,
+      "errores": 1,
+      "exactitud": 0.9821,
+      "n_otro": 8,
+      "falsos_positivos": 1,
+      "suman": 47,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 1
+      }
+     },
+     "negacion": {
+      "n": 56,
+      "errores": 9,
+      "exactitud": 0.8393,
+      "n_otro": 8,
+      "falsos_positivos": 2,
+      "suman": 49,
+      "servicio_que_no_suma": 1,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 2,
+       "SIN_LLAMADAS": 1,
+       "SIN_SMS": 2,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 3
+      }
+     },
+     "faltas": {
+      "n": 56,
+      "errores": 5,
+      "exactitud": 0.9107,
+      "n_otro": 8,
+      "falsos_positivos": 0,
+      "suman": 46,
+      "servicio_que_no_suma": 2,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 2,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 1,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     },
+     "peruanismo": {
+      "n": 56,
+      "errores": 8,
+      "exactitud": 0.8571,
+      "n_otro": 8,
+      "falsos_positivos": 2,
+      "suman": 46,
+      "servicio_que_no_suma": 4,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 1,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 1,
+       "INTERMITENCIA": 3,
+       "OTRO": 2
+      }
+     },
+     "voz": {
+      "n": 28,
+      "errores": 1,
+      "exactitud": 0.9643,
+      "n_otro": 4,
+      "falsos_positivos": 0,
+      "suman": 23,
+      "servicio_que_no_suma": 1,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 0,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 1,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     },
+     "ambiguo": {
+      "n": 28,
+      "errores": 1,
+      "exactitud": 0.9643,
+      "n_otro": 4,
+      "falsos_positivos": 0,
+      "suman": 21,
+      "servicio_que_no_suma": 3,
+      "errores_por_clase_real": {
+       "SIN_INTERNET": 1,
+       "INTERNET_LENTO": 0,
+       "SIN_LLAMADAS": 0,
+       "SIN_SMS": 0,
+       "SIN_SENAL": 0,
+       "INTERMITENCIA": 0,
+       "OTRO": 0
+      }
+     }
+    },
+    "pareada_vs_base": {
+     "dif_f1_macro": -0.0358,
+     "dif_f1_macro_ic95": [
+      -0.071,
+      -0.0015
+     ],
+     "dif_exactitud": -0.0357,
+     "dif_exactitud_ic95": [
+      -0.0714,
+      -0.0036
+     ],
+     "dif_falsos_positivos": 3,
+     "dif_fp_ic95": [
+      -1.0,
+      7.0
+     ],
+     "acierta_solo_candidato": 7,
+     "acierta_solo_base": 17,
+     "por_perfil_[solo_candidato, solo_base]": {
+      "normal": [
+       0,
+       1
+      ],
+      "negacion": [
+       2,
+       6
+      ],
+      "faltas": [
+       2,
+       4
+      ],
+      "peruanismo": [
+       0,
+       5
+      ],
+      "voz": [
+       0,
+       0
+      ],
+      "ambiguo": [
+       3,
+       1
+      ]
+     }
+    }
+   }
+  }
+ },
+ "decision": {
+  "minilm_int8": {
+   "i_f1": false,
+   "ii_conteo_binario": false,
+   "iii_lambda": false,
+   "iv_licencia": true,
+   "reemplazar": false,
+   "detalle": {
+    "dif_f1_macro": -0.0712,
+    "ic95": [
+     -0.1143,
+     -0.0305
+    ],
+    "fp_candidato": 4,
+    "fp_base": 2,
+    "precision_servicio_candidato": 0.9818,
+    "precision_servicio_base": 0.9913
+   }
+  },
+  "e5small_int8": {
+   "i_f1": false,
+   "ii_conteo_binario": false,
+   "iii_lambda": false,
+   "iv_licencia": true,
+   "reemplazar": false,
+   "detalle": {
+    "dif_f1_macro": -0.0358,
+    "ic95": [
+     -0.071,
+     -0.0015
+    ],
+    "fp_candidato": 5,
+    "fp_base": 2,
+    "precision_servicio_candidato": 0.9784,
+    "precision_servicio_base": 0.9913
+   }
+  },
+  "veredicto": "CONSERVAR el modelo actual"
+ }
+}
