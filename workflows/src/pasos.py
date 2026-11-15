@@ -2,46 +2,100 @@
 
 Cada paso actualiza `pasoActual` del colectivo, para que el panel dibuje el flujo con el paso resaltado.
 Entrada común: {"colectivoId": "COL-..."}.
+
+Diseño (ver workflows/README.md):
+- Avisos por LOTES: `preparar_notificacion` solo devuelve la lista de lotes (unos pocos bytes por lote) y el Map procesa
+  un lote por iteración con `notificar_lote`. Así la ejecución no depende del número de afectados (límites de 256 KiB por
+  estado y 25.000 eventos de historial).
+- Idempotencia: `telecorp.notificador.notificar` marca (incidencia, estado) en `dedup` antes de enviar.
+- El monitoreo está acotado (iteraciones y tiempo) y decide con `monitoreo.decidir` (reglas puras).
 """
 import os as _os
 import sys as _sys
 
 _sys.path.insert(0, _os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 
+import os
+from datetime import timedelta
+
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from telecorp import config, db, historial, notificador, reglas, util, zonas
+from telecorp.nube2 import azure_maps, ia
 import comun_colectivos as cc  # noqa: E402
+import monitoreo  # noqa: E402
+
+LOTE_AVISOS = 50              # destinatarios por iteración del Map (una Lambda por lote)
+SILENCIO_MIN = 60             # minutos sin reportes nuevos para cerrar un colectivo sin antenas en falla
+MAX_MONITOREO_MIN = 2880      # 48 h de monitoreo como máximo, luego atención manual
+MAX_ITERACIONES = 2000        # 2000 × 9 eventos = 18.000 < 25.000 (límite de historial de Step Functions)
 
 
+class AvisosIncompletos(Exception):
+    """Un lote no pudo avisar a todos: Step Functions reintenta (los ya avisados se omiten) y, si persiste, sigue sin abortar."""
+
+
+def _cfg() -> dict:
+    return config.leer("reglas").get("colectivo", {})
+
+
+# ---------------------------------------------------------------- Avisos (por lotes e idempotentes)
 def preparar_notificacion(event, context):
-    """{colectivoId, estado, paso} → {destinatarios: [...]} para el Map de notificaciones."""
+    """{colectivoId, estado, paso} → lotes para el Map. Devuelve solo [{colectivoId, estado, lote, loteTam}], no usuarios."""
     cid, estado = event["colectivoId"], event["estado"]
     cc.marcar_paso(cid, event["paso"])
     col = cc.obtener(cid)
-    return {"destinatarios": [{"colectivoId": cid, "incidenciaId": i, "estado": estado} for i in col.get("incidencias", [])]}
+    tam = max(1, int(_cfg().get("loteAvisos", LOTE_AVISOS)))
+    total = len(col.get("incidencias", []))
+    return {"total": total, "loteTam": tam,
+            "lotes": [{"colectivoId": cid, "estado": estado, "lote": i, "loteTam": tam}
+                      for i in range(monitoreo.cantidad_lotes(total, tam))]}
 
 
 def notificar_uno(event, context):
-    """Una iteración del Map: avisa a un usuario por los canales disponibles."""
+    """Avisa a un usuario por los canales disponibles, una sola vez por (incidencia, estado)."""
     inc = db.tabla("incidencias").get_item(Key={"incidenciaId": event["incidenciaId"]}).get("Item")
     if not inc:
         return {"omitida": "incidencia inexistente"}
-    canales = notificador.notificar(inc, event["estado"], event["colectivoId"])
-    db.tabla("colectivos").update_item(Key={"incidenteColectivoId": event["colectivoId"]},
-                                       UpdateExpression="ADD notificacionesEnviadas :uno",
-                                       ExpressionAttributeValues={":uno": 1})
-    return canales
+    return notificador.notificar(inc, event["estado"], event["colectivoId"])
 
 
+def notificar_lote(event, context):
+    """Una iteración del Map: avisa a los usuarios del lote. Un fallo individual NO aborta al resto del lote."""
+    cid, estado, lote, tam = event["colectivoId"], event["estado"], int(event["lote"]), int(event["loteTam"])
+    ids = cc.obtener(cid).get("incidencias", [])[lote * tam:(lote + 1) * tam]  # la lista solo crece: los índices son estables
+    enviados = omitidos = 0
+    fallidos = []
+    for iid in ids:
+        try:
+            r = notificar_uno({"colectivoId": cid, "incidenciaId": iid, "estado": estado}, None)
+        except Exception:  # noqa: BLE001 - se reintenta el lote completo; los ya avisados se omiten
+            fallidos.append(iid)
+            continue
+        if "omitido" in r or "omitida" in r:
+            omitidos += 1
+        else:
+            enviados += 1
+    if enviados:
+        db.tabla("colectivos").update_item(Key={"incidenteColectivoId": cid}, UpdateExpression="ADD notificacionesEnviadas :n",
+                                           ExpressionAttributeValues={":n": enviados})
+    if fallidos:
+        historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "STEP_FUNCTION",
+                            detalle=f"Lote {lote}: {len(fallidos)} de {len(ids)} avisos '{estado}' fallaron")
+        raise AvisosIncompletos(f"lote {lote}: {len(fallidos)} de {len(ids)} sin avisar")
+    return {"lote": lote, "enviados": enviados, "omitidos": omitidos}
+
+
+# ---------------------------------------------------------------- Verificación, prioridad y resumen
 def verificar_infraestructura(event, context):
-    """Correlaciona con la red: antenas de la zona en falla en este momento."""
+    """Correlaciona con la red: antenas de la zona en falla o saturadas en este momento (H24). El flujo decide con esto."""
     cid = event["colectivoId"]
     cc.marcar_paso(cid, "VERIFICAR_INFRAESTRUCTURA")
     col = cc.obtener(cid)
-    estados = cc.estados_antenas_zona(col["zonaId"])
-    en_falla = [{"antenaId": a, "estado": e, "desde": util.ahora_iso()} for a, e in estados.items()
-                if e in reglas.ESTADOS_ANTENA_FALLA]
+    estados, desde = cc.antenas_zona(col["zonaId"])
+    en_falla = [{"antenaId": a, "estado": e, "desde": desde.get(a) or util.ahora_iso()} for a, e in estados.items()
+                if e in reglas.ESTADOS_ANTENA_VERIFICACION]
     cc.agregar_antenas(col, en_falla)
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "STEP_FUNCTION",
                         detalle=f"Verificación de infraestructura: {len(en_falla)} de {len(estados)} antenas en falla")
@@ -62,12 +116,79 @@ def priorizar(event, context):
 
 
 def resumir(event, context):
-    """Resumen para el operador. TODO(D2): reemplazar la plantilla por la IA de la segunda nube."""
+    """Análisis del incidente para el operador: IA (Gemini) sobre DATOS AGREGADOS + clima de Azure Maps.
+
+    Si la IA, Azure Maps o sus secretos no están disponibles el flujo NO se bloquea: `ia.analizar_colectivo` devuelve el
+    análisis determinista (`fuente: "REGLAS"`), y sin clima el análisis sigue. `resumenIA` se conserva (texto corto)."""
     cid = event["colectivoId"]
     cc.marcar_paso(cid, "RESUMIR")
-    resumen = _texto_resumen(cc.obtener(cid))
-    cc.actualizar(cid, resumenIA=resumen)
-    return {"resumen": resumen, "fuente": "plantilla"}
+    analisis = _generar_analisis(cc.obtener(cid))
+    return {"resumen": analisis["resumen"], "fuente": analisis.get("fuente")}
+
+
+def _generar_analisis(col: dict) -> dict:
+    """Genera y guarda `analisisIA` (+ `resumenIA`) del colectivo. Anota sobre qué datos se hizo (`basadoEn`) para saber
+    cuándo queda desactualizado. Nunca lanza: ante cualquier fallo de la IA o de Azure Maps usa la plantilla determinista."""
+    cid = col["incidenteColectivoId"]
+    try:
+        analisis = ia.analizar_colectivo(_contexto_analisis(col))
+    except Exception as e:  # noqa: BLE001 - nunca debe romper el flujo
+        print(f"resumir: análisis no disponible ({type(e).__name__})")
+        analisis = ia.analisis_reglas(_contexto_analisis(col, con_clima=False))
+    previo = col.get("analisisIA") or {}
+    if analisis.get("fuente") != "IA" and previo.get("fuente") == "IA":
+        # Una regeneración que cae a reglas (cupo agotado, modelo caído) NO pisa un análisis de IA válido: se conserva y se
+        # reintentará en la próxima vuelta (no se actualiza `basadoEn`).
+        return {**previo, "resumen": (previo.get("resumen") or "")[:400]}
+    analisis["basadoEn"] = {"afectados": len(col.get("usuariosAfectados", [])), "antenasEnFalla": len(col.get("antenasEnFalla", []))}
+    resumen = (analisis.get("resumen") or _texto_resumen(col))[:400]
+    cc.actualizar(cid, resumenIA=resumen, analisisIA=analisis)
+    historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "IA" if analisis.get("fuente") == "IA" else "STEP_FUNCTION",
+                        detalle=f"Análisis {analisis.get('fuente')}: {len(analisis.get('hipotesisCausa', []))} hipótesis, "
+                                f"confianza {analisis.get('confianza')}")
+    return {**analisis, "resumen": resumen}
+
+
+def _refrescar_analisis(col: dict) -> bool:
+    """Si desde el último análisis cambiaron los afectados o las antenas en falla (p. ej. las antenas cayeron ANTES de los
+    reportes y el colectivo se abrió con 0 usuarios), lo vuelve a generar. Devuelve True si lo regeneró. Nunca lanza."""
+    try:
+        previo = (col.get("analisisIA") or {}).get("basadoEn") or {}
+        ahora = {"afectados": len(col.get("usuariosAfectados", [])), "antenasEnFalla": len(col.get("antenasEnFalla", []))}
+        if col.get("analisisIA") and all(int(previo.get(k, -1)) == v for k, v in ahora.items()):
+            return False
+        _generar_analisis(col)
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"reverificar: no se pudo refrescar el análisis ({type(e).__name__})")
+        return False
+
+
+def _contexto_analisis(col: dict, con_clima: bool = True) -> dict:
+    """Solo agregados (R3): conteos, estados de antenas, zona, clima. Sin ids de usuarios, correos ni descripciones."""
+    zona = zonas.zona(col["zonaId"]) or {}
+    centro = zona.get("centro") or {}
+    tipos: dict = {}
+    for inc in db.obtener_varios("incidencias", "incidenciaId", col.get("incidencias", [])[:300]):
+        tipos[inc.get("tipo", "OTRO")] = tipos.get(inc.get("tipo", "OTRO"), 0) + 1
+    clima = None
+    if con_clima and centro.get("lat") is not None:
+        try:
+            clima = azure_maps.clima_actual(float(centro["lat"]), float(centro["lng"]))
+        except Exception:  # noqa: BLE001
+            clima = None
+    ahora = util.ahora()
+    return {
+        "zonaId": col["zonaId"],
+        "zona": {"nombre": zona.get("nombre"), "tipo": zona.get("tipo"), "criticidad": zonas.criticidad(col["zonaId"]),
+                 "clientesEstimados": zona.get("clientesEstimados")},
+        "afectados": len(col.get("usuariosAfectados", [])), "tiposReporte": tipos,
+        "antenasEnFalla": [{"antenaId": a.get("antenaId"), "estado": a.get("estado")} for a in col.get("antenasEnFalla", [])],
+        "antenasZona": len(zona.get("antenas", [])), "prioridad": col.get("prioridad"), "origen": col.get("origen"),
+        "duracionMin": round((ahora - util.parse_iso(col["detectadoEn"])).total_seconds() / 60, 1),
+        "deteccionAnticipadaMin": reglas.deteccion_anticipada_min(col.get("primeraFallaEn"), col.get("primerReporteEn")),
+        "clima": clima, "horaLocal": (ahora + timedelta(hours=-5)).strftime("%H:%M"),   # Lima (UTC-5)
+    }
 
 
 def _texto_resumen(col: dict) -> str:
@@ -91,28 +212,44 @@ def confirmar(event, context):
     return {"estado": "INCIDENCIA_CONFIRMADA"}
 
 
+# ---------------------------------------------------------------- Monitoreo
 def reverificar(event, context):
-    """Bucle de monitoreo: ¿se restableció? (antenas normales o el operador lo marcó)."""
+    """Una vuelta del monitoreo: ¿se restableció?, ¿hay que escalar?, ¿se agotó el tiempo? (decide `monitoreo.decidir`)."""
     cid = event["colectivoId"]
     iteracion = int(event.get("iteracion", 0)) + 1
     cc.marcar_paso(cid, "MONITOREAR")
     col = cc.obtener(cid)
-    maximo = int(config.leer("reglas").get("colectivo", {}).get("maxIteraciones", 5760))
+    cfg = _cfg()
 
-    if col.get("restablecimientoSolicitado"):
-        return {"restablecido": True, "via": "OPERADOR", "iteracion": iteracion, "agotado": False}
+    if col.get("restablecimientoSolicitado"):  # el operador manda: no depende de leer antenas
+        return {"restablecido": True, "via": "OPERADOR", "iteracion": iteracion, "agotado": False, "escalar": False}
 
-    estados = cc.estados_antenas_zona(col["zonaId"])
-    nuevas = [{"antenaId": a, "estado": e, "desde": util.ahora_iso()} for a, e in estados.items()
-              if e in reglas.ESTADOS_ANTENA_FALLA]
+    estados, desde = cc.antenas_zona(col["zonaId"])
+    nuevas = [{"antenaId": a, "estado": e, "desde": desde.get(a) or util.ahora_iso()} for a, e in estados.items()
+              if e in reglas.ESTADOS_ANTENA_VERIFICACION]
     antes = len(col.get("antenasEnFalla", []))
     cc.agregar_antenas(col, nuevas)  # fallas que aparecieron durante el monitoreo
+    col = cc.obtener(cid)             # afectados y antenas al día (los reportes siguen llegando mientras se monitorea)
+    _refrescar_analisis(col)
     _repriorizar(col)  # el tiempo activo sube el puntaje en cada vuelta del monitoreo
     afectadas = [a["antenaId"] for a in col.get("antenasEnFalla", [])]
-    if afectadas and all(estados.get(a) not in reglas.ESTADOS_ANTENA_FALLA for a in afectadas):
-        return {"restablecido": True, "via": "AUTOMATICO", "iteracion": iteracion, "agotado": False}
-    return {"restablecido": False, "iteracion": iteracion, "agotado": iteracion >= maximo,
-            "afectados": len(col.get("usuariosAfectados", []))}
+    silencio = int(cfg.get("cierreSinReportesMinutos", SILENCIO_MIN))
+    decision = monitoreo.decidir(
+        solicitado=False, afectadas=afectadas, estados=estados,
+        confirmada=col.get("estado") == "INCIDENCIA_CONFIRMADA",
+        sin_reportes_recientes=(not afectadas) and not _hay_reportes_recientes(col["zonaId"], silencio),
+        iteracion=iteracion, max_iteraciones=int(cfg.get("maxIteraciones", MAX_ITERACIONES)),
+        minutos_transcurridos=(util.ahora() - util.parse_iso(col["detectadoEn"])).total_seconds() / 60,
+        max_minutos=float(cfg.get("maxMonitoreoMinutos", MAX_MONITOREO_MIN)))
+    return {**decision, "iteracion": iteracion, "afectados": len(col.get("usuariosAfectados", []))}
+
+
+def _hay_reportes_recientes(zona_id: str, minutos: int) -> bool:
+    """¿Entró algún reporte en la zona en los últimos `minutos`? (GSI zona-fecha por tiempo de ingesta; 1 consulta)."""
+    r = db.tabla("incidencias").query(
+        IndexName="zona-fecha", Limit=1, Select="COUNT",
+        KeyConditionExpression=Key("zonaId").eq(zona_id) & Key("creadaEn").gte(util.hace_iso(minutes=minutos)))
+    return r["Count"] > 0 or "LastEvaluatedKey" in r
 
 
 def _calcular(col: dict) -> tuple:
@@ -133,7 +270,7 @@ def _repriorizar(col: dict) -> None:
         return
     col.update(prioridad=prioridad, puntajePrioridad=puntaje)
     cc.actualizar(col["incidenteColectivoId"], prioridad=prioridad, puntajePrioridad=puntaje,
-                  **({"resumenIA": _texto_resumen(col)} if prioridad != previa else {}))
+                  **({"resumenIA": _texto_resumen(col)} if prioridad != previa and not col.get("analisisIA") else {}))
     if prioridad == previa:
         return
     historial.registrar(col["incidenteColectivoId"], "INCIDENTE_COLECTIVO", "PRIORIDAD_ASIGNADA", "STEP_FUNCTION",
@@ -145,23 +282,38 @@ def _repriorizar(col: dict) -> None:
                     f"{len(col.get('usuariosAfectados', []))} afectados, {len(col.get('antenasEnFalla', []))} antenas en falla.")
 
 
+# ---------------------------------------------------------------- Cierre y errores
+_DETALLE_RESTABLECIDO = {
+    "OPERADOR": "Restablecido por el operador",
+    "AUTOMATICO": "Antenas de la zona normalizadas",
+    "SIN_REPORTES": "Sin falla de red y sin reportes nuevos en la zona: se da por resuelto",
+}
+
+
 def restablecer(event, context):
     cid = event["colectivoId"]
     col = cc.obtener(cid)
     via = event.get("via", "AUTOMATICO")
     cc.actualizar(cid, estado="SERVICIO_RESTABLECIDO", pasoActual="RESTABLECER", actualizadoEn=util.ahora_iso())
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "CAMBIO_ESTADO", "STEP_FUNCTION",
-                        detalle="Restablecido por el operador" if via == "OPERADOR" else "Antenas de la zona normalizadas",
-                        estado_anterior=col["estado"], estado_nuevo="SERVICIO_RESTABLECIDO")
+                        detalle=_DETALLE_RESTABLECIDO.get(via, via), estado_anterior=col["estado"],
+                        estado_nuevo="SERVICIO_RESTABLECIDO")
     return {"via": via}
 
 
 def cerrar(event, context):
+    """Cierra el colectivo. Quien se sumó después del snapshot de avisos recibe aquí su aviso de 'restablecido' (idempotente)."""
     cid = event["colectivoId"]
     col = cc.obtener(cid)
     ahora = util.ahora_iso()
+    def avisar_rezagado(inc):
+        try:
+            notificador.notificar(inc, "SERVICIO_RESTABLECIDO", cid)  # no-op si ya recibió el aviso (idempotente)
+        except Exception:  # noqa: BLE001 - un aviso de cortesía no debe impedir cerrar el incidente
+            pass
+
     _mover_incidencias(col, reglas.ESTADOS_INCIDENCIA_ACTIVOS, "SOLUCIONADA", "Servicio restablecido en la zona",
-                       liberar=True)
+                       liberar=True, antes=avisar_rezagado)
     minutos = round((util.ahora() - util.parse_iso(col["detectadoEn"])).total_seconds() / 60, 1)
     cc.actualizar(cid, estado="CERRADO", pasoActual="CERRADO", resueltoEn=ahora, actualizadoEn=ahora,
                   duracionMinutos=minutos)
@@ -172,19 +324,42 @@ def cerrar(event, context):
 
 
 def sin_resolver(event, context):
-    cid = event["colectivoId"]
-    historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "STEP_FUNCTION",
-                        detalle="Tiempo máximo de monitoreo agotado: requiere atención manual")
-    cc.marcar_paso(cid, "MONITOREAR")
+    """El monitoreo se agotó sin restablecerse: el colectivo pasa a atención manual y la zona deja de estar bloqueada."""
+    _atencion_manual(event["colectivoId"], "Tiempo máximo de monitoreo agotado: requiere atención manual")
     return {}
 
 
-def _mover_incidencias(col: dict, desde: set, hacia: str, detalle: str, liberar: bool = False) -> None:
+def manejar_fallo(event, context):
+    """Catch global: ante un error irrecuperable del flujo, el colectivo queda consistente (atención manual) y sin candado."""
+    err = event.get("error") or {}
+    _atencion_manual(event["colectivoId"], f"El flujo automático falló ({err.get('Error', 'error')}); requiere atención manual",
+                     causa=str(err.get("Cause", ""))[:300])
+    return {}
+
+
+def _atencion_manual(cid: str, detalle: str, causa: str = "") -> None:
+    try:
+        col = cc.obtener(cid)
+    except ValueError:
+        return
+    if col.get("estado") in ("CERRADO", "REQUIERE_ATENCION"):
+        return  # idempotente (reintentos del propio manejador)
+    ahora = util.ahora_iso()
+    cc.actualizar(cid, estado="REQUIERE_ATENCION", pasoActual="ATENCION_MANUAL", actualizadoEn=ahora)
+    historial.registrar(cid, "INCIDENTE_COLECTIVO", "CAMBIO_ESTADO", "STEP_FUNCTION",
+                        detalle=detalle + (f" · {causa}" if causa else ""),
+                        estado_anterior=col["estado"], estado_nuevo="REQUIERE_ATENCION")
+    cc.liberar_lock(col["zonaId"], cid)
+
+
+def _mover_incidencias(col: dict, desde: set, hacia: str, detalle: str, liberar: bool = False, antes=None) -> None:
     t = db.tabla("incidencias")
     for iid in col.get("incidencias", []):
         inc = t.get_item(Key={"incidenciaId": iid}).get("Item")
         if not inc or inc["estado"] not in desde:
             continue
+        if antes:
+            antes(inc)
         ahora = util.ahora_iso()
         try:
             t.update_item(Key={"incidenciaId": iid}, UpdateExpression="SET estado = :n, actualizadaEn = :t",

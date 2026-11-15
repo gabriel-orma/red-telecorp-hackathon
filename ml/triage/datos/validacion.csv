@@ -1,0 +1,246 @@
+texto,etiqueta
+"El test de velocidad marca bajada decente pero la subida está pésima, no puedo enviar los videos de mi clase.",INTERNET_LENTO
+"Las llamadas no se establecen: el cel se queda en 'llamando...' sin que suene al otro lado.",SIN_LLAMADAS
+"Estoy de visita en Lima y el wifi de mi hospedaje, que es de ustedes, apenas me deja mandar mensajes; las fotos no suben nunca.",INTERNET_LENTO
+"En mi consultorio la descarga de resultados de laboratorio tarda como veinte minutos por archivo, antes era instantáneo.",INTERNET_LENTO
+"Completamente caído el servicio de internet fijo en mi domicilio desde anoche.",SIN_INTERNET
+"En mi oficina del centro de Lima los celulares de ustedes no tienen cobertura, los de otras operadoras sí.",SIN_SENAL
+"En mi tienda el sistema se conecta y desconecta, la caja se queda esperando, luego vuelve.",INTERMITENCIA
+"Hola buenas, desde el lunes no me llega ningún mensaje de texto al celular. Antes recibía alertas de mi cuenta de ahorros y ahora nada. Todo normal con las llamadas.",SIN_SMS
+"Quiero cambiar mi plan postpago a uno con más minutos y menos datos.",OTRO
+"Cuando envío un mensaje a otro número sale 'error al enviar' siempre.",SIN_SMS
+"Mi punto de venta pierde y recupera la conexión durante el día, y los pagos con tarjeta se anulan a la mitad.",INTERMITENCIA
+"Llevo semanas con apagones de internet de unos minutos, tanto en la madrugada como en el día.",INTERMITENCIA
+"Sin cobertura y además el wifi de mi casa va lento, pero lo que más me preocupa es que mi cel no agarra ninguna red.",SIN_SENAL
+"Reporto un corte total del servicio de internet en mi vivienda desde la madrugada; ya apagué y prendí el equipo y sigue igual.",SIN_INTERNET
+"Solicito la baja de mi servicio de internet por mudanza al extranjero. ¿Qué pasos debo seguir?",OTRO
+"Mis alertas por mensaje del banco dejaron de llegar, ni siquiera los consumos.",SIN_SMS
+"Intenté llamar a mi hijo varias veces y no se completaba ninguna comunicación de voz.",SIN_LLAMADAS
+"El equipo detecta redes de otras compañías pero la de ustedes no aparece. Mi chip es de ustedes.",SIN_SENAL
+"mi cel con datos va re lento, las apps tardan en abrir aunque tengo 4 rayitas",INTERNET_LENTO
+"Ayer se me fue la conexión de la casa y además hoy las llamadas del celular suenan medio raras, pero lo que realmente me urge es volver a tener acceso a la web para mi trabajo.",SIN_INTERNET
+"No me llega el código de verificación del banco, lo pedí cinco veces.",SIN_SMS
+"No logro que me contesten porque mis llamadas nunca se conectan, y cuando me llaman a mí no me suena. Estoy preocupada por mi mamá.",SIN_LLAMADAS
+"Mi abuelo no puede hacer una llamada de principio a fin porque se corta constantemente.",INTERMITENCIA
+"Las clases por Zoom de mi hijo se ven a saltos y se escucha a los profesores como robots. Ya no sabemos qué hacer.",INTERNET_LENTO
+"Soy taxista y no recibo ninguna llamada de pasajeros desde el viernes, mi línea parece desactivada para voz.",SIN_LLAMADAS
+"No me sale nada en la barra de señal, es como si mi celular estuviera aislado.",SIN_SENAL
+"Tengo examen en línea en una hora y mi equipo no consigue salir a la red, todos los sitios dan error de DNS.",SIN_INTERNET
+"Hola, soy turista y estoy en un departamento alquilado con su servicio; el wifi no da acceso a nada. Necesito reservar mi vuelo de regreso.",SIN_INTERNET
+"A ratos tengo servicio y a ratos no, el celular rebota entre 'sin servicio' y 4G.",INTERMITENCIA
+"En mi recibo aparece un cobro por un servicio de música que nunca contraté. Pido que lo anulen.",OTRO
+"Soy odontóloga y mi consultorio usa un sistema en la nube para las historias clínicas. Desde esta mañana el sistema no abre porque no hay salida a la red. Tengo pacientes esperando.",SIN_INTERNET
+"El número de confirmación para el trámite en línea no llega a mi línea; pedí que lo reenvíen varias veces y nada.",SIN_SMS
+"Pido el código de la app de transporte y nunca llega al celular. En mi otro chip de otra operadora sí llega.",SIN_SMS
+"Buenas, mi línea de internet fijo no funciona desde que abrieron la vía por obras en mi cuadra. Ya no tengo acceso a nada.",SIN_INTERNET
+"Tengo un pequeño hostal en la playa y a mis huéspedes les sale que no hay red móvil de ustedes en el área. Por favor revisen la cobertura.",SIN_SENAL
+"La línea de mi negocio no tiene tono de marcado, el teléfono fijo está mudo.",SIN_LLAMADAS
+"Hace dos días no salen mis llamadas, solo puedo recibir y a veces ni eso. Pago mi plan puntual.",SIN_LLAMADAS
+"Quiero cancelar un servicio de antivirus que me están cobrando desde hace meses.",OTRO
+"El televisor smart me indica que la red no está disponible, y la laptop tampoco abre páginas. Revisé los cables y todo está en su lugar.",SIN_INTERNET
+"se me cayo el internet del hogar, llevo 5 horas asi",SIN_INTERNET
+"Hola, vivo en una zona de cerro y desde hace una semana el celular no agarra ninguna antena.",SIN_SENAL
+"Mi negocio es una bodega y el POS para pagos con tarjeta no se conecta porque no hay conexión desde hace horas. Estoy perdiendo ventas, por favor ayuda.",SIN_INTERNET
+"El restaurante no puede recibir pedidos por la aplicación de delivery porque el local no tiene conexión a la red desde el mediodía.",SIN_INTERNET
+"Al marcar a números de otros operadores aparece un mensaje de error y no se establece comunicación. Antes funcionaba perfecto.",SIN_LLAMADAS
+"Las llamadas del trabajo se caen constantemente en mi casa, pero si salgo a la calle se mantienen.",INTERMITENCIA
+"Mi línea tiene caídas: hablando con mi madre se escuchaba y de pronto se cortaba, y así toda la tarde.",INTERMITENCIA
+"He llamado cuatro veces a la central y nadie me resuelve nada, me pasan de un área a otra. Exijo que mi caso sea atendido por un supervisor.",OTRO
+"Mi juego en línea tiene un ping altísimo, me mata el lag en cada partida desde hace días.",INTERNET_LENTO
+"La clave de un solo uso para mi tarjeta no me llega, he esperado media hora.",SIN_SMS
+"No puedo hacer llamadas, cuando marco sale una grabación que dice que no es posible completar la llamada.",SIN_LLAMADAS
+"Para verificar mi identidad en un trámite me piden un código por mensaje; no llega y se me vence el plazo.",SIN_SMS
+"Pido un token por mensaje para mis transferencias y jamás llega. Mi negocio depende de eso.",SIN_SMS
+"el asesor que me atendió fue muy grosero, quiero poner un reclamo",OTRO
+"El código para activar mi cuenta de mensajería no llega. Intenté con llamada automática y tampoco.",SIN_SMS
+"Mi hijo gastó todos los megas del plan jugando y quiero comprar un paquete adicional de datos. ¿Cómo lo hago?",OTRO
+"El enlace es inestable: se pierde y se recupera, y cada vez que vuelve debo iniciar sesión de nuevo en mis programas.",INTERMITENCIA
+"Soy diseñador y mis archivos en la nube se sincronizan a una velocidad ridícula, 100 KB/s.",INTERNET_LENTO
+"No hay navegación en mi plan de datos, aparece 'sin conexión a internet' en todas las apps aunque tengo saldo.",SIN_INTERNET
+"Todo va fatal, la pantalla se queda en blanco un buen rato antes de que cargue la página.",INTERNET_LENTO
+"Mi conexión es como un interruptor: a veces funciona, a veces desaparece sin motivo.",INTERMITENCIA
+"sin señal en todo mi barrio desde ayer",SIN_SENAL
+"Estoy teletrabajando y no puedo conectarme a la VPN de mi empresa porque no me llega absolutamente nada de la red desde esta mañana.",SIN_INTERNET
+"Me cobraron roaming mientras estaba en Lima, creo que fue un error de facturación y reclamo la devolución.",OTRO
+"Cada vez que hablo por teléfono la llamada se cae a los pocos minutos; es muy molesto.",INTERMITENCIA
+"Buenos días. Desde ayer por la tarde ninguna página me carga ni en la computadora ni en el celular conectado al wifi, aunque las luces del módem están encendidas. Mi nieto necesita hacer su tarea y no puede.",SIN_INTERNET
+"Me prometieron que un técnico vendría ayer a revisar la instalación y nunca llegó. Quiero reprogramar la cita.",OTRO
+"La gente dice que mi número está apagado o no existe cuando me llaman, pero mi cel está prendido.",SIN_LLAMADAS
+"se me corta el servicio y regresa a los 5 minutos, ya me harté, 4 veces hoy",INTERMITENCIA
+"no entran llamadas, solo puedo usar datos",SIN_LLAMADAS
+"El servicio de voz de mi línea postpago está inoperativo, necesito que lo reactiven urgente.",SIN_LLAMADAS
+"Hola, quisiera reportar que la red de mi casa está inoperativa. Mi esposa no puede ver sus clases de pintura por video.",SIN_INTERNET
+"Pantalla del celular con una X en la esquina de la señal, ningún operador disponible.",SIN_SENAL
+"El navegador me muestra el dinosaurio de sin conexión todo el rato.",SIN_INTERNET
+"Mi celular no recibe llamadas desde ayer; mi familia ha tratado de ubicarme y siempre les sale que estoy fuera del área, aunque yo tengo todas las barras.",SIN_LLAMADAS
+"Mis clientes me dicen que me llaman y les suena ocupado, pero mi teléfono ni se entera.",SIN_LLAMADAS
+"Tengo un restaurante y ni mis clientes ni yo tenemos cobertura de ustedes en el local desde hace días.",SIN_SENAL
+"Quiero saber cómo activar el roaming internacional para un viaje a Chile el próximo mes.",OTRO
+"Quisiera que revisen: no recibo los textos con los códigos de ninguna aplicación.",SIN_SMS
+"Doctor en consulta: mis pacientes no pueden contactarme por la línea del consultorio, el teléfono no recibe nada de voz.",SIN_LLAMADAS
+"Estoy de viaje turístico en Lima, en el hotel mi chip no engancha con ninguna antena y solo veo 'solo llamadas de emergencia'.",SIN_SENAL
+"Como dueña de una panadería dependo de recibir pedidos por teléfono. Desde la mañana nadie logra llamarme y yo no puedo devolver llamadas.",SIN_LLAMADAS
+"El wifi aparece pero dice 'conectado sin acceso a internet'. Nada funciona.",SIN_INTERNET
+"Soy estudiante y en mi universidad todos con su operador estamos sin barras de cobertura desde el lunes.",SIN_SENAL
+"Me gustaría cambiar el titular de la línea, que pase de mi papá a mi nombre.",OTRO
+"Estimados: Tengo problemas para recibir el PIN de seguridad que envían las entidades por mensaje. Llevo dos días tratando de cambiar mi clave y el mensaje no aparece en mi bandeja. Todo lo demás en mi línea parece normal.",SIN_SMS
+"La aplicación de mi billetera digital me pide un código por mensaje y nunca me llega nada, ya lo intenté varias veces.",SIN_SMS
+"Las páginas se demoran muchísimo en abrir, hay que esperar casi un minuto para que aparezca el correo.",INTERNET_LENTO
+"Mi consultorio atiende por telemedicina y en cada consulta se interrumpe la conexión al menos tres veces.",INTERMITENCIA
+"Desde la tormenta de ayer la conexión de la casa quedó muerta, el decodificador de cable tampoco carga la guía de aplicaciones.",SIN_INTERNET
+"Quisiera contratar un plan de internet más rápido, el actual de 100 megas ya se me queda corto con mis hijos. ¿Qué opciones tienen?",OTRO
+"estoy sin cobertura hace dos dias, el cel dice sin servicio y ya lo reinicié",SIN_SENAL
+"Tengo clases virtuales y la plataforma me muestra el mensaje 'no se puede acceder a este sitio'. Ningún sitio abre, ni Google. Ya reinicié el equipo dos veces.",SIN_INTERNET
+"Mi celular está en modo 'solo emergencias', no tengo servicio de ningún tipo.",SIN_SENAL
+"Ya probé sacar el chip, prender y apagar, y el equipo no detecta ninguna red.",SIN_SENAL
+"Mi módem tiene la luz de internet apagada hace tres días. Ya llamé y me dijeron que esperara.",SIN_INTERNET
+"Mi móvil no capta ninguna red desde el temblor de anoche, supongo que las antenas se afectaron.",SIN_SENAL
+"Mi decodificador y mi laptop no tienen salida a la red desde un apagón; el módem reinició pero sigue sin dar acceso a nada.",SIN_INTERNET
+"Estoy en una reunión de familia y nadie logra contactarme. Mi teléfono no timbra, y al marcar hacia afuera aparece un mensaje de error.",SIN_LLAMADAS
+"Mis llamadas se cortan a la mitad de la conversación, tengo que volver a marcar tres veces.",INTERMITENCIA
+"El teléfono me dice 'llamada no permitida' al marcar cualquier número.",SIN_LLAMADAS
+"Tengo saldo y datos, pero la voz no sale. Al apretar el botón de llamar, la pantalla vuelve al marcador.",SIN_LLAMADAS
+"Compré un chip prepago y no sé cómo recargarlo desde la app. ¿Me explican?",OTRO
+"Todo está desconectado, el router prende pero no hay ninguna salida a la web. Llevo dos días sin poder mandar mis informes.",SIN_INTERNET
+"Mi teléfono dice 'buscando red' todo el día y no consigue engancharse.",SIN_SENAL
+"ayer a las 8pm se fue el internet y hasta ahora nada, por favor",SIN_INTERNET
+"La página del banco tarda siglos en cargar y se me vence la sesión antes de poder hacer nada.",INTERNET_LENTO
+"Anoche en pleno partido de mi equipo el streaming se detuvo, volvió, se detuvo de nuevo...",INTERMITENCIA
+"Puedo llamar y navegar, pero los textos normales ya no salen de mi celular.",SIN_SMS
+"Estoy en mi tienda de ropa y el sistema de facturación electrónica no envía los comprobantes porque no hay red hace horas.",SIN_INTERNET
+"Llevamos tres días en mi condominio sin que los celulares de la compañía enganchen a la red, los vecinos igual.",SIN_SENAL
+"Mi teléfono no encuentra la red de ustedes aunque el de mi vecino con otra compañía sí.",SIN_SENAL
+"Soy delivery y necesito el código que me manda la aplicación al celular para poder iniciar sesión, pero no me llega.",SIN_SMS
+"Me quedé en plena exposición virtual con la imagen congelada y el sonido con eco. La conexión no da para nada.",INTERNET_LENTO
+"El wifi se desconecta solo y tengo que reconectarlo manualmente cada rato.",INTERMITENCIA
+"Buenas noches. Les comunico que no consigo comunicarme por voz con nadie. Por WhatsApp sí puedo llamar, pero por la línea celular no. Pido que lo revisen.",SIN_LLAMADAS
+"Estimados señores: Quisiera comunicar que, desde hace casi dos semanas, el servicio de internet de mi domicilio funciona unos minutos y luego se interrumpe sin aviso, para recuperarse más tarde. Esta situación se repite varias veces al día y me impide trabajar con normalidad.",INTERMITENCIA
+"El código para entrar a mi correo no aparece, mi bandeja de mensajes está vacía desde hace días.",SIN_SMS
+"Hace dos semanas que cargar WhatsApp web es un suplicio, los mensajes con fotos tardan en mandarse.",INTERNET_LENTO
+"Ni por cable ni por wifi llega nada a mi laptop. Probé con otro dispositivo y es igual.",SIN_INTERNET
+"No hay internet desde las 6 de la mañana, el router tiene una luz roja que parpadea.",SIN_INTERNET
+"Mi cel no recibe confirmaciones de las compras en línea, ninguna llega por texto.",SIN_SMS
+"Sinceramente, es agotador: se va, regresa, se va. La cámara del bebé se desconecta y reconecta toda la noche.",INTERMITENCIA
+"Mis dispositivos se conectan al wifi pero no reciben datos del exterior; es como si el cable estuviera cortado.",SIN_INTERNET
+"Quisiera pedir el desbloqueo de mi equipo para usarlo con un chip de otro país durante mis vacaciones.",OTRO
+"Netflix me baja la calidad a 240p todo el rato y se queda cargando.",INTERNET_LENTO
+"Mi celular no puede iniciar ninguna comunicación de voz, ni a números nacionales ni internacionales.",SIN_LLAMADAS
+"El rendimiento de la red ha caído notablemente, con mi plan de 500 no llego ni a 20 en el test.",INTERNET_LENTO
+"El mensaje con el código para firmar un documento no aparece, ya probé reiniciando y activando el modo avión.",SIN_SMS
+"Mi equipo móvil muestra 'sin servicio' desde que me mudé a esta zona.",SIN_SENAL
+"Mi internet funciona perfecto, solo quería preguntar si pueden subirme la velocidad contratada por el mismo precio.",OTRO
+"Necesito una copia de mi recibo del mes pasado para presentarlo en un trámite. No me llega por correo.",OTRO
+"Mi bodega usa el sistema de ventas en línea y cada vez que registro una venta la pantalla se queda pensando como 40 segundos.",INTERNET_LENTO
+"Ya no puedo llamar a ningún número, ni siquiera al de mi trabajo. Intento y se queda en silencio.",SIN_LLAMADAS
+"Mi número no recibe ni hace llamadas desde el martes; apenas pulso el botón verde aparece un aviso de que el servicio no está disponible.",SIN_LLAMADAS
+"no puedo ni abrir whatsapp web ni correos, todo en blanco, se cayó la conexion",SIN_INTERNET
+"La transmisión en vivo de mi restaurante pierde calidad, se ve borrosa y con retraso.",INTERNET_LENTO
+"Perdí mi celular en el transporte público. Necesito bloquear la línea y reponer el chip.",OTRO
+"El celular me marca cero barras en el cuarto piso donde vivo, antes no pasaba.",SIN_SENAL
+"Me aparece 'registro denegado en la red' y no puedo usar ninguna función del cel.",SIN_SENAL
+"La velocidad es pésima y de vez en cuando también se corta un instante, pero el problema de fondo es que nunca llego a lo que contraté.",INTERNET_LENTO
+"Tengo problemas con la estabilidad: la señal baja y sube como el oleaje, imposible hacer un trámite en línea de principio a fin.",INTERMITENCIA
+"al pedir la clave temporal de mi banco dice enviada pero no la recibo",SIN_SMS
+"El internet se va y vuelve cada rato, cada diez minutos se cae y luego regresa solo.",INTERMITENCIA
+"Señorita, la conexión está demasiado pesada, abrir mi correo del trabajo me toma más de un minuto y las reuniones por Meet son un martirio.",INTERNET_LENTO
+"Mis mensajes de voz se envían a medias porque se me desconecta la red en medio.",INTERMITENCIA
+"No hay forma de que me llegue el PIN para descargar mi certificado; ya van seis intentos.",SIN_SMS
+"Mi módem se reinicia solo varias veces al día.",INTERMITENCIA
+"Quiero denunciar que me llaman todos los días para ofrecerme planes aunque ya pedí que no me llamen más.",OTRO
+"Mi teléfono fijo dejó de sonar. Cuando lo levanto no hay tono.",SIN_LLAMADAS
+"quiero saber si tienen promociones de fibra para negocios, tengo un cybercafe",OTRO
+"Mis mensajes de texto a números de otras operadoras no salen, a la misma operadora sí.",SIN_SMS
+"Mi esposa no puede recibir el código de autenticación de dos pasos, la cuenta quedó bloqueada por eso.",SIN_SMS
+"Buenas tardes. Quisiera exponer que la velocidad que recibo es muy inferior a la ofrecida en mi contrato. En horas punta resulta imposible ver una película sin que se detenga a cada rato para almacenar en buffer.",INTERNET_LENTO
+"La videollamada se corta y reconecta, otra vez se corta; hoy me pasó cinco veces durante una clase.",INTERMITENCIA
+"Hola, desde que me cambié de chip no puedo realizar llamadas de voz, solo funcionan los datos.",SIN_LLAMADAS
+"Cuando alguien me llama, la persona oye un tono de no disponible; yo ni veo la llamada entrante.",SIN_LLAMADAS
+"Buenas, deseo saber si mi zona tiene cobertura de fibra óptica antes de contratar.",OTRO
+"En carretera hacia el sur, ya llevamos 40 km sin una sola barra con mi chip.",SIN_SENAL
+"La antena cercana debe estar caída porque mi teléfono ya no ve a la operadora.",SIN_SENAL
+"Ya probé reiniciar el celular y quitar el chip, pero no puedo hacer ni recibir llamadas normales. Los datos funcionan.",SIN_LLAMADAS
+"Al reservar mi cupo para instalar el servicio me dieron fecha para dentro de 15 días, es demasiado. ¿Pueden adelantarla?",OTRO
+"no es constante, funciona una hora y de ahí se corta 10 minutos, asi todo el dia",INTERMITENCIA
+"Recibí un aviso de que mi línea será suspendida por falta de pago, pero ya pagué ayer. Quiero que verifiquen el pago.",OTRO
+"No me están llegando los mensajitos de verificación para ingresar a la app de mi trabajo, y no puedo registrar mi asistencia.",SIN_SMS
+"Mi hijo me escribe mensajes de texto y no los recibo. Me enteré por otra vía.",SIN_SMS
+"Ya intenté con otro celular y el chip tampoco encuentra red; la línea parece fuera de cobertura.",SIN_SENAL
+"Mi cámara de seguridad ya no se puede ver desde el celular porque la casa se quedó sin conexión a la red. El módem está prendido pero no navega nada.",SIN_INTERNET
+"Mi celular pasa de tener cobertura a no tener y vuelve a tener, así todo el día, hasta en mi casa.",INTERMITENCIA
+"Todo carga a cuentagotas desde que cambiaron el poste en mi calle.",INTERNET_LENTO
+"Hice un test de velocidad y me sale 8 Mbps cuando pago por 100. No es justo.",INTERNET_LENTO
+"Mis hijos se quejan de que sus clases se escuchan con retraso, la voz del profesor llega varios segundos después del movimiento de sus labios.",INTERNET_LENTO
+"no puedo llamar, solo sale un pitido y se corta",SIN_LLAMADAS
+"Me cobraron dos veces el recibo de este mes, quiero que me devuelvan el dinero.",OTRO
+"se cae y se levanta la señal, no se puede contar con ella",INTERMITENCIA
+"Cuando marco cualquier número se corta de inmediato y me aparece 'llamada fallida'. Los mensajes de texto sí me llegan.",SIN_LLAMADAS
+"Quiero añadir una línea más a mi plan familiar, ¿cuánto sería adicional?",OTRO
+"La videollamada con mi jefe se queda congelada cada dos minutos y el audio llega entrecortado. Tengo contratados 200 megas y no se nota.",INTERNET_LENTO
+"Mis padres en provincia llevan una semana sin que su cel agarre red, no pueden avisar nada.",SIN_SENAL
+"las llamadas entrantes me van directo al buzón de voz sin que suene mi cel",SIN_LLAMADAS
+"La línea se pone inestable, hay momentos en que anda bien y otros en que se pierde del todo por un ratito.",INTERMITENCIA
+"Intento jugar en línea y me bota del servidor cada rato porque se pierde la conexión por segundos.",INTERMITENCIA
+"Los mensajes de texto no llegan y a veces la llamada también se entrecorta, pero mi principal problema es el código del banco que nunca aparece.",SIN_SMS
+"No suena mi teléfono cuando me llaman y no puedo marcar a nadie, estoy incomunicada por voz.",SIN_LLAMADAS
+"Mi hija estudia en la universidad y no puede entrar al aula virtual ni subir sus trabajos; la casa está incomunicada desde el domingo.",SIN_INTERNET
+"Subir un archivo de 20 MB a la plataforma de mi trabajo me toma media hora, estoy teletrabajando y no avanzo.",INTERNET_LENTO
+"Estimados: Les escribo para consultar el procedimiento de portabilidad numérica desde otra operadora hacia la de ustedes, y si debo cancelar algo antes de realizarlo. Agradezco su respuesta.",OTRO
+"Mi celular tiene los datos móviles activados pero no abre ni Instagram ni nada; salen las barras de señal pero ninguna aplicación logra conectarse.",SIN_INTERNET
+"no agarra red mi chip nuevo, el nombre de la operadora sale tachado",SIN_SENAL
+"Un video de YouTube demora una eternidad en cargar y se queda dando vueltas el circulito.",INTERNET_LENTO
+"Mi cel marcaba señal full y desde esta mañana indica 'no hay red disponible'.",SIN_SENAL
+"El teléfono de mi mamá lleva un buen tiempo mostrando 'sin red móvil', y vive sola, estoy preocupado.",SIN_SENAL
+"Compré un celular en su tienda y la pantalla viene con una raya. Quiero el cambio del equipo por garantía.",OTRO
+"Señorita, mi aparato muestra una cruz en lugar de las barras de recepción y no puedo comunicarme por ningún medio móvil.",SIN_SENAL
+"Quise recuperar mi cuenta de red social y nunca llegó el número de seis dígitos al teléfono.",SIN_SMS
+"En la noche, de 8 a 11, todo se vuelve una tortuga; en la mañana va bien.",INTERNET_LENTO
+"Quiero reportar que mi línea no permite hablar con nadie; el celular indica llamando y se queda así sin timbrar.",SIN_LLAMADAS
+"Se corta y vuelve, y cuando vuelve va lentísimo, pero lo grave son los cortes constantes que no me dejan avanzar.",INTERMITENCIA
+"El wifi está conectado pero todo va a paso de tortuga, más lento que cuando tenía el plan básico.",INTERNET_LENTO
+"En el segundo sótano del edificio nunca hubo señal, pero ahora ni en la azotea tengo ni una barra.",SIN_SENAL
+"No carga ni el buscador. Pantalla blanca, error de tiempo de espera agotado en cualquier página.",SIN_INTERNET
+"Hay cortes breves cada media hora, como microcortes, y mi sistema de cámaras queda sin grabar.",INTERMITENCIA
+"Cuando estoy hablando con clientes del extranjero se me corta y me toca volver a llamar, he perdido dos ventas por eso.",INTERMITENCIA
+"Soy una persona mayor y necesito poder comunicarme con mi médico. Desde hace tres días, cada vez que intento llamar, el teléfono emite un tono y luego se corta sin que nadie conteste. Tampoco suena cuando me llaman.",SIN_LLAMADAS
+"Mi consulta es si el servicio de internet incluye instalación gratuita y cuánto demora el técnico en venir.",OTRO
+"Mi recibo subió de 80 a 120 soles sin avisarme. ¿Por qué el aumento?",OTRO
+"Contraté fibra de 300 y me llega apenas una fracción; he medido varias veces en diferentes horas y siempre sale muy por debajo.",INTERNET_LENTO
+"Me marca error de red al intentar llamar a un fijo, pero a celulares sí puedo. Ya son varios días.",SIN_LLAMADAS
+"Cuando varios estamos conectados en casa, la red se arrastra; hasta una búsqueda en Google demora.",INTERNET_LENTO
+"Estimados: Desde el fin de semana mi teléfono móvil no logra registrarse en la red de ustedes. Muestra únicamente llamadas de emergencia y no puedo utilizarlo para nada. Les agradeceré revisar si hay algún problema con la antena de mi zona.",SIN_SENAL
+"Soy abuelita, mis hijos me mandan textitos y no me llegan, ya no sé nada de ellos si no es por llamada.",SIN_SMS
+"Necesito el traslado de mi servicio a un nuevo domicilio por cambio de casa. ¿Cuánto cuesta?",OTRO
+"internet lentisimo, no puedo ni subir una foto",INTERNET_LENTO
+"Los mensajes que envío aparecen como no entregados.",SIN_SMS
+"Aprovecho para felicitar al personal de soporte de ayer, resolvieron mi consulta rápido. Solo quería dejar constancia.",OTRO
+"Descargar una actualización de 1 GB me demora más de cinco horas.",INTERNET_LENTO
+"Hacer una videoconferencia con mis clientes del extranjero es imposible, se pixela, se traba y debo apagar la cámara.",INTERNET_LENTO
+"La luz del módem parpadea en rojo y se pone verde, y así todo el día; me saca de las reuniones.",INTERMITENCIA
+"No puedo llamar ni recibir llamadas; de paso el internet también va despacio, pero lo urgente es la voz porque mi mamá está enferma.",SIN_LLAMADAS
+"Todas mis llamadas salientes terminan inmediatamente. Quise hablar con el banco y no logré ni que timbre.",SIN_LLAMADAS
+"En mi teléfono no entra ningún mensaje corto, ya revisé que no esté bloqueado ningún número.",SIN_SMS
+"La señal me aparece y desaparece cuando me muevo por mi propia casa, no estoy en un sótano ni nada.",INTERMITENCIA
+"Tras la actualización del celular me quedé sin barras de cobertura, nada de nada.",SIN_SENAL
+"Desde que activaron el chip nuevo, el equipo no engancha con la red de ustedes en toda mi casa.",SIN_SENAL
+"Quiero programar una visita técnica para instalar el servicio de fibra en mi nueva casa.",OTRO
+"No puedo mandar mensajes de texto, se queda en 'enviando' y luego sale el signo de admiración rojo.",SIN_SMS
+"Me robaron el equipo en la calle y quiero saber cómo denunciar y bloquear el IMEI.",OTRO
+"Deseo configurar mi router nuevo, ¿me pueden indicar cómo cambiar la contraseña del wifi?",OTRO
+"Estimada empresa: soy una persona de 70 años y uso la red para conversar con mis nietos en el extranjero. Desde hace una semana la imagen se ve pixelada y la voz se atrasa. Quisiera que revisen mi conexión.",INTERNET_LENTO
+"Hola, quisiera reportar que la conexión va y viene desde el sábado. Ahorita funciona pero hace una hora no, y antes de eso sí.",INTERMITENCIA
+"no llegan sms de nada, ni de promociones",SIN_SMS
+"Mi hermana juega en línea y no para de quejarse del retardo, los personajes se teletransportan.",INTERNET_LENTO
+"Me gustaría saber cuántos gigas me quedan del plan y cuándo se renueva.",OTRO
+"Estoy tomando un curso virtual y se cae mi conexión a cada rato, me sacan de la sala y vuelvo a entrar.",INTERMITENCIA
+"Necesito el código de la universidad para ingresar a la matrícula y el mensaje no llega por más que lo solicito.",SIN_SMS
+"Estimados señores: les escribo para informar que desde el día lunes mi equipo de cómputo no logra comunicarse con ninguna página web. El técnico que contrató mi hijo revisó la red interna y asegura que el problema viene de afuera. Agradeceré su pronta atención.",SIN_INTERNET
+"Tengo la bandeja de mensajes completamente vacía, hace semana y media no me llega ni una alerta.",SIN_SMS
+"Se me desconectó toda la casa de la red y mi alarma con cámaras ya no notifica. El módem se queda en 'buscando' y no pasa de ahí.",SIN_INTERNET
+"El servicio se interrumpe de manera repetitiva, sobre todo por las tardes, y luego regresa sin que yo haga nada.",INTERMITENCIA
+"Un cliente me confirma sus pedidos por mensajes de texto y nada me está llegando. Llevo dos días sin ver ninguno.",SIN_SMS
+"mi telefono no recibe sms desde que cambie de celular, solo puedo por whatsapp",SIN_SMS
+"Estoy interesado en comprar un equipo con financiamiento en cuotas, ¿qué modelos tienen disponibles?",OTRO
+"No hay cobertura en el mercado donde vendo, los demás comerciantes con mi misma operadora también lo notan.",SIN_SENAL
+"No tengo cobertura en mi casa desde ayer, antes tenía 4 barritas, ahora aparece 'sin servicio'.",SIN_SENAL
+"Los videos en TikTok se quedan cargando y cuando abren se ven en baja resolución.",INTERNET_LENTO
+"Señores, vivo en Surco, soy jubilado y uso la web para mis consultas médicas en línea. Hace dos días no puedo ingresar a ninguna página, ni siquiera a la de mi banco. Les ruego una solución.",SIN_INTERNET

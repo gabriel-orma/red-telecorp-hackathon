@@ -103,6 +103,24 @@ export async function tokenVigente(): Promise<string | null> {
   }
 }
 
+/** ¿El ID token pertenece al grupo `operadores`? Solo decide qué mostrar: la autorización real la hace el API. */
+export function esOperadorToken(token: string): boolean {
+  const grupos = (decodificar(token) as Record<string, unknown>)["cognito:groups"];
+  return Array.isArray(grupos) && grupos.includes("operadores");
+}
+
+/** true si hay sesión y es de un operador (se actualiza al iniciar o cerrar sesión). */
+export function useEsOperador(): boolean {
+  const calcular = () => { const s = leer(); try { return s ? esOperadorToken(s.idToken) : false; } catch { return false; } };
+  const [esOperador, setEsOperador] = useState<boolean>(calcular);
+  useEffect(() => {
+    const f = () => setEsOperador(calcular());
+    oyentes.add(f);
+    return () => { oyentes.delete(f); };
+  }, []);
+  return esOperador;
+}
+
 /** Perfil de la sesión actual (se actualiza al iniciar o cerrar sesión). */
 export function usePerfil(): Perfil | null {
   const calcular = () => { const s = leer(); try { return s ? perfilDe(s.idToken) : null; } catch { return null; } };

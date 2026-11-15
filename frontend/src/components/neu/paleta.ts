@@ -18,7 +18,7 @@ export const PALETA_MAPA_NEU: PaletaMapa = {
 /** Los 12 pasos de la Step Function agrupados en 4 etapas legibles (estilo "Sign up → Verify → …"). */
 export const ETAPAS: { etiqueta: string; pasos: PasoColectivo[] }[] = [
   { etiqueta: "Detectado", pasos: ["DETECTADO", "NOTIFICAR_EVALUACION"] },
-  { etiqueta: "Verificado y priorizado", pasos: ["VERIFICAR_INFRAESTRUCTURA", "PRIORIZAR", "RESUMIR", "CONFIRMAR", "NOTIFICAR_CONFIRMADA", "ALERTAR_OPERADOR"] },
+  { etiqueta: "Verificado y priorizado", pasos: ["VERIFICAR_INFRAESTRUCTURA", "PRIORIZAR", "RESUMIR", "CONFIRMAR", "NOTIFICAR_CONFIRMADA", "NOTIFICAR_SIN_FALLA", "ALERTAR_OPERADOR"] },
   { etiqueta: "Monitoreando", pasos: ["MONITOREAR"] },
   { etiqueta: "Restablecido", pasos: ["RESTABLECER", "NOTIFICAR_RESTABLECIDO", "CERRADO"] },
 ];

@@ -23,6 +23,8 @@ bash scripts/deploy.sh dev-tualias
 
 Al terminar imprime la URL HTTPS del centro de control. Para desplegar solo una parte: `bash scripts/deploy.sh dev-tualias frontend` (o `api`, `antenas`, `base`).
 
+**Segunda nube (Azure):** el correo de los avisos y el clima de la zona salen por Azure. Sin sus claves el sistema funciona igual (avisos por la app y SNS, análisis sin clima), pero para la demo completa crea los recursos y entrega sus claves a Secrets Manager siguiendo [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
+
 Elimina todo cuando no lo uses, para no gastar el presupuesto del lab:
 ```bash
 bash scripts/remove.sh dev-tualias

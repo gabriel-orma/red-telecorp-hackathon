@@ -8,6 +8,8 @@ import { usePolling } from "../hooks/usePolling";
 import { useAlCambiar } from "../lib/tiempoReal";
 import { navegar } from "../lib/router";
 import { cn } from "../lib/utils";
+import { enlace } from "../lib/router";
+import { useEsOperador } from "../lib/auth";
 import { MapaRed } from "../components/MapaRed";
 import { ShellNeu } from "../components/neu/ShellNeu";
 import { PaletaComandos } from "../components/neu/PaletaComandos";
@@ -20,6 +22,7 @@ interface Props { antenas: Antena[]; zonas: Zona[]; colectivosActivos: number; e
 
 /** Línea de tiempo del centro de control: arrastra el cabezal y el mapa muestra la red en ese instante. */
 export function LineaTiempoNeu({ antenas, zonas, colectivosActivos, enVivo: apiViva, refrescarRed }: Props) {
+  const esOperador = useEsOperador(); // la línea de tiempo y los escenarios son solo de operador (JWT + grupo)
   const [horas, setHoras] = useState(1);
   const [vivo, setVivo] = useState(true); // el cabezal sigue al presente y los datos se actualizan solos
   const [reproduciendo, setReproduciendo] = useState(false);
@@ -32,17 +35,20 @@ export function LineaTiempoNeu({ antenas, zonas, colectivosActivos, enVivo: apiV
 
   // Datos: en vivo se recargan con cada aviso del WebSocket (como mucho cada 2,5 s). Fuera de "en vivo" se congelan:
   // así los clips no se desplazan bajo el cursor mientras el operador revisa el pasado.
+  const esOperadorRef = useRef(esOperador);
+  esOperadorRef.current = esOperador;
   const vivoRef = useRef(vivo);
   vivoRef.current = vivo;
   const ultimo = useRef<{ horas: number; datos: DatosLineaTiempo } | null>(null);
   const datos = usePolling(useCallback(async () => {
     const previo = ultimo.current;
+    if (!esOperadorRef.current) return null;
     if (previo && previo.horas === horas && !vivoRef.current) return previo.datos;
     const d = await apiLineaTiempo.obtener(horas);
     ultimo.current = { horas, datos: d };
     return d;
   }, [horas]), 15_000);
-  useEffect(() => { datos.refrescar(); }, [horas]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { datos.refrescar(); }, [horas, esOperador]); // eslint-disable-line react-hooks/exhaustive-deps
   useAlCambiar(["antenas", "colectivos", "incidencias"], () => { if (vivoRef.current) datos.refrescar(); }, 2500);
 
   const escenario = usePolling<EstadoEscenario>(useCallback(() => apiEscenarios.estado(), []), 3000);
@@ -124,7 +130,7 @@ export function LineaTiempoNeu({ antenas, zonas, colectivosActivos, enVivo: apiV
 
   return (
     <ShellNeu titulo="Línea de tiempo" enVivo={apiViva} colectivosActivos={colectivosActivos} onBuscar={() => setBuscar(true)}
-      acciones={<ControlEscenario zonas={zonas} onCambio={refrescarRed} />}>
+      acciones={esOperador ? <ControlEscenario zonas={zonas} onCambio={refrescarRed} /> : undefined}>
       <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
         onZona={(z) => navegar(`/?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/?antena=${a.antenaId}`)} />
 
@@ -145,6 +151,16 @@ export function LineaTiempoNeu({ antenas, zonas, colectivosActivos, enVivo: apiV
               <Dato icono={TowerControl} color="#f0506e" valor={red?.enFalla ?? 0} texto="antenas en falla" />
               <Dato icono={Siren} color="#a78bfa" valor={red?.abiertos.length ?? 0} texto="incidentes abiertos" />
             </div>
+
+            {!esOperador && (
+              <div className="absolute inset-0 z-20 grid place-items-center bg-fondo/70 backdrop-blur-sm">
+                <div className="neu max-w-sm p-6 text-center">
+                  <div className="text-sm font-semibold">La línea de tiempo es solo para operadores</div>
+                  <p className="mt-2 text-xs text-tenue">Incluye la ubicación de cada reporte. Inicia sesión con una cuenta del grupo «operadores».</p>
+                  <a {...enlace("/portal/cuenta")} className="degradado mt-4 inline-block rounded-xl px-4 py-2 text-sm font-semibold text-white">Iniciar sesión</a>
+                </div>
+              </div>
+            )}
 
             <AnimatePresence>
               {escenario.datos?.activo && escenario.datos.narrativa && (

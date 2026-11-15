@@ -57,11 +57,16 @@ MENSAJES = {
 }
 
 
-def incrementar(tabla, serie: str, b: str, tipo: str, ttl_epoch: int) -> None:
-    """Suma 1 al total y al tipo del bloque (atómico, sin leer antes)."""
-    tabla.update_item(
+def argumentos_incremento(serie: str, b: str, tipo: str, ttl_epoch: int) -> dict:
+    """Argumentos del Update que suma 1 al total y al tipo del bloque (sirven para update_item o para una transacción)."""
+    return dict(
         Key={"serie": serie, "bucket": b},
         UpdateExpression="ADD #total :uno, #tipo :uno SET expiraEn = if_not_exists(expiraEn, :ttl)",
         ExpressionAttributeNames={"#total": "total", "#tipo": f"t_{tipo}"},
         ExpressionAttributeValues={":uno": 1, ":ttl": ttl_epoch},
     )
+
+
+def incrementar(tabla, serie: str, b: str, tipo: str, ttl_epoch: int) -> None:
+    """Suma 1 al total y al tipo del bloque (atómico, sin leer antes)."""
+    tabla.update_item(**argumentos_incremento(serie, b, tipo, ttl_epoch))

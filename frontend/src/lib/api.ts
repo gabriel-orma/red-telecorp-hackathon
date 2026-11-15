@@ -1,4 +1,5 @@
 // Cliente del API (mismo origen: /api). Los tipos siguen contracts/.
+import { tokenVigente } from "./auth";
 
 export type EstadoAntena = "NORMAL" | "SATURADA" | "CAIDA" | "INHABILITADA" | "SIN_DATOS";
 export type TipoZona = "RESIDENCIAL" | "COMERCIAL" | "INDUSTRIAL" | "EDUCATIVA" | "MEDICA" | "SERVICIOS_CRITICOS";
@@ -43,11 +44,14 @@ export interface Metrica {
 }
 
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
+  // Con sesión, el ID token acompaña a toda llamada: las rutas de operador lo exigen y las públicas lo ignoran.
+  const token = await tokenVigente();
   const r = await fetch(`/api${ruta}`, {
     ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "content-type": "application/json", ...(token ? { authorization: token } : {}), ...(init?.headers ?? {}) },
   });
   const datos = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error("Inicia sesión para continuar (las pantallas de operador requieren una cuenta con rol de operador).");
   if (!r.ok) throw new Error(datos.error ?? `Error ${r.status} en ${ruta}`);
   return datos as T;
 }
@@ -101,7 +105,11 @@ export interface EventoHistorial {
   detalle: string;
   estadoAnterior: string | null;
   estadoNuevo: string | null;
+  /** Canal de un aviso (`NOTIFICACION_ENVIADA`), si el backend lo informa. */
+  canal?: CanalAviso;
 }
+
+export type CanalAviso = "AZURE_EMAIL" | "SNS_EMAIL" | "APP";
 
 export interface DetalleIncidencia {
   colectivo: {
@@ -135,12 +143,22 @@ export const apiIncidencias = {
   ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${lat}&lng=${lng}`),
 };
 
+// Vista de OPERADOR (JWT + grupo `operadores`): con el detalle del reporte. `apiIncidencias.listar/obtener` es la vista
+// pública (solo tipo, zona, estado y fechas: sin nombre, GPS exacto ni descripción).
+export const apiOperador = {
+  listar: (filtros: { zonaId?: string; estado?: string; horas?: number } = {}) => {
+    const q = new URLSearchParams(Object.entries(filtros).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]));
+    return pedir<{ incidencias: Incidencia[]; total: number }>(`/operador/incidencias?${q}`);
+  },
+  obtener: (id: string) => pedir<DetalleIncidencia>(`/operador/incidencias/${id}`),
+};
+
 // ---------------- Incidentes colectivos (E3) ----------------
-export type EstadoColectivo = "EN_EVALUACION" | "INCIDENCIA_CONFIRMADA" | "SERVICIO_RESTABLECIDO" | "CERRADO";
+export type EstadoColectivo = "EN_EVALUACION" | "INCIDENCIA_CONFIRMADA" | "SERVICIO_RESTABLECIDO" | "CERRADO" | "REQUIERE_ATENCION";
 export type Prioridad = "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
 export type PasoColectivo =
   | "DETECTADO" | "NOTIFICAR_EVALUACION" | "VERIFICAR_INFRAESTRUCTURA" | "PRIORIZAR" | "RESUMIR" | "CONFIRMAR"
-  | "NOTIFICAR_CONFIRMADA" | "ALERTAR_OPERADOR" | "MONITOREAR" | "RESTABLECER" | "NOTIFICAR_RESTABLECIDO" | "CERRADO";
+  | "NOTIFICAR_CONFIRMADA" | "NOTIFICAR_SIN_FALLA" | "ALERTAR_OPERADOR" | "MONITOREAR" | "RESTABLECER" | "NOTIFICAR_RESTABLECIDO" | "ATENCION_MANUAL" | "CERRADO";
 
 export interface Colectivo {
   incidenteColectivoId: string;
@@ -159,6 +177,8 @@ export interface Colectivo {
   prioridad: Prioridad;
   puntajePrioridad: number;
   resumenIA?: string;
+  /** Análisis estructurado (E8). Ausente en incidentes anteriores o mientras el paso RESUMIR no corrió. */
+  analisisIA?: AnalisisIA | null;
   notificacionesEnviadas: number;
   restablecimientoSolicitado: boolean;
   primerReporteEn: string | null;
@@ -258,3 +278,33 @@ export interface DatosLineaTiempo {
 export const apiLineaTiempo = {
   obtener: (horas: number) => pedir<DatosLineaTiempo>(`/linea-tiempo?horas=${horas}`),
 };
+
+// ---------------- Análisis de IA, nubes e histórico (E8) ----------------
+export type ProbabilidadCausa = "ALTA" | "MEDIA" | "BAJA";
+export interface AnalisisIA {
+  /** "IA" solo si un modelo respondió; "REGLAS" es el respaldo determinista (nunca se presenta como IA). */
+  fuente: "IA" | "REGLAS";
+  proveedor: "gemini" | "reglas";
+  modelo: string | null;
+  generadoEn: string;
+  resumen: string;
+  hipotesisCausa: { causa: string; probabilidad: ProbabilidadCausa; evidencia: string }[];
+  recomendaciones: string[];
+  confianza: number;
+  /** Solo en el respaldo `REGLAS`: por qué no respondió la IA (NO_CONFIGURADA, LIMITE, DISYUNTOR, HTTP_429…). */
+  motivoFallback?: string;
+  /** Datos con los que se generó (se regenera si cambian los afectados o las antenas en falla). */
+  basadoEn?: { afectados: number; antenasEnFalla: number };
+  clima: { fuente: "AzureMaps"; frase: string; temperaturaC: number; precipitacion: boolean; vientoKmH: number } | null;
+}
+
+export type EstadoNube = "OK" | "ERROR" | "SIN_CONFIGURAR" | "SIN_DATOS";
+export interface ServicioNube { estado: EstadoNube; ultimaLlamada?: string | null; contador?: number; detalle?: string }
+export interface Nubes {
+  aws?: Record<string, ServicioNube>;
+  azure?: { acsEmail?: ServicioNube; maps?: ServicioNube };
+  /** Inferencia de IA por API externa (Gemini): NO cuenta como nube adicional. */
+  ia?: { gemini?: ServicioNube };
+}
+export const apiNubes = { obtener: () => pedir<Nubes>("/nubes") };
+

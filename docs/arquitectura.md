@@ -1,40 +1,25 @@
 # Arquitectura
 
-> **Estado: propuesta base.** Es el punto de partida acordado para que todos los agentes diseñen sobre lo mismo. Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
+> **Estado: implementado y verificado en AWS + Azure** (stage `dev-rodrigo`, 14-nov-2026). Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
 >
 > **Ya decidido:** AWS Academy Learner Lab (`LabRole`), `us-east-1`, Serverless Framework, Python y DynamoDB con tablas separadas.
-> **Por definir:** la segunda nube (el bloque GCP del diagrama es solo la **propuesta inicial**), el frontend y la fórmula de prioridad. Ver [`decisiones/README.md`](decisiones/README.md).
+> **Segunda nube: Microsoft Azure** (Communication Services para el correo y Maps para el clima), ver [`decisiones/2026-11-14-segunda-nube-azure.md`](decisiones/2026-11-14-segunda-nube-azure.md). GCP quedó descartado.
 
 ## Vista general
 
-```
-                          ┌──────────────────────── AWS ─────────────────────────────────────────┐
-[Portal usuario] ──HTTPS──► API Gateway (HTTP API) ─► Lambda API ─► SQS reportes (+DLQ) ─► Lambda ─┐
-[Panel operador] ─────────►        │                                                               │
-                                   └─ consultas / cambios de estado ──────────────────────────────►│
-                                                                                                   ▼
-[Simulador antenas] ─ EventBridge Scheduler ─► Lambda ─► SQS métricas (+DLQ) ─► Lambda clasificador ─► DynamoDB
-                                                                (tablas separadas, PITR, on-demand, multi-AZ)
-                                                                                         │ DynamoDB Streams
-                                                                                         ▼
-                                                    Lambda detector (regla de 10 usuarios/zona/24 h,
-                                                                     antena caída o inhabilitada)
-                                                                                         ▼
-                                        Step Functions ─ Incidente colectivo:
-                                          correlacionar con antenas → priorizar → IA (resumen/clasificación)
-                                          → notificar (SNS SMS / SES email) → esperar técnico (task token)
-                                          → notificar "restablecido" → cerrar
-                                        Step Functions ─ Recurrencia (diaria, EventBridge Scheduler)
-                                                                                         │
-  Secrets Manager / SSM: API keys y credenciales de GCP                                  │
-                          └───────────────────────────────────────────────────────────────┼──────────┘
-                          ┌──────────────────────── GCP ───────────────────────────────── ▼ ────────┐
-                          │  Gemini (Vertex AI / API): clasificar el texto libre, resumir incidentes │
-                          │  BigQuery: histórico analítico (2.ª copia de los datos)                   │
-                          │  Looker Studio: dashboards de zonas, antenas, tipos y duración            │
-                          │  (opcional) Firebase Hosting para el frontend                             │
-                          └───────────────────────────────────────────────────────────────────────────┘
-```
+![Arquitectura implementada (AWS + Azure)](arquitectura.svg)
+
+*Diagrama fiel a los recursos desplegados (stage `dev-rodrigo`). Se regenera con la lista de recursos del inventario de abajo; el SVG se puede abrir en el navegador para verlo a pantalla completa.*
+
+**Qué hace cada nube (y por qué la integración es real):**
+
+| Nube | Servicio | Qué ocurre de verdad |
+|---|---|---|
+| AWS | API Gateway, Lambda, SQS, DynamoDB, Step Functions, Cognito, EventBridge, Secrets Manager/SSM, S3 | Ingesta, detección, orquestación, datos, autenticación y secretos |
+| Azure | **Communication Services** | Cada aviso del flujo (`EN_EVALUACION`, `INCIDENCIA_CONFIRMADA`, `SERVICIO_RESTABLECIDO`) sale por correo desde una Lambda de AWS, autenticado con firma HMAC-SHA256, **solo a destinatarios autorizados** (lista `destinatarios` del secreto: las cuentas se auto-verifican, así que sin lista no se envía a nadie). El historial guarda el id de operación de ACS y se puede consultar su entrega (`Succeeded`) |
+| Azure | **Maps** | El análisis del incidente incluye el clima actual del centro de la zona (lluvia, viento, temperatura): una causa plausible de caída que el operador necesita ver |
+| **ML local** | Clasificador de reportes (TF-IDF + regresión logística) | Un reporte `OTRO` lo clasifica un modelo **entrenado por nosotros** que corre dentro de la Lambda de registro (sin numpy ni scikit-learn, 0,2 ms, el texto no sale de AWS). Exactitud 0,935 medida en una prueba redactada a ciegas (datos sintéticos: ver `ml/triage/README.md` para límites). Un reporte `OTRO` solo suma al conteo del colectivo si el modelo lo clasifica como falla con confianza ≥ 0,5 |
+| API externa | Gemini (opcional) | Redacta hipótesis y recomendaciones **solo sobre datos agregados** (conteos, estados de antenas, tipo de zona, clima). **El texto libre de los usuarios no se envía** (el triage por IA existe pero viene apagado: flag `triageTexto` del secreto `ia`). Si Gemini no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas (sin IA)» con el motivo, nunca «IA» |
 
 ## Por qué así (relación con la rúbrica)
 
@@ -44,7 +29,7 @@
 | DynamoDB on-demand + PITR | Serverless, multi-AZ por defecto, pago por uso, respaldo continuo |
 | DynamoDB Streams → detector | Reacción en tiempo casi real sin polling |
 | Step Functions | Flujos con estados, esperas y reintentos (incidente colectivo, recurrencia) |
-| GCP: BigQuery + Gemini | 2.ª nube con rol real: analítica e IA. Además, copia de los datos en otra nube |
+| Azure: Communication Services + Maps | 2.ª nube con rol real y verificable: los avisos salen por Azure y el análisis usa su clima. La suscripción de estudiante solo permite recursos de ubicación `global` (política «Allowed locations»), que bastan para estos dos servicios |
 | Secrets Manager / SSM | Requisito explícito de la rúbrica |
 | EventBridge Scheduler | Simulador y tareas periódicas sin servidores encendidos |
 
@@ -74,7 +59,7 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Tabla `dedup` (TTL 24 h) | AWS DynamoDB | `telecorp-<stage>-dedup` | base | Clave condicional `usuario#zona` (E2) |
 | Colas `reportes`, `metricas` + DLQ | AWS SQS | `telecorp-<stage>-{reportes,metricas}[-dlq]` | base | 3 reintentos → DLQ (14 d) |
 | Parámetro del simulador | AWS SSM | `/telecorp/<stage>/simulador` | base | Fallas forzadas |
-| Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base | Placeholder hasta D2 |
+| Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base | `{geminiApiKey, modelo}`; sin él, el análisis usa reglas |
 | Layer Python común | AWS Lambda | `telecorp-<stage>-comun` | base | `telecorp.*` |
 | Simulador + programación | AWS Lambda + EventBridge Scheduler | `telecorp-<stage>-simulador` | antenas | Apagado por defecto |
 | Clasificador | AWS Lambda (SQS) | `telecorp-<stage>-clasificador` | antenas | Respuesta parcial de lote |
@@ -99,3 +84,9 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Difusor | AWS Lambda (DynamoDB Streams ×3) | `telecorp-api-<stage>-difusor` | api | Avisa a los paneles cambios en antenas, colectivos e incidencias; borra conexiones caídas |
 | Stream de `colectivos` (KEYS_ONLY) | AWS DynamoDB | — | base | Para el difusor |
 | Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |
+| Secreto de Azure | AWS Secrets Manager | `telecorp/<stage>/azure` | manual | `{acsEndpoint, acsKey, acsSender, mapsKey}`; lo leen las Lambdas con `LabRole`. Se crea con `az` (no está en el repo) |
+| Azure Communication Services + Email Service + dominio administrado | Azure | `tccomm*`, `tcemail*` (grupo `rg-telecorp-probe2`, ubicación `global`) | manual | Correo transaccional. Límite del dominio administrado: 5/min y 10/h (el código respeta 5/min y 8/h) |
+| Azure Maps (Gen2) | Azure | `tcmaps*` (ubicación `global`) | manual | Clima actual (`weather/currentConditions`) |
+| Lambda `nubes` | AWS Lambda + API Gateway | `telecorp-api-<stage>-nubes` | api | `GET /api/nubes` (solo operadores): mide en vivo AWS y Azure; sondas con cupo de 1 cada 5 min por servicio |
+| Contadores, cupos y disyuntores de las integraciones | AWS DynamoDB | `telecorp-<stage>-dedup` (`NUBE#`, `LIMITE#`, `DISYUNTOR#`) | base | Sin tablas nuevas |
+| Modelo de ML del triage | AWS Lambda (layer común) | `telecorp/ml/triage_modelo.json` (329 KB) | base | Entrenado fuera de la nube con `ml/triage/entrenar.py`; solo se ejecuta aquí |

@@ -1,4 +1,5 @@
 """Reglas de negocio puras (sin AWS). Fuente de verdad: docs/arquitectura.md > Reglas de negocio."""
+import math
 
 ESTADOS_ANTENA = ("INHABILITADA", "CAIDA", "NORMAL", "SATURADA")
 # Orden de gravedad para resumir una zona por su peor antena (mayor = peor).
@@ -6,7 +7,16 @@ GRAVEDAD_ANTENA = {"SIN_DATOS": 0, "NORMAL": 1, "SATURADA": 2, "CAIDA": 3, "INHA
 
 
 def clasificar_antena(gb_por_minuto: float) -> str:
-    """0 → INHABILITADA; <60 → CAIDA; 60..129 → NORMAL; >129 → SATURADA."""
+    """0 → INHABILITADA; <60 → CAIDA; 60..129 → NORMAL; >129 → SATURADA.
+
+    Una métrica no física (NaN, ±inf, negativa o booleana) NO se clasifica en silencio: `ValueError`/`TypeError`.
+    Las comparaciones usan el valor original (int, float o Decimal) para no perder precisión en las fronteras.
+    """
+    if isinstance(gb_por_minuto, bool):
+        raise TypeError("gbPorMinuto no puede ser booleano")
+    numero = float(gb_por_minuto)
+    if not math.isfinite(numero) or numero < 0:
+        raise ValueError(f"gbPorMinuto inválido (debe ser finito y >= 0): {gb_por_minuto!r}")
     if gb_por_minuto <= 0:
         return "INHABILITADA"
     if gb_por_minuto < 60:
@@ -66,8 +76,8 @@ def validar_reporte(reporte: dict, zonas_validas: set) -> list:
 
 
 # ---------------- Privacidad ----------------
-def enmascarar(valor, visibles_inicio: int = 2, visibles_fin: int = 3) -> str:
-    """'70123456' → '70***456'. Para mostrar datos personales en el panel sin exponerlos completos."""
+def enmascarar(valor, visibles_inicio: int = 2, visibles_fin: int = 2) -> str:
+    """'70123456' → '70***56'. Deja visibles ≤ 4 de 8 dígitos (con 5 visibles quedaban solo 1.000 combinaciones por fuerza bruta)."""
     if not valor:
         return valor
     s = str(valor)
@@ -86,6 +96,29 @@ def enmascarar_email(email):
 # ---------------- Incidentes colectivos (E3) ----------------
 ESTADOS_COLECTIVO_ABIERTOS = {"EN_EVALUACION", "INCIDENCIA_CONFIRMADA"}
 ESTADOS_ANTENA_FALLA = {"INHABILITADA", "CAIDA"}  # disparan detección proactiva
+# La VERIFICACIÓN de un colectivo (H24) también considera SATURADA: con 10 usuarios reportando "Internet lento" una antena
+# saturada ES la causa. No dispara detección proactiva (una saturación pasajera no justifica abrir un incidente).
+ESTADOS_ANTENA_VERIFICACION = ESTADOS_ANTENA_FALLA | {"SATURADA"}
+
+
+# Reporte de texto libre (`OTRO`) clasificado por la IA: "la IA solo suma". Un OTRO cuenta para disparar un colectivo
+# únicamente si la IA REAL lo clasificó como problema del servicio con confianza suficiente y un tipo del catálogo; si la IA
+# falla, no responde o duda, sigue sin contar (como antes). La IA nunca resta reportes que las reglas ya cuentan.
+UMBRAL_CONFIANZA_TRIAGE_IA = 0.8       # IA generativa (Gemini): cuando se activa el triage de texto
+UMBRAL_CONFIANZA_TRIAGE_ML = 0.5       # modelo local (TF-IDF + regresión logística): se fija con la validación cruzada del entrenamiento
+                                       # (ml/triage/resultados.json); una prueba comprueba que coincide con el que guarda el modelo
+_UMBRAL_TRIAGE = {"IA": UMBRAL_CONFIANZA_TRIAGE_IA, "ML": UMBRAL_CONFIANZA_TRIAGE_ML}
+
+
+def triage_ia_confirma_servicio(triage) -> bool:
+    """¿Un reporte OTRO clasificado automáticamente cuenta como problema del servicio? Solo si lo clasificó un MODELO real (IA
+    generativa o ML local; nunca las reglas) con confianza suficiente y un tipo del catálogo."""
+    try:
+        umbral = _UMBRAL_TRIAGE.get(triage.get("fuente")) if isinstance(triage, dict) else None
+        return (umbral is not None and triage.get("relacionado") is True and float(triage.get("confianza", 0)) >= umbral
+                and triage.get("tipoSugerido") in TIPOS_PROBLEMA and triage.get("tipoSugerido") != "OTRO")
+    except (TypeError, ValueError):
+        return False
 
 
 def es_colectivo(usuarios_distintos: int, umbral: int = 10) -> bool:
