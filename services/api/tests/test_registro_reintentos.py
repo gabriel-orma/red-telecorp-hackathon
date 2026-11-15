@@ -42,7 +42,7 @@ def test_solo_los_errores_transitorios_se_reintentan():
 def test_un_choque_de_transaccion_se_resuelve_dentro_de_la_lambda(monkeypatch):
     intentos = []
 
-    def registrar(m):
+    def registrar(m, triage=None):   # con IA el worker pasa también el triage
         intentos.append(1)
         if len(intentos) < 3:
             raise conflicto()
@@ -56,7 +56,7 @@ def test_un_choque_de_transaccion_se_resuelve_dentro_de_la_lambda(monkeypatch):
 
 
 def test_si_el_choque_persiste_el_mensaje_vuelve_a_la_cola_con_espera_corta(monkeypatch):
-    monkeypatch.setattr(incidencias, "_registrar_incidencia", lambda m: (_ for _ in ()).throw(conflicto()))
+    monkeypatch.setattr(incidencias, "_registrar_incidencia", lambda m, triage=None: (_ for _ in ()).throw(conflicto()))
     llamadas = []
 
     class Sqs:
