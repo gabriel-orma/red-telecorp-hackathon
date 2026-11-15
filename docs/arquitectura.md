@@ -38,6 +38,8 @@
 - **Clasificación de antena** por GB/min: `0` → `INHABILITADA`; `<60` → `CAIDA`; `60..129` → `NORMAL`; `>129` → `SATURADA`.
 - **Estados de incidencia**: `REGISTRADA → EN_REVISION → EN_ATENCION → SOLUCIONADA → CERRADA`. Cada transición genera un evento de historial.
 - **Incidente colectivo**: al menos 10 `usuarioId` distintos con reportes en la misma `zonaId` en una ventana de menos de 24 h.
+- **Simulado vs operativo (D13)**: lo que nace de una simulación (escenarios de demo, fallas forzadas del simulador, vecinos ficticios) se cuenta aparte de lo operativo: ventana `VENTANA#<zona>~SIM`, candado `LOCK#COLECTIVO#<zona>~SIM` (ambos en la tabla `dedup`, sin recursos nuevos), series `SIM#…` en `estadisticas` y `simulado: true` en el colectivo. La analítica (`?datos=operativos|simulados`), la recurrencia y el estado público leen un universo por vez.
+- **Atención manual**: un colectivo en `REQUIERE_ATENCION` (el flujo automático se detuvo) lo retoma el operador con `POST /api/colectivos/{id}/restablecer`: se vuelve a reservar la zona (409 si ya hay otro abierto), se arranca una ejecución `reanudar` y el cierre es el flujo normal (avisos, incidencias solucionadas, historial).
 - **Prioridad**: función de los afectados, la criticidad de la zona (`contracts/zonas.json`) y las antenas en falla. La fórmula exacta va en `docs/decisiones/`.
 - **Recurrencia**: umbral pendiente de decisión (sugerencia: 3 o más incidentes de la misma antena en 7 días → `ESTRUCTURAL`).
 
