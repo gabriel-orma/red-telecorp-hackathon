@@ -248,3 +248,24 @@ def test_marcar_una_antena_simulada_no_alerta_al_noc_y_no_se_mezcla(aws, monkeyp
     # …y una marca operativa sí alerta.
     recurrencia.marcar({**ev, "antenaId": "ANT-014"}, None)
     assert len(publicados) == 1
+
+
+# ======================= «Reiniciar demo» solo toca lo simulado =======================
+def test_reiniciar_la_demo_no_cierra_los_incidentes_de_usuarios_reales(aws, monkeypatch):
+    import colectivos as api_colectivos
+    import escenarios as api_escenarios
+    config.escribir("escenario", {"activo": False})
+    config.escribir("simulador", {"activo": True, "fallas": {"ANT-013": 0}})
+    monkeypatch.setenv("FUNCION_SIMULADOR", "telecorp-test-simulador")
+    monkeypatch.setattr(api_escenarios._lambda, "invoke", lambda **kw: {})
+    monkeypatch.setattr(api_colectivos, "reanudar_huerfanos", lambda: [])
+    _colectivo("COL-REAL", "ZONA-05", False, 12, estado="INCIDENCIA_CONFIRMADA")
+    _colectivo("COL-SIM", "ZONA-03", True, 80, estado="INCIDENCIA_CONFIRMADA")
+    evento = {"requestContext": {"authorizer": {"jwt": {"claims": {"sub": "op-0001-abcd", "cognito:groups": "[operadores]"}}}}}
+    r = api_escenarios.reiniciar(evento, None)
+    assert r["statusCode"] == 200
+    real = tabla("colectivos").get_item(Key={"incidenteColectivoId": "COL-REAL"})["Item"]
+    sim = tabla("colectivos").get_item(Key={"incidenteColectivoId": "COL-SIM"})["Item"]
+    assert not real.get("restablecimientoSolicitado")                    # el incidente real sigue su curso
+    assert sim["restablecimientoSolicitado"] is True
+    assert config.leer("simulador", usar_cache=False)["fallas"] == {}    # y las fallas forzadas se quitan

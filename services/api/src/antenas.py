@@ -23,6 +23,7 @@ def listar_antenas(event, context):
             "actualizadoEn": act.get("actualizadoEn"),
             "estadoDesde": act.get("estadoDesde"),
             "estructural": act.get("estructural"),
+            "simulada": bool(act.get("simulada")),   # falla forzada del simulador (no es un dato operativo)
         })
     return http.ok({"antenas": salida, "generadoEn": util.ahora_iso()})
 

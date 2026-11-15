@@ -3,7 +3,8 @@
 GET  /api/escenarios          → estado del escenario en curso (o el último)
 POST /api/escenarios          → {tipo: TORMENTA | CORTE_ENERGIA, zonaId} lanza la Step Function `escenario`
 POST /api/escenarios/reiniciar → "Reiniciar demo": detiene el escenario, quita las fallas forzadas y
-                                 marca como restablecidos los incidentes abiertos (la SFN de cada uno los cierra).
+                                 marca como restablecidos SOLO los incidentes SIMULADOS abiertos (la SFN de cada uno los
+                                 cierra). Los incidentes operativos (reportes reales) no se tocan nunca.
 """
 import json
 import os
@@ -59,7 +60,9 @@ def reiniciar(event, context):
     _lambda.invoke(FunctionName=os.environ["FUNCION_SIMULADOR"], InvocationType="Event",
                    Payload=json.dumps({"unaVez": True}).encode())
 
-    abiertos = db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+    abiertos = [c for c in db.scan_todo(db.tabla("colectivos"),
+                                        FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+                if reglas.es_simulado(c)]   # «Reiniciar demo» jamás cierra incidentes de usuarios reales
     actor = f"operador:{acceso.identidad(event)}"   # quién reinició la demo (contrato evento-historial: operador:<sub>)
     for c in abiertos:
         db.tabla("colectivos").update_item(Key={"incidenteColectivoId": c["incidenteColectivoId"]},

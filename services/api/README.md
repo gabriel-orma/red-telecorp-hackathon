@@ -22,11 +22,11 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 | `wss://…/<stage>` | `tiempo_real.conectar / desconectar / mensaje` | WebSocket del panel. El servidor solo envía `{tipo: antenas, colectivos o incidencias}`; el panel vuelve a pedir esos datos |
 | *(DynamoDB Streams)* | `tiempo_real.difundir` | Un aviso por tipo y lote (antenas: máx. 1 cada 2 s); `GoneException` → borra la conexión |
 | `GET /api/linea-tiempo?horas=1` | `linea_tiempo.linea_tiempo` | Datos para "rebobinar" la red (0.1–24 h): reportes con punto, estado inicial y cambios de cada antena, colectivos con sus cambios de estado y prioridad. El navegador calcula el estado en cada instante |
-| `GET /api/analitica?dias=7` | `analitica.analitica` | KPIs, zonas, antenas más problemáticas, tipos, duración y alcance de incidentes, recurrencia (caché de 60 s) |
-| `POST /api/recurrencia` 🛡️ | `analitica.ejecutar_recurrencia` | Ejecuta ahora la Step Function de recurrencia |
+| `GET /api/analitica?dias=7&datos=operativos` | `analitica.analitica` | KPIs, zonas, antenas más problemáticas, tipos, duración y alcance de incidentes, recurrencia (caché de 60 s). `datos=operativos` (por defecto) o `simulados`: **un universo por vez** (D13); `400` con otro valor |
+| `POST /api/recurrencia` 🛡️ | `analitica.ejecutar_recurrencia` | Ejecuta ahora la Step Function de recurrencia. Cuerpo opcional `{"simulados": true}`: evalúa las fallas simuladas (no alerta al NOC) |
 | `GET /api/escenarios` | `escenarios.obtener` | Estado del escenario de demo (oleada, reportes, antenas) |
 | `POST /api/escenarios` 🛡️ | `escenarios.lanzar` | `{tipo: TORMENTA o CORTE_ENERGIA, zonaId}` arranca la Step Function `escenario` (409 si ya hay uno en curso) |
-| `POST /api/escenarios/reiniciar` 🛡️ | `escenarios.reiniciar` | Reiniciar demo: detiene el escenario, quita fallas, restablece y reanuda incidentes |
+| `POST /api/escenarios/reiniciar` 🛡️ | `escenarios.reiniciar` | Reiniciar demo: detiene el escenario, quita fallas y restablece **solo los incidentes simulados** (los reales no se tocan) |
 | `POST /api/colectivos/reanudar` 🛡️ | `colectivos.reanudar` | Reanuda incidentes cuya Step Function se detuvo (p. ej. al apagarse el lab) |
 | `GET /`, `GET /{proxy+}` | `web.handler` | Frontend desde S3 privado (gzip + caché en memoria) |
 
