@@ -5,7 +5,7 @@ import { api, type Antena, type EstadoAntena, type Metrica, type Zona } from "..
 import { ESTADO, TIPO_ZONA } from "../../lib/estados";
 import { cn, haceCuanto } from "../../lib/utils";
 import { COLOR_NEU } from "./paleta";
-import { Cifra } from "./Piezas";
+import { ChipSimulado, Cifra } from "./Piezas";
 
 function Linea({ datos }: { datos: Metrica[] }) {
   const W = 260, H = 64, MAX = 170;
@@ -35,6 +35,8 @@ const ACCIONES: { etiqueta: string; valor: number | null; estado: EstadoAntena }
 
 interface Props {
   antena: Antena | null;
+  /** Solo los operadores pueden forzar fallas (la API lo exige); a los demás se les oculta el control. */
+  esOperador?: boolean;
   zona: Zona | undefined;
   forzada: number | undefined;
   onCerrar: () => void;
@@ -42,7 +44,7 @@ interface Props {
 }
 
 /** Tarjeta flotante con el detalle de una antena (estilo neumórfico). */
-export function DetalleAntenaNeu({ antena, zona, forzada, onCerrar, onForzar }: Props) {
+export function DetalleAntenaNeu({ antena, zona, forzada, esOperador = false, onCerrar, onForzar }: Props) {
   const [serie, setSerie] = useState<Metrica[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const id = antena?.antenaId;
@@ -56,10 +58,13 @@ export function DetalleAntenaNeu({ antena, zona, forzada, onCerrar, onForzar }: 
     return () => { vivo = false; clearInterval(t); };
   }, [id]);
 
+  const [error, setError] = useState<string | null>(null);
   const forzar = async (v: number | null) => {
     if (!antena) return;
-    setOcupado(true);
-    try { await onForzar(antena.antenaId, v); } finally { setOcupado(false); }
+    setOcupado(true); setError(null);
+    try { await onForzar(antena.antenaId, v); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo aplicar el cambio"); }
+    finally { setOcupado(false); }
   };
 
   return (
@@ -73,6 +78,7 @@ export function DetalleAntenaNeu({ antena, zona, forzada, onCerrar, onForzar }: 
             <div>
               <div className="cifra text-base font-bold">{antena.antenaId}</div>
               <div className="text-xs text-tenue">{zona?.nombre} · {zona && TIPO_ZONA[zona.tipo].etiqueta}</div>
+              {(antena.simulada || forzada !== undefined) && <ChipSimulado className="mt-1" />}
             </div>
             <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
               style={{ background: `${COLOR_NEU[antena.estado]}22`, color: COLOR_NEU[antena.estado] }}>
@@ -97,7 +103,9 @@ export function DetalleAntenaNeu({ antena, zona, forzada, onCerrar, onForzar }: 
             <Linea datos={serie} />
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          {esOperador && (<>
+          <div className="mt-3 text-[10px] text-tenue">Simulación (solo operadores): fuerza una lectura para probar el flujo; queda marcada como simulada.</div>
+          <div className="mt-1 grid grid-cols-3 gap-2">
             {ACCIONES.map((a) => (
               <button key={a.etiqueta} disabled={ocupado} onClick={() => forzar(a.valor)}
                 className="boton-neu py-2 text-[11px] font-semibold disabled:opacity-50" style={{ color: COLOR_NEU[a.estado] }}>
@@ -109,6 +117,8 @@ export function DetalleAntenaNeu({ antena, zona, forzada, onCerrar, onForzar }: 
             className={cn("degradado mt-2 w-full rounded-xl py-2.5 text-xs font-semibold text-white transition-opacity disabled:opacity-40")}>
             {forzada === undefined ? "Funcionando sin fallas forzadas" : `Restaurar (forzada a ${forzada} GB/min)`}
           </button>
+          {error && <p role="alert" className="mt-2 text-[11px] text-caida">{error}</p>}
+          </>)}
         </motion.div>
       )}
     </AnimatePresence>

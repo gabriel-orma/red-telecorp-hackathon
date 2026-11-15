@@ -102,6 +102,13 @@
         }
       }
     },
+    "simulacion": {
+      "type": "object",
+      "description": "Incidentes de simulación abiertos. NO cuentan en el semáforo ni en `colectivos`: este contrato refleja solo lo operativo",
+      "properties": {
+        "colectivosAbiertos": { "type": "integer" }
+      }
+    },
     "colectivos": {
       "type": "array",
       "items": {

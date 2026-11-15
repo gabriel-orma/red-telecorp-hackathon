@@ -1,5 +1,6 @@
 // Cliente del API (mismo origen: /api). Los tipos siguen contracts/.
-import { tokenVigente } from "./auth";
+import { caducarSesion, tokenVigente } from "./auth";
+import { aproximarCoordenada } from "./utils";
 
 export type EstadoAntena = "NORMAL" | "SATURADA" | "CAIDA" | "INHABILITADA" | "SIN_DATOS";
 export type TipoZona = "RESIDENCIAL" | "COMERCIAL" | "INDUSTRIAL" | "EDUCATIVA" | "MEDICA" | "SERVICIOS_CRITICOS";
@@ -13,7 +14,9 @@ export interface Antena {
   gbPorMinuto: number | null;
   actualizadoEn: string | null;
   estadoDesde: string | null;
-  estructural?: { desde: string; fallas: number; ventanaDias: number } | null;
+  estructural?: { desde: string; fallas: number; ventanaDias: number; simulado?: boolean } | null;
+  /** La lectura actual viene de una falla forzada (simulación), no de la operación normal. */
+  simulada?: boolean;
 }
 
 export interface Zona {
@@ -43,15 +46,22 @@ export interface Metrica {
   estado: EstadoAntena;
 }
 
+// Consultas de lectura que no usan la identidad: no llevan el ID token (que contiene DNI y teléfono).
+const RUTAS_PUBLICAS = /^\/(estado|config|zonas|antenas)(\/|\?|$)|^\/colectivos(\?|$)/;
+
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  // Con sesión, el ID token acompaña a toda llamada: las rutas de operador lo exigen y las públicas lo ignoran.
-  const token = await tokenVigente();
+  // Con sesión, el ID token acompaña a las llamadas que lo necesitan; las consultas públicas de lectura van sin él.
+  const publica = (init?.method ?? "GET").toUpperCase() === "GET" && RUTAS_PUBLICAS.test(ruta);
+  const token = publica ? null : await tokenVigente();
   const r = await fetch(`/api${ruta}`, {
     ...init,
     headers: { "content-type": "application/json", ...(token ? { authorization: token } : {}), ...(init?.headers ?? {}) },
   });
   const datos = await r.json().catch(() => ({}));
-  if (r.status === 401) throw new Error("Inicia sesión para continuar (las pantallas de operador requieren una cuenta con rol de operador).");
+  if (r.status === 401) {
+    if (token) { caducarSesion(); throw new Error("Tu sesión caducó. Ingresa de nuevo para continuar."); }
+    throw new Error("Inicia sesión para continuar (las pantallas de operador requieren una cuenta con rol de operador).");
+  }
   if (!r.ok) throw new Error(datos.error ?? `Error ${r.status} en ${ruta}`);
   return datos as T;
 }
@@ -142,7 +152,7 @@ export const apiIncidencias = {
     pedir<{ incidencia: Incidencia }>(`/incidencias/${id}/estado`, {
       method: "PATCH", body: JSON.stringify({ estado, comentario }),
     }),
-  ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${lat}&lng=${lng}`),
+  ubicar: (lat: number, lng: number) => pedir<ZonaUbicada>(`/zonas/ubicar?lat=${aproximarCoordenada(lat)}&lng=${aproximarCoordenada(lng)}`),
 };
 
 // Vista de OPERADOR (JWT + grupo `operadores`): con el detalle del reporte. `apiIncidencias.listar/obtener` es la vista
@@ -188,6 +198,8 @@ export interface Colectivo {
   ejecucionArn?: string;
   duracionMinutos?: number;
   deteccionAnticipadaMin?: number | null;
+  /** Nació de una simulación (escenario de demo, falla forzada o vecinos ficticios): no cuenta como dato operativo. */
+  simulado?: boolean;
 }
 
 export interface DetalleColectivo {
@@ -199,7 +211,7 @@ export interface DetalleColectivo {
 export const apiColectivos = {
   listar: (todos = false) => pedir<{ colectivos: Colectivo[] }>(`/colectivos${todos ? "?todos=1" : ""}`),
   obtener: (id: string) => pedir<DetalleColectivo>(`/colectivos/${id}`),
-  restablecer: (id: string) => pedir<{ mensaje: string }>(`/colectivos/${id}/restablecer`, { method: "POST" }),
+  restablecer: (id: string) => pedir<{ mensaje: string; retomado?: boolean }>(`/colectivos/${id}/restablecer`, { method: "POST" }),
 };
 
 // ---------------- Portal público y cuenta (E3.5) ----------------
@@ -216,6 +228,8 @@ export interface EstadoRed {
            total24h: number; ultimaHora: number; baseHora: number; nivel: NivelRed }[];
   colectivos: { incidenteColectivoId: string; zonaId: string; nombre: string; estado: EstadoColectivo; prioridad: Prioridad;
                 afectados: number; detectadoEn: string; antenasEnFalla: number }[];
+  /** Incidentes de simulación abiertos: NO cuentan en este panel (que solo refleja reportes e incidentes reales). */
+  simulacion?: { colectivosAbiertos: number };
 }
 
 export interface MiReporte {
@@ -231,7 +245,10 @@ export const apiPortal = {
   estado: (zonaId?: string) => pedir<EstadoRed>(`/estado${zonaId ? `?zonaId=${zonaId}` : ""}`),
   reportar: (token: string, cuerpo: { tipo: TipoProblema; descripcion: string; ubicacion?: { lat: number; lng: number } }) =>
     conToken<{ incidenciaId: string; duplicado: boolean; zonaId?: string; ubicacionFuente?: "GPS" | "CUENTA"; mensaje?: string }>(
-      "/reportes", token, { method: "POST", body: JSON.stringify(cuerpo) }),
+      "/reportes", token, { method: "POST", body: JSON.stringify({
+        ...cuerpo,   // la posición exacta nunca sale del dispositivo: se envía redondeada (≈ 110 m)
+        ...(cuerpo.ubicacion ? { ubicacion: { lat: aproximarCoordenada(cuerpo.ubicacion.lat), lng: aproximarCoordenada(cuerpo.ubicacion.lng) } } : {}),
+      }) }),
   misReportes: (token: string) => conToken<{ reportes: MiReporte[] }>("/mis-reportes", token),
 };
 
@@ -251,7 +268,9 @@ export const apiEscenarios = {
 // ---------------- Analítica operativa (E6) ----------------
 export interface Analitica {
   dias: number; generadoEn: string;
-  kpis: { incidentes: number; abiertos: number; duracionPromedioMin: number | null; afectadosTotales: number;
+  /** Universo de datos: operativos (por defecto) o solo simulados. Nunca se mezclan. */
+  datos?: "OPERATIVOS" | "SIMULADOS";
+  kpis: { incidentes: number; abiertos: number; requierenAtencion?: number; duracionPromedioMin: number | null; afectadosTotales: number;
           deteccionAnticipadaPromedioMin: number | null; detectadosPrimeroPorLaRed: number; reportes: number };
   zonas: { zonaId: string; nombre: string; tipo: TipoZona; incidentes: number; reportes: number; afectados: number }[];
   antenas: { antenaId: string; zonaId: string; zona: string; fallas: number; estructural: boolean }[];
@@ -262,8 +281,9 @@ export interface Analitica {
   recurrencia: { umbralFallas: number; ventanaDias: number; ultimaEjecucion: string | null; estructurales: number };
 }
 export const apiAnalitica = {
-  obtener: (dias: number) => pedir<Analitica>(`/analitica?dias=${dias}`),
-  recurrencia: () => pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST" }),
+  obtener: (dias: number, simulados = false) => pedir<Analitica>(`/analitica?dias=${dias}${simulados ? "&datos=simulados" : ""}`),
+  recurrencia: (simulados = false) =>
+    pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST", body: JSON.stringify({ simulados }) }),
 };
 
 // ---------------- Línea de tiempo (editor de video) ----------------

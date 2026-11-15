@@ -91,6 +91,18 @@ export function EstadoPublico() {
         </motion.section>
       </AnimatePresence>
 
+      {estado.error && (
+        <p role="alert" className="mt-3 rounded-xl bg-saturada/10 px-4 py-2 text-xs text-saturada ring-1 ring-saturada/30">
+          No pudimos actualizar el estado{estado.ultimaCarga ? ` (último dato: ${haceCuanto(new Date(estado.ultimaCarga).toISOString())})` : ""}. Reintentando…
+        </p>
+      )}
+      {!!d?.simulacion?.colectivosAbiertos && (
+        <p role="status" className="mt-3 rounded-xl bg-acento/10 px-4 py-2 text-xs text-tenue ring-1 ring-acento/30">
+          Hay una <b className="text-texto">simulación en curso</b> ({d.simulacion.colectivosAbiertos} incidente{d.simulacion.colectivosAbiertos === 1 ? "" : "s"} simulado{d.simulacion.colectivosAbiertos === 1 ? "" : "s"}).
+          No se cuenta aquí: este panel solo refleja reportes e incidentes reales.
+        </p>
+      )}
+
       {/* Incidentes activos */}
       {d && d.colectivos.length > 0 && (
         <section className="mt-3 space-y-2">

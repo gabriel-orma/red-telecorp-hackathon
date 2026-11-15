@@ -15,7 +15,7 @@ export const ESTADO: Record<EstadoAntena, { etiqueta: string; color: string; ran
   SATURADA: { etiqueta: "Saturada", color: "#f5a524", rango: "> 129 GB/min" },
   CAIDA: { etiqueta: "Caída", color: "#f0506e", rango: "< 60 GB/min" },
   INHABILITADA: { etiqueta: "Inhabilitada", color: "#9a9aa6", rango: "0 GB/min" },
-  SIN_DATOS: { etiqueta: "Sin datos", color: "#4a4a55", rango: "sin lecturas" },
+  SIN_DATOS: { etiqueta: "Sin datos", color: "#7a7a88", rango: "sin lecturas" },
 };
 
 export const ORDEN_ESTADOS: EstadoAntena[] = ["NORMAL", "SATURADA", "CAIDA", "INHABILITADA"];

@@ -46,9 +46,10 @@ export function ControlEscenario({ zonas, zonaSugerida, onCambio }: { zonas: Zon
     setOcupado(true);
     try {
       const r = await apiEscenarios.reiniciar();
-      toast.custom(() => <Aviso texto={`Demo reiniciada · ${r.colectivosRestablecidos} incidente(s) en cierre`} />, { duration: 5000 });
+      toast.custom(() => <Aviso texto={`Demo reiniciada · ${r.colectivosRestablecidos} incidente(s) simulado(s) en cierre`} />, { duration: 5000 });
       await estado.refrescar(); setTimeout(onCambio, 1500);
-    } finally { setOcupado(false); }
+    } catch (err) { toast.custom(() => <Aviso texto={`No se pudo reiniciar la demo: ${err instanceof Error ? err.message : String(err)}`} />); }
+    finally { setOcupado(false); }
   };
 
   return (
@@ -76,7 +77,7 @@ export function ControlEscenario({ zonas, zonaSugerida, onCambio }: { zonas: Zon
           </motion.button>
         )}
       </AnimatePresence>
-      <button onClick={reiniciar} disabled={ocupado} title="Reiniciar demo: quita fallas y cierra incidentes" aria-label="Reiniciar demo"
+      <button onClick={reiniciar} disabled={ocupado} title="Reiniciar demo: quita las fallas forzadas y cierra solo los incidentes simulados (los reales no se tocan)" aria-label="Reiniciar demo"
         className="boton-neu grid size-11 place-items-center text-tenue disabled:opacity-50">
         {ocupado && !abierto ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
       </button>

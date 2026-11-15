@@ -106,6 +106,7 @@ export function EditorTiempo(p: Props) {
   };
 
   const teclado = (e: React.KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;   // Espacio/flechas en un botón hijo activan ese botón, no el atajo de la línea de tiempo
     const paso = span / 200;
     if (e.key === " ") { e.preventDefault(); p.onReproducir(!p.reproduciendo); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); p.onReproducir(false); p.onT(Math.max(desde, t - paso * (e.shiftKey ? 10 : 1))); }
@@ -294,7 +295,7 @@ const Pistas = memo(function Pistas({ linea, clipsCol, clipsAnt, alto, desde, ha
 });
 
 function Vacio({ texto }: { texto: string }) {
-  return <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-tenue/60">{texto}</span>;
+  return <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-tenue">{texto}</span>;
 }
 
 /** Cantidad de reportes por columna de ~3 px, en espejo (como la forma de onda de un audio). */

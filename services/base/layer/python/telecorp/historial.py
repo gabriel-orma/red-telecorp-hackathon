@@ -5,14 +5,15 @@ from telecorp import db, util
 
 
 def evento(entidad_id: str, entidad_tipo: str, tipo_evento: str, actor: str, detalle: str = "",
-           estado_anterior=None, estado_nuevo=None, ocurrido_en: str | None = None, token: str | None = None) -> dict:
+           estado_anterior=None, estado_nuevo=None, ocurrido_en: str | None = None, token: str | None = None,
+           simulado: bool = False) -> dict:
     """Construye el ítem del historial (sin escribirlo): sirve para incluirlo en una transacción.
 
     `token` fija la parte final de la clave de orden: con el mismo (`ocurrido_en`, `tipo_evento`, `token`) el evento es
     idempotente (un reintento no lo duplica). Sin `token`, es aleatorio y el evento siempre es nuevo.
     """
     ocurrido_en = ocurrido_en or util.ahora_iso()
-    return {
+    item = {
         "entidadId": entidad_id,
         # Clave de orden única aunque coincidan el instante y el tipo.
         "sk": f"{ocurrido_en}#{tipo_evento}#{token or secrets.token_hex(3)}",
@@ -24,10 +25,15 @@ def evento(entidad_id: str, entidad_tipo: str, tipo_evento: str, actor: str, det
         "estadoAnterior": estado_anterior,
         "estadoNuevo": estado_nuevo,
     }
+    if simulado:   # solo se escribe cuando es cierto: los eventos operativos quedan idénticos a los de siempre
+        item["simulado"] = True
+    return item
 
 
 def registrar(entidad_id: str, entidad_tipo: str, tipo_evento: str, actor: str, detalle: str = "",
-              estado_anterior=None, estado_nuevo=None, ocurrido_en: str | None = None, token: str | None = None) -> dict:
-    item = evento(entidad_id, entidad_tipo, tipo_evento, actor, detalle, estado_anterior, estado_nuevo, ocurrido_en, token)
+              estado_anterior=None, estado_nuevo=None, ocurrido_en: str | None = None, token: str | None = None,
+              simulado: bool = False) -> dict:
+    item = evento(entidad_id, entidad_tipo, tipo_evento, actor, detalle, estado_anterior, estado_nuevo, ocurrido_en, token,
+                  simulado)
     db.tabla("historial").put_item(Item=item, ConditionExpression="attribute_not_exists(sk)")
     return item

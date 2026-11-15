@@ -147,6 +147,9 @@ functions:
       - httpApi: { method: POST, path: "/api/colectivos/reanudar", authorizer: { name: cognito } }
   restablecerColectivo:
     handler: src/colectivos.restablecer
+    timeout: 30   # retomar un incidente en atención manual arranca una ejecución de Step Functions
+    environment:
+      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
     events:
       - httpApi: { method: POST, path: "/api/colectivos/{colectivoId}/restablecer", authorizer: { name: cognito } }
   # ---------- Tiempo real (E7): WebSocket + difusor ----------

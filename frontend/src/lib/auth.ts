@@ -11,6 +11,13 @@ interface Sesion { idToken: string; refreshToken: string; expira: number }
 const CLAVE = "telecorp.sesion";
 let config: Promise<Config> | null = null;
 const oyentes = new Set<() => void>();
+/** true cuando la sesión se perdió porque Cognito rechazó las credenciales (no por cerrar sesión): se muestra un aviso. */
+let caducada = false;
+
+/** Error de Cognito con su tipo (distingue una credencial rechazada de un fallo pasajero). */
+class ErrorCognito extends Error {
+  constructor(mensaje: string, readonly tipo: string) { super(mensaje); }
+}
 
 function obtenerConfig(): Promise<Config> {
   config ??= fetch("/api/config").then((r) => r.json());
@@ -25,7 +32,7 @@ async function cognito<T>(accion: string, cuerpo: object): Promise<T> {
     body: JSON.stringify(cuerpo),
   });
   const datos = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(traducirError(datos.__type, datos.message));
+  if (!r.ok) throw new ErrorCognito(traducirError(datos.__type, datos.message), String(datos.__type ?? ""));
   return datos as T;
 }
 
@@ -42,6 +49,7 @@ function leer(): Sesion | null {
   try { return JSON.parse(localStorage.getItem(CLAVE) ?? "null"); } catch { return null; }
 }
 function guardar(s: Sesion | null) {
+  if (s) caducada = false;   // volver a ingresar limpia el aviso
   try { s ? localStorage.setItem(CLAVE, JSON.stringify(s)) : localStorage.removeItem(CLAVE); } catch { /* sin almacenamiento */ }
   oyentes.forEach((f) => f());
 }
@@ -84,6 +92,26 @@ export async function iniciarSesion(email: string, password: string) {
 
 export function cerrarSesion() { guardar(null); }
 
+/** La sesión dejó de ser válida (refresh token vencido o ID token rechazado por el API): se cierra y se avisa en pantalla. */
+export function caducarSesion() {
+  const habia = leer() !== null;
+  guardar(null);
+  if (habia) { caducada = true; oyentes.forEach((f) => f()); }
+}
+
+export function descartarAvisoSesion() { caducada = false; oyentes.forEach((f) => f()); }
+
+/** ¿Hay que avisar que la sesión caducó? */
+export function useSesionCaducada(): boolean {
+  const [v, setV] = useState(caducada);
+  useEffect(() => {
+    const f = () => setV(caducada);
+    oyentes.add(f);
+    return () => { oyentes.delete(f); };
+  }, []);
+  return v;
+}
+
 /** ID token vigente (renueva con el refresh token si expiró). null si no hay sesión. */
 export async function tokenVigente(): Promise<string | null> {
   const s = leer();
@@ -97,9 +125,11 @@ export async function tokenVigente(): Promise<string | null> {
     const nueva = { ...s, idToken: r.AuthenticationResult.IdToken, expira: Date.now() + (r.AuthenticationResult.ExpiresIn - 60) * 1000 };
     guardar(nueva);
     return nueva.idToken;
-  } catch {
-    guardar(null);
-    return null;
+  } catch (e) {
+    // Solo una credencial rechazada (refresh token vencido o revocado) cierra la sesión, y se avisa. Un fallo de red o un error
+    // pasajero de Cognito conserva la sesión: se reintenta en la siguiente llamada en lugar de sacar al operador.
+    if (e instanceof ErrorCognito && /NotAuthorized|UserNotFound/.test(e.tipo)) { caducarSesion(); return null; }
+    return s.idToken;
   }
 }
 

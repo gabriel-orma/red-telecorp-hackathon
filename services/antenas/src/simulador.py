@@ -48,7 +48,10 @@ def metricas_actuales(fallas: dict, prob_saturacion: float) -> list:
     for a in zonas.antenas():
         forzado = fallas.get(a["antenaId"])
         gb = float(forzado) if forzado is not None else generar_valor(a["antenaId"], minuto, prob_saturacion)
-        salida.append({"antenaId": a["antenaId"], "zonaId": a["zonaId"], "medidoEn": medido_en, "gbPorMinuto": gb})
+        lectura = {"antenaId": a["antenaId"], "zonaId": a["zonaId"], "medidoEn": medido_en, "gbPorMinuto": gb}
+        if forzado is not None:
+            lectura["simulada"] = True   # falla forzada por una persona o un escenario: nunca es un dato operativo
+        salida.append(lectura)
     return salida
 
 

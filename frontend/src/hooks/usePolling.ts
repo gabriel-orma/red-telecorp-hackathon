@@ -37,6 +37,7 @@ export function usePolling<T>(cargar: () => Promise<T>, ms: number) {
     return ciclo;
   }, []);
 
+  // `cargar` está en las dependencias: al cambiar la zona o el rango (los llamadores usan useCallback) se recarga de inmediato.
   useEffect(() => {
     montado.current = true;
     refrescar();
@@ -44,7 +45,7 @@ export function usePolling<T>(cargar: () => Promise<T>, ms: number) {
       if (document.visibilityState === "visible") refrescar();
     }, ms);
     return () => { clearInterval(id); montado.current = false; };
-  }, [ms, refrescar]);
+  }, [ms, refrescar, cargar]);
 
   return { datos, error, ultimaCarga, refrescar };
 }

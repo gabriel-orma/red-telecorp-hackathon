@@ -36,7 +36,7 @@ export function Reportar() {
         } catch { setUbic({ estado: "cuenta", motivo: "estás fuera de las zonas de cobertura" }); }
       },
       () => setUbic({ estado: "cuenta", motivo: "no diste permiso de ubicación" }),
-      { enableHighAccuracy: true, timeout: 8000 },
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 8000 },   // aproximada: no hace falta el GPS fino
     );
   }, []);
 
@@ -62,14 +62,14 @@ export function Reportar() {
       <motion.form onSubmit={enviar} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-md space-y-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">¿Qué está fallando?</h1>
-          <p className="mt-1 text-sm text-tenue">Hola {perfil.nombre.split(" ")[0]}: tus datos y tu ubicación se completan solos.</p>
+          <p className="mt-1 text-sm text-tenue">Hola {(perfil.nombre || perfil.email || "").split(" ")[0]}: tus datos y tu ubicación se completan solos.</p>
         </div>
 
         {/* Ubicación automática */}
         <div className={cn("flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs ring-1",
           ubic.estado === "gps" ? "bg-normal/10 text-normal ring-normal/30" : ubic.estado === "cuenta" ? "bg-panel-2 text-texto/90 ring-borde" : "bg-panel-2 text-tenue ring-borde")}>
           {ubic.estado === "buscando" && <><Loader2 className="size-3.5 animate-spin" /> Detectando tu ubicación…</>}
-          {ubic.estado === "gps" && <><Navigation className="size-3.5" /> Estás en <b>{ubic.zona}</b> · GPS</>}
+          {ubic.estado === "gps" && <><Navigation className="size-3.5" /> Estás en <b>{ubic.zona}</b> · ubicación aproximada (~100 m)</>}
           {ubic.estado === "cuenta" && <><MapPin className="size-3.5 text-acento" /> Usaremos la zona de tu servicio <span className="text-tenue">({ubic.motivo})</span></>}
         </div>
 

@@ -293,7 +293,8 @@ def _repriorizar(col: dict) -> None:
                         detalle=f"Re-priorizado: {previa} → {prioridad} (puntaje {puntaje})")
     if prioridad == "CRITICA" and previa != "CRITICA" and os.environ.get("TOPICO_ALERTAS"):
         boto3.client("sns").publish(
-            TopicArn=os.environ["TOPICO_ALERTAS"], Subject="Red TeleCorp - Incidente escalado a CRITICO",
+            TopicArn=os.environ["TOPICO_ALERTAS"],
+            Subject=("[SIMULACION] " if reglas.es_simulado(col) else "") + "Red TeleCorp - Incidente escalado a CRITICO",
             Message=f"{col['incidenteColectivoId']} en {(zonas.zona(col['zonaId']) or {}).get('nombre')}: "
                     f"{len(col.get('usuariosAfectados', []))} afectados, {len(col.get('antenasEnFalla', []))} antenas en falla.")
 
@@ -335,7 +336,7 @@ def cerrar(event, context):
                   duracionMinutos=minutos)
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "CAMBIO_ESTADO", "STEP_FUNCTION", detalle=f"Duración: {minutos} min",
                         estado_anterior=col["estado"], estado_nuevo="CERRADO")
-    cc.liberar_lock(col["zonaId"], cid)
+    cc.liberar_lock(col["zonaId"], cid, reglas.es_simulado(col))
     return {"duracionMinutos": minutos}
 
 
@@ -361,11 +362,12 @@ def _atencion_manual(cid: str, detalle: str, causa: str = "") -> None:
     if col.get("estado") in ("CERRADO", "REQUIERE_ATENCION"):
         return  # idempotente (reintentos del propio manejador)
     ahora = util.ahora_iso()
-    cc.actualizar(cid, estado="REQUIERE_ATENCION", pasoActual="ATENCION_MANUAL", actualizadoEn=ahora)
+    cc.actualizar(cid, estado="REQUIERE_ATENCION", pasoActual="ATENCION_MANUAL", actualizadoEn=ahora,
+                  estadoAntesDeAtencion=col["estado"])
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "CAMBIO_ESTADO", "STEP_FUNCTION",
                         detalle=detalle + (f" · {causa}" if causa else ""),
                         estado_anterior=col["estado"], estado_nuevo="REQUIERE_ATENCION")
-    cc.liberar_lock(col["zonaId"], cid)
+    cc.liberar_lock(col["zonaId"], cid, reglas.es_simulado(col))
 
 
 def _mover_incidencias(col: dict, desde: set, hacia: str, detalle: str, liberar: bool = False, antes=None) -> None:
