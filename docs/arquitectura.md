@@ -7,59 +7,9 @@
 
 ## Vista general
 
-```mermaid
-flowchart LR
-  subgraph Usuarios
-    U["Portal del usuario<br/>(reporta)"]
-    O["Centro de control<br/>del operador"]
-  end
+![Arquitectura implementada (AWS + Azure)](arquitectura.svg)
 
-  subgraph AWS["AWS · us-east-1 · 100 % serverless"]
-    direction LR
-    APIGW["API Gateway HTTP<br/>+ Cognito JWT"]
-    WSAPI["API Gateway<br/>WebSocket"]
-    LAPI["Lambda API<br/>(reportes, colectivos,<br/>/api/nubes)"]
-    SQSR[("SQS reportes<br/>+ DLQ")]
-    REG["Lambda<br/>registrarReporte"]
-    DDB[("DynamoDB<br/>incidencias · historial<br/>colectivos · antenas<br/>métricas · dedup")]
-    SCH["EventBridge<br/>Scheduler"]
-    SIM["Lambda simulador<br/>de antenas"]
-    SQSM[("SQS métricas<br/>+ DLQ")]
-    CLA["Lambda<br/>clasificador"]
-    DET["Lambda detector<br/>(10 usuarios / zona / 24 h<br/>o antena en falla)"]
-    SFN{{"Step Functions<br/>incidente-colectivo"}}
-    SFN2{{"Step Functions<br/>escenario · recurrencia"}}
-    NOT["Lambda notificar<br/>(lotes idempotentes)"]
-    RES["Lambda resumir<br/>(análisis del incidente)"]
-    SM["Secrets Manager + SSM<br/>(claves de Azure e IA,<br/>reglas de negocio)"]
-    SNS["SNS<br/>(respaldo de avisos)"]
-  end
-
-  subgraph AZ["Microsoft Azure · recursos globales"]
-    ACS["Communication Services<br/>correo transaccional"]
-    MAPS["Azure Maps<br/>clima actual de la zona"]
-  end
-
-  IA["API de IA (Gemini)<br/>opcional · NO cuenta como nube<br/>respaldo: reglas deterministas"]
-
-  U --> APIGW
-  O --> APIGW
-  O <-.->|tiempo real| WSAPI
-  APIGW --> LAPI --> SQSR --> REG --> DDB
-  SCH --> SIM --> SQSM --> CLA --> DDB
-  DDB -->|Streams| DET --> SFN
-  DDB -->|Streams| WSAPI
-  SFN --> RES
-  SFN --> NOT
-  SFN2 --> DDB
-  RES -->|clima| MAPS
-  RES -.->|texto agregado, sin PII| IA
-  NOT -->|HTTPS + firma HMAC| ACS
-  NOT -.->|si Azure no puede| SNS
-  RES & NOT & LAPI -.->|leen claves| SM
-  LAPI -->|sonda de estado| ACS
-  LAPI -->|sonda de estado| MAPS
-```
+*Diagrama fiel a los recursos desplegados (stage `dev-rodrigo`). Se regenera con la lista de recursos del inventario de abajo; el SVG se puede abrir en el navegador para verlo a pantalla completa.*
 
 **Qué hace cada nube (y por qué la integración es real):**
 
