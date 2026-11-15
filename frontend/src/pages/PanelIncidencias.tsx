@@ -5,6 +5,7 @@ import { apiIncidencias, apiOperador, type DetalleIncidencia, type EstadoInciden
 import { ESTADO, ESTADO_INCIDENCIA, ORDEN_INCIDENCIA, TIPO_PROBLEMA, TIPO_ZONA } from "../lib/estados";
 import { usePolling } from "../hooks/usePolling";
 import { ChipEstado, Historial, Progreso } from "../components/LineaTiempo";
+import { ChipTriage } from "../components/neu/TarjetaIA";
 import { cn, haceCuanto } from "../lib/utils";
 
 export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
@@ -131,6 +132,7 @@ function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void;
 
         <div className="rounded-xl bg-fondo/60 p-3 text-sm">
           <p className="whitespace-pre-wrap">{d.incidencia.reporte.descripcion}</p>
+          {d.incidencia.iaTriage && <ChipTriage triage={d.incidencia.iaTriage} />}
           <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-tenue">
             <dt>Usuario</dt><dd className="cifra text-texto">{d.incidencia.reporte.usuarioId}</dd>
             <dt>Servicio</dt><dd className="cifra text-texto">{d.incidencia.reporte.numeroServicio}</dd>
