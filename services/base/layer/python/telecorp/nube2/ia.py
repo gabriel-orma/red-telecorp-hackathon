@@ -307,7 +307,7 @@ def triage_reporte(texto, tipo_declarado: str, plazo_s: float = 4.0) -> dict:
         return {**base, "motivo": motivo}
     v = validar_triage(datos)
     if v is None:
-        estado.anotar(SERVICIO, False, error="SALIDA_INVALIDA")
+        estado.anotar(SERVICIO, False, error="SALIDA_INVALIDA", cuenta=False)   # la llamada ya se contó al recibir la respuesta
         return {**base, "motivo": "SALIDA_INVALIDA"}
     return {**v, "fuente": "IA", "proveedor": "gemini", "modelo": modelo_configurado()}
 
@@ -408,7 +408,7 @@ def analizar_colectivo(ctx: dict, plazo_s: float = 8.0) -> dict:
         return {**base, "motivoFallback": motivo}
     v = validar_analisis(datos)
     if v is None:
-        estado.anotar(SERVICIO, False, error="SALIDA_INVALIDA")
+        estado.anotar(SERVICIO, False, error="SALIDA_INVALIDA", cuenta=False)   # la llamada ya se contó al recibir la respuesta
         return {**base, "motivoFallback": "SALIDA_INVALIDA"}
     return {"fuente": "IA", "proveedor": "gemini", "modelo": modelo_configurado(), "generadoEn": util.ahora_iso(), **v,
             "clima": ctx.get("clima") or None}

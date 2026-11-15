@@ -548,6 +548,23 @@ def test_con_fallas_forzadas_en_el_simulador_tampoco_se_llama(nubes):
     config.escribir("simulador", {"fallas": {}})
 
 
+def test_el_contador_del_tablero_cuenta_solo_llamadas_reales(aws):
+    estado.anotar("gcp-gemini", False, estado="NO_CONFIGURADA")                                   # no se llamó a nadie
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 0
+    estado.anotar("gcp-gemini", True, 120)                                                         # una llamada real
+    estado.anotar("gcp-gemini", False, error="SALIDA_INVALIDA", cuenta=False)                      # la misma llamada, segunda anotación
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 1
+    estado.anotar("gcp-gemini", False, 80, error="HTTP_429")                                       # otra llamada (fallida): sí cuenta
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 2
+
+
+def test_una_respuesta_invalida_de_gemini_cuenta_como_una_sola_llamada(nubes):
+    nubes.gemini = lambda: gemini({"respuesta": "sin el formato esperado"})
+    r = ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}})
+    assert r["fuente"] == "REGLAS" and r["motivoFallback"] == "SALIDA_INVALIDA"
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 1 and len(nubes.a("generativelanguage.googleapis.com")) == 1
+
+
 # ================================================================ Notificador: canal Azure
 def _inc(usuario="u1", **reporte):
     return {"incidenciaId": f"INC-N{usuario}", "usuarioId": usuario, "zonaId": "ZONA-05",

@@ -100,11 +100,12 @@ def _servicio(clave_tablero: str, configurado: bool, sonda) -> dict:
     return _desde_tablero(fila, ignorar_vigencia=True) or {"estado": "ERROR", "detalle": "sin respuesta de la nube"}
 
 
-def _gemini(modelo: str | None, fila: dict | None) -> dict:
+def _gemini(modelo: str | None, fila: dict | None, desactivada: bool = False) -> dict:
     """Gemini NO se sondea desde aquí (cada llamada gasta cupo gratuito): se informa su último uso REAL. Si nunca se usó o no hay
     datos, se dice «sin datos»: no se afirma que funcione sin haberlo llamado."""
     if not modelo:
-        return {"estado": "SIN_CONFIGURAR"}
+        # con clave pero apagada: se dice (no es lo mismo que «sin configurar»); el análisis usa reglas y la interfaz lo rotula
+        return {"estado": "SIN_CONFIGURAR", "detalle": "desactivada (habilitada = false): el análisis usa reglas"} if desactivada else {"estado": "SIN_CONFIGURAR"}
     ultimo = _desde_tablero(fila, ignorar_vigencia=True)
     if ultimo:
         return {**ultimo, "detalle": ultimo.get("detalle") or f"modelo {modelo}"}
@@ -116,12 +117,14 @@ def obtener(event, context):
     azure = secretos.leer("azure") or {}
     acs_ok = all(azure.get(k) for k in ("acsEndpoint", "acsKey", "acsSender"))
     maps_ok = bool(azure.get("mapsKey"))
-    modelo = ia.modelo_configurado()
+    modelo = ia.modelo_configurado()                       # None si no hay clave o está apagada
+    cfg_ia = ia._config()
+    desactivada = bool(cfg_ia and not ia.gemini_habilitado(cfg_ia))
     gemini = estado.leer_tablero().get("gcp-gemini")
     return http.ok({
         "aws": _aws(),
         "azure": {"acsEmail": _servicio("azure-acs", acs_ok, _sonda_acs),
                   "maps": _servicio("azure-maps", maps_ok, _sonda_maps)},
-        "ia": {"gemini": _gemini(modelo, gemini)},
+        "ia": {"gemini": _gemini(modelo, gemini, desactivada)},
         "generadoEn": util.ahora_iso(),
     })

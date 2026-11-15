@@ -99,3 +99,9 @@ def test_gemini_configurada_pero_sin_llamadas_no_se_marca_operativa(monkeypatch)
     assert nubes._gemini("gemini-x", fila())["estado"] == "OK"                      # solo tras una llamada real exitosa
     err = nubes._gemini("gemini-x", fila("ERROR", hace_s=99999, ultimoError="HTTP_429"))
     assert err["estado"] == "ERROR" and err["detalle"] == "HTTP_429"
+
+
+def test_gemini_con_clave_pero_apagada_lo_dice_y_no_marca_operativa():
+    r = nubes._gemini(None, fila(), desactivada=True)            # aunque haya una llamada vieja con éxito
+    assert r["estado"] == "SIN_CONFIGURAR" and "desactivada" in r["detalle"]
+    assert nubes._gemini(None, None, desactivada=False) == {"estado": "SIN_CONFIGURAR"}
