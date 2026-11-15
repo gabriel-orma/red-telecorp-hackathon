@@ -49,7 +49,8 @@ def metricas_actuales(fallas: dict, prob_saturacion: float, desfase_s: float = 0
     for a in zonas.antenas():
         forzado = fallas.get(a["antenaId"])
         gb = float(forzado) if forzado is not None else generar_valor(a["antenaId"], minuto, prob_saturacion)
-        lectura = {"antenaId": a["antenaId"], "zonaId": a["zonaId"], "medidoEn": medido_en, "gbPorMinuto": gb}
+        # `programada`: la generó este simulador → al procesarla se aplican las fallas vigentes (motor_antenas.vigentes)
+        lectura = {"antenaId": a["antenaId"], "zonaId": a["zonaId"], "medidoEn": medido_en, "gbPorMinuto": gb, "programada": True}
         if forzado is not None:
             lectura["simulada"] = True   # falla forzada por una persona o un escenario: nunca es un dato operativo
         salida.append(lectura)

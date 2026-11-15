@@ -39,7 +39,6 @@ functions:
           arn: ${cf:${self:custom.base}.ColaMetricasArn}
           batchSize: 36
           maximumBatchingWindow: 1
-          maximumConcurrency: 2   # mínimo de AWS; el tope real es reservedConcurrency
           functionResponseType: ReportBatchItemFailures
 
 resources:

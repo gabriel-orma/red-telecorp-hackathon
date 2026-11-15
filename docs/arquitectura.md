@@ -25,7 +25,7 @@
 
 | Decisión | Motivo |
 |---|---|
-| SQS + DLQ delante de todo lo que escribe | Absorbe picos sin perder registros; las Lambdas escalan solas |
+| SQS + DLQ delante de todo lo que escribe | Absorbe picos sin perder registros; las Lambdas los procesan a su ritmo con tope de concurrencia (D14: máx. 7 a la vez) |
 | DynamoDB on-demand + PITR | Serverless, multi-AZ por defecto, pago por uso, respaldo continuo |
 | DynamoDB Streams → detector | Reacción en tiempo casi real sin polling |
 | Step Functions | Flujos con estados, esperas y reintentos (incidente colectivo, recurrencia) |
@@ -59,20 +59,21 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Tabla `antenas` (Stream, PITR) | AWS DynamoDB | `telecorp-<stage>-antenas` | base | Estado actual |
 | Tabla `colectivos` (GSI `zona-estado`, PITR) | AWS DynamoDB | `telecorp-<stage>-colectivos` | base | Se usa desde E3 |
 | Tabla `dedup` (TTL 24 h) | AWS DynamoDB | `telecorp-<stage>-dedup` | base | Clave condicional `usuario#zona` (E2) |
-| Colas `reportes`, `metricas` + DLQ | AWS SQS | `telecorp-<stage>-{reportes,metricas}[-dlq]` | base | 3 reintentos → DLQ (14 d) |
+| Colas `reportes`, `metricas` + DLQ | AWS SQS | `telecorp-<stage>-{reportes,metricas}[-dlq]` | base | Visibilidad 60 s, 20 recepciones → DLQ (14 d). D14: absorben las esperas por el tope de concurrencia |
 | Parámetro del simulador | AWS SSM | `/telecorp/<stage>/simulador` | base | Fallas forzadas |
 | Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base | `{geminiApiKey, modelo}`; sin él, el análisis usa reglas |
 | Layer Python común | AWS Lambda | `telecorp-<stage>-comun` | base | `telecorp.*` |
-| Simulador + programación | AWS Lambda + EventBridge Scheduler | `telecorp-<stage>-simulador` | antenas | Apagado por defecto |
-| Clasificador | AWS Lambda (SQS) | `telecorp-<stage>-clasificador` | antenas | Respuesta parcial de lote |
-| HTTP API | AWS API Gateway v2 | `telecorp-<stage>-api` | api | `/api/*` + frontend |
+| Simulador + clasificador (una Lambda, **tope 1**) | AWS Lambda + EventBridge Scheduler + SQS | `telecorp-<stage>-simulador` | antenas | D14. Programación apagada por defecto; encola 4 lecturas/min con `DelaySeconds`; al procesarlas aplica las fallas vigentes |
+| HTTP API | AWS API Gateway v2 | `telecorp-<stage>-api` | api | `/api/*` → Lambda `api`; `/`, `/assets/*`, rutas de la SPA → S3 por integración `HTTP_PROXY` (sin Lambda, D14) |
+| Router único del API (**tope 2**) | AWS Lambda | `telecorp-<stage>-api` | api | D14: 26 rutas HTTP + WebSocket (`src/router.py`) |
+| Segundo plano (**tope 1**) | AWS Lambda (SQS + DynamoDB Streams ×3) | `telecorp-<stage>-segundo-plano` | api | D14: registrar reportes (triage ML) + difusor de avisos en vivo |
 | Tabla `dedup`: también el candado `COLECTIVO#zona` | AWS DynamoDB | `telecorp-<stage>-dedup` | base / workflows | Un solo colectivo abierto por zona |
 | Tópicos `avisos` y `alertas-operador` | AWS SNS | `telecorp-<stage>-{avisos,alertas-operador}` | base | Email a usuarios (FilterPolicy) y alertas del NOC |
 | Parámetro de reglas | AWS SSM | `/telecorp/<stage>/reglas` | base | Umbral colectivo, ventana, espera, pesos de prioridad (D7) |
 | DLQ del detector | AWS SQS | `telecorp-<stage>-detector-dlq` | base | `onFailure` de los streams |
-| Detector | AWS Lambda (DynamoDB Streams ×2) | `telecorp-<stage>-detector` | workflows | Filtro: INSERT de incidencias; antenas en CAIDA/INHABILITADA |
+| Motor `detector` (**tope 2**) | AWS Lambda (DynamoDB Streams ×2 + EventBridge 5 min + Step Functions) | `telecorp-<stage>-detector` | workflows | D14: detector (filtro INSERT / transición a falla), barrido de reconciliación y los 17 pasos de las 3 Step Functions (`src/motor.py`) |
 | Step Function `incidente-colectivo` | AWS Step Functions (Standard) | `telecorp-<stage>-incidente-colectivo` | workflows | Map, Choice, Wait, Retry, Catch, SNS directo |
-| User Pool + cliente web + trigger PreSignUp | AWS Cognito + Lambda | `telecorp-<stage>-usuarios`, `telecorp-<stage>-pre-registro` | base | D9: auto-confirmación y validación del perfil |
+| User Pool + cliente web + trigger PreSignUp | AWS Cognito + Lambda | `telecorp-<stage>-usuarios`, `telecorp-<stage>-pre-registro` | base | D9: auto-confirmación y validación del perfil. Lambda con **tope 1** (D14) |
 | Tabla `estadisticas` (TTL 35 d, PITR) | AWS DynamoDB | `telecorp-<stage>-estadisticas` | base | D10: contadores de 15 min |
 | GSI `usuario-fecha` en `incidencias` | AWS DynamoDB | — | base | "Mis reportes" |
 | Autorizador JWT (Cognito) | AWS API Gateway v2 | `cognito` | api | Protege `POST /api/reportes` y `/api/mis-reportes` |
@@ -82,13 +83,12 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Parámetro de la última recurrencia | AWS SSM | `/telecorp/<stage>/recurrencia` | base | |
 | WebSocket API | AWS API Gateway v2 (WebSocket) | `telecorp-<stage>-tiempo-real` | api | E7: `$connect`, `$disconnect`, `$default` (ping) |
 | Tabla `conexiones` (TTL 2 h) | AWS DynamoDB | `telecorp-<stage>-conexiones` | base | Conexiones abiertas del panel |
-| Línea de tiempo | AWS Lambda + HTTP API | `telecorp-api-<stage>-lineaTiempo` | api | `GET /api/linea-tiempo?horas=`: reportes, cambios de antenas (historial) y vida de los colectivos de la ventana; consultas en paralelo, caché de 2 s |
-| Difusor | AWS Lambda (DynamoDB Streams ×3) | `telecorp-api-<stage>-difusor` | api | Avisa a los paneles cambios en antenas, colectivos e incidencias; borra conexiones caídas |
+| Línea de tiempo | ruta del router `api` | `GET /api/linea-tiempo?horas=` | api | Solo operadores: reportes, cambios de antenas y vida de los colectivos; consultas en paralelo, caché de 2 s |
 | Stream de `colectivos` (KEYS_ONLY) | AWS DynamoDB | — | base | Para el difusor |
-| Bucket del frontend (versionado, privado) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por la Lambda `web` (CloudFront bloqueado) |
+| Bucket del frontend (versionado, lectura pública de objetos) | AWS S3 | `telecorp-api-<stage>-bucketfrontend-*` | api | Servido por el HTTP API sin Lambda (D14); `scripts/publicar-frontend.py` fija tipo, caché y gzip |
 | Secreto de Azure | AWS Secrets Manager | `telecorp/<stage>/azure` | manual | `{acsEndpoint, acsKey, acsSender, mapsKey}`; lo leen las Lambdas con `LabRole`. Se crea con `az` (no está en el repo) |
 | Azure Communication Services + Email Service + dominio administrado | Azure | `tccomm*`, `tcemail*` (grupo `rg-telecorp-probe2`, ubicación `global`) | manual | Correo transaccional. Límite del dominio administrado: 5/min y 10/h (el código respeta 5/min y 8/h) |
 | Azure Maps (Gen2) | Azure | `tcmaps*` (ubicación `global`) | manual | Clima actual (`weather/currentConditions`) |
-| Lambda `nubes` | AWS Lambda + API Gateway | `telecorp-api-<stage>-nubes` | api | `GET /api/nubes` (solo operadores): mide en vivo AWS y Azure; sondas con cupo de 1 cada 5 min por servicio |
+| Ruta `nubes` | ruta del router `api` | `GET /api/nubes` | api | `GET /api/nubes` (solo operadores): mide en vivo AWS y Azure; sondas con cupo de 1 cada 5 min por servicio |
 | Contadores, cupos y disyuntores de las integraciones | AWS DynamoDB | `telecorp-<stage>-dedup` (`NUBE#`, `LIMITE#`, `DISYUNTOR#`) | base | Sin tablas nuevas |
 | Modelo de ML del triage | AWS Lambda (layer común) | `telecorp/ml/triage_modelo.json` (329 KB) | base | Entrenado fuera de la nube con `ml/triage/entrenar.py`; solo se ejecuta aquí |

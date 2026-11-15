@@ -41,6 +41,14 @@ def test_toda_funcion_tiene_tope_de_concurrencia():
     assert not sin_tope, f"Funciones sin reservedConcurrency (podrían escalar sin límite): {sin_tope}"
 
 
+def test_colas_no_piden_mas_lectores_que_el_tope():
+    # AWS rechaza (CREATE_FAILED) un maximumConcurrency mayor que reservedConcurrency.
+    for n, f in _funciones().items():
+        for e in f.get("events", []):
+            if "sqs" in e and isinstance(e["sqs"], dict) and "maximumConcurrency" in e["sqs"]:
+                assert e["sqs"]["maximumConcurrency"] <= f["reservedConcurrency"], n
+
+
 def test_suma_de_topes_dentro_del_presupuesto():
     topes = {n: f["reservedConcurrency"] for n, f in _funciones().items()}
     total = sum(topes.values())

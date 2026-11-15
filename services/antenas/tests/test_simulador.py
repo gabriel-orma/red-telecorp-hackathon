@@ -54,6 +54,21 @@ def test_motor_antenas_despacha_por_tipo_de_evento(monkeypatch):
     llamadas = []
     monkeypatch.setattr(motor_antenas.clasificador, "handler", lambda e, c: llamadas.append("clasificar"))
     monkeypatch.setattr(motor_antenas.simulador, "handler", lambda e, c: llamadas.append("simular"))
-    motor_antenas.handler({"Records": [{}]}, None)
+    monkeypatch.setattr(motor_antenas.config, "leer", lambda *a, **k: {"fallas": {}})
+    motor_antenas.handler({"Records": [{"body": "{\"antenaId\": \"ANT-001\"}"}]}, None)
     motor_antenas.handler({}, None)
     assert llamadas == ["clasificar", "simular"]
+
+
+def test_lectura_programada_toma_las_fallas_vigentes():
+    import motor_antenas
+    base = {"antenaId": "ANT-013", "zonaId": "ZONA-05", "medidoEn": "2026-11-15T20:15:30Z", "gbPorMinuto": 95.0, "programada": True}
+    # Un escenario forzó la falla DESPUÉS de programarse la lectura: debe llegar caída, no normal.
+    caida = motor_antenas.vigentes(base, {"ANT-013": 0}, 0)
+    assert caida["gbPorMinuto"] == 0 and caida["simulada"] is True
+    # La falla se quitó después de programarse: la lectura vuelve a tráfico normal.
+    liberada = motor_antenas.vigentes({**base, "gbPorMinuto": 0.0, "simulada": True}, {}, 0)
+    assert reglas.clasificar_antena(liberada["gbPorMinuto"]) == "NORMAL" and "simulada" not in liberada
+    # Una lectura que no viene del simulador nunca se toca.
+    real = {k: v for k, v in base.items() if k != "programada"}
+    assert motor_antenas.vigentes(real, {"ANT-013": 0}, 0) == real

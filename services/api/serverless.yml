@@ -114,11 +114,10 @@ functions:
       - sqs:
           arn: ${cf:${self:custom.base}.ColaReportesArn}
           batchSize: 10
-          maximumConcurrency: 2   # mínimo que permite AWS; el tope real es reservedConcurrency
           functionResponseType: ReportBatchItemFailures
-      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaAntenasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 2, maximumRetryAttempts: 1 }
-      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaColectivosStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
-      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaIncidenciasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaAntenasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 5, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaColectivosStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 2, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaIncidenciasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 2, maximumRetryAttempts: 1 }
 
 resources:
   Resources:

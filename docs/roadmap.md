@@ -96,6 +96,9 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - **Simulación acelerada** (escenario `ACELERADA`): ~3 min, 4 eventos encadenados en zonas distintas (detección proactiva y por reportes, correlación, re-priorización, recuperación y cierre automático), con monitoreo cada 4 s y tiempo ×60 para la prioridad.
 - **UI a prueba de cambios rápidos**: un solo pedido en vuelo por dato (sin respuestas viejas), avisos del WebSocket con throttle en vez de debounce, toasts agrupados, filas que se deslizan al re-priorizarse y destello en filas nuevas.
 
+## D14: Presupuesto de concurrencia ✅
+- AWS Academy desactiva la cuenta con más de 10 Lambdas a la vez → 5 Lambdas con tope (suma 7), frontend sin Lambda, Step Functions y colas que esperan. Medido en la cuenta nueva: máximo 6. Ver [D14](decisiones/2026-11-15-presupuesto-concurrencia.md).
+
 ## E8: Extras de alcance ⬜
 - **Bot de Telegram** para reportar.
 - **PWA** instalable + notificaciones push.
