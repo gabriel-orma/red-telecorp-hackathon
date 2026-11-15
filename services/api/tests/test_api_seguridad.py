@@ -100,7 +100,7 @@ def test_serverless_yml_las_rutas_de_administracion_llevan_autorizador():
         ("PATCH", "/api/incidencias/{incidenciaId}/estado"), ("GET", "/api/colectivos/{colectivoId}"),
         ("POST", "/api/colectivos/{colectivoId}/restablecer"), ("POST", "/api/colectivos/reanudar"),
         ("POST", "/api/recurrencia"), ("POST", "/api/escenarios"), ("POST", "/api/escenarios/reiniciar"),
-        ("GET", "/api/nubes"),
+        ("GET", "/api/nubes"), ("GET", "/api/linea-tiempo"),
     }
     # el resto (incl. las vistas públicas de incidencias) debe ser de solo lectura
     assert all(m == "GET" for (m, _), auth in rutas.items() if not auth)
