@@ -17,7 +17,7 @@
 
 ## Cómo probarlo
 ```bash
-pytest                                 # 423 pruebas (35 nuevas: separación, atención manual y protección de lo real)
+pytest                                 # 424 pruebas (36 nuevas: separación, atención manual y protección de lo real)
 cd frontend && npx tsc -b && npx vite build
 ```
 En la nube (stage `dev-rodrigo`, desplegado desde esta rama): regresión `e2e_aws` **32/32**; una Tormenta simulada no altera lo operativo (incidencias, colectivos, contador `GLOBAL`, candados, ventanas y KPI idénticos antes y después, 16/16); 9 reales + Tormenta + 10.º real (10/10); retomar un incidente en atención manual (9/9); casos adversos (8/8); ML en Lambda 10/10; Azure Maps + correo entregado por ACS 11/11. Los scripts de prueba viven fuera del repo (laboratorio).
