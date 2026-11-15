@@ -95,6 +95,8 @@ export interface Incidencia {
   reporte: Reporte;
   incidenteColectivoId?: string | null;
   transicionesPermitidas: EstadoIncidencia[];
+  /** Solo en reportes OTRO y solo para operadores: quién clasificó el texto. `ML` = modelo propio local; `IA` = Gemini; `REGLAS` = sin modelo. */
+  iaTriage?: { fuente: "ML" | "IA" | "REGLAS"; relacionado: boolean; tipoSugerido: string; confianza: number; modelo?: string | null; motivo?: string };
 }
 
 export interface EventoHistorial {
