@@ -41,7 +41,8 @@ def listar(event, context):
     q = event.get("queryStringParameters") or {}
     items = db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("detectadoEn").gte(util.hace_iso(days=7)))
     if not q.get("todos"):
-        items = [c for c in items if c["estado"] in reglas.ESTADOS_COLECTIVO_ABIERTOS or c["estado"] == "SERVICIO_RESTABLECIDO"]
+        visibles = reglas.ESTADOS_COLECTIVO_ABIERTOS | {"SERVICIO_RESTABLECIDO", "REQUIERE_ATENCION"}   # atención manual: el operador debe verlo
+        items = [c for c in items if c["estado"] in visibles]
     items.sort(key=lambda c: (c["estado"] == "CERRADO", -float(c.get("puntajePrioridad", 0)), c["detectadoEn"]))
     return http.ok({"colectivos": [_publico(c) for c in items]})
 

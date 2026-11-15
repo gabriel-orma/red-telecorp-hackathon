@@ -76,10 +76,21 @@ def cargar_incidencias(ids: list, horas: int) -> list:
             if not i.get("incidenteColectivoId") and i["creadaEn"] > corte]
 
 
-def estados_antenas_zona(zona_id: str) -> dict:
+def antenas_zona(zona_id: str) -> tuple:
+    """({antenaId: estado}, {antenaId: estadoDesde}). `estadoDesde` es cuándo entró la antena en su estado actual (lo escribe el
+    clasificador): la «detección anticipada» se mide con ese instante, no con el momento en que la verificación la vio."""
     t = db.tabla("antenas")
-    return {a["antenaId"]: t.get_item(Key={"antenaId": a["antenaId"]}).get("Item", {}).get("estado", "SIN_DATOS")
-            for a in (zonas.zona(zona_id) or {}).get("antenas", [])}
+    estados, desde = {}, {}
+    for a in (zonas.zona(zona_id) or {}).get("antenas", []):
+        item = t.get_item(Key={"antenaId": a["antenaId"]}).get("Item", {})
+        estados[a["antenaId"]] = item.get("estado", "SIN_DATOS")
+        if item.get("estadoDesde"):
+            desde[a["antenaId"]] = item["estadoDesde"]
+    return estados, desde
+
+
+def estados_antenas_zona(zona_id: str) -> dict:
+    return antenas_zona(zona_id)[0]
 
 
 # ---------------- Ventana por zona (conteo exacto sin GSI) ----------------

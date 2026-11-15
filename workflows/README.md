@@ -21,7 +21,7 @@ Definición: [`statemachines/incidente-colectivo.yml`](statemachines/incidente-c
 | 5a | → con falla | Task + Map | Colectivo → INCIDENCIA_CONFIRMADA, incidencias → EN_ATENCION, aviso "identificamos una incidencia" |
 | 5b | → sin falla | Task + Map | Aviso honesto "seguimos evaluando" (**nunca** "falla confirmada"); el colectivo sigue EN_EVALUACION |
 | 6 | ¿Crítico? | **Choice** | Sí → SNS `alertas-operador` (**integración directa**, sin Lambda; si falla, el ciclo sigue) |
-| 7 | Monitorear ↔ Re-verificar | **Wait** + Task + Choice | Cada `esperaVerificacionSegundos` (300): restablecido / agotado / **escalar** (la falla apareció después) |
+| 7 | Monitorear ↔ Re-verificar | **Wait** + Task + Choice | Cada `esperaVerificacionSegundos` (30): restablecido / agotado / **escalar** (la falla apareció después) |
 | 8 | Restablecer → aviso → Cerrar | Task + Map + Task | Incidencias → SOLUCIONADA, duración registrada, zona liberada; **el cierre avisa a los rezagados** |
 | 9 | Replicar a la 2.ª nube | Task + **Catch** | **HOOK** (hoy no hace nada); si falla no bloquea el cierre |
 
@@ -72,7 +72,7 @@ Umbral provisional (TODO D7): **3 fallas en 7 días**, en SSM `/telecorp/<stage>
 **Prioridad con tiempo activo (E6)**: el paso de re-verificación recalcula el puntaje en cada vuelta (`afectados × criticidad × (1 + 0,25 × horas activo)` + antenas en falla). Solo deja historial cuando cambia el nivel.
 
 ## Configuración (SSM `/telecorp/<stage>/reglas` → `colectivo`)
-`esperaVerificacionSegundos` 300 · `maxIteraciones` 2000 · `maxMonitoreoMinutos` 2880 · `cierreSinReportesMinutos` 60 · `loteAvisos` 50.
+`esperaVerificacionSegundos` 30 · `maxIteraciones` 2000 · `maxMonitoreoMinutos` 2880 · `cierreSinReportesMinutos` 60 · `loteAvisos` 50.
 Para una demo en vivo baja `esperaVerificacionSegundos` a 10–15 y `cierreSinReportesMinutos` a 1–2 (y vuelve a subirlos después).
 
 ## Pendiente
@@ -93,5 +93,7 @@ O desde el panel: **Colectivos** → "Marcar servicio restablecido".
 
 ## Costos
 - El detector solo se invoca con reportes nuevos o con antenas en falla (filtro del stream).
-- Step Functions Standard: cada vuelta de monitoreo son ~9 eventos y 3 transiciones. Con espera de 300 s son ~864 transiciones
-  al día por incidente abierto (≈0,02 USD/día); con 30 s eran 8.640 (≈0,22 USD/día). El nivel gratuito cubre 4.000/mes.
+- Step Functions Standard: cada vuelta de monitoreo son ~9 eventos y 3 transiciones. Con la espera de 30 s (la de la demo: «Reiniciar
+  demo» y «restablecer» responden en segundos) son ~8.640 transiciones al día por incidente abierto (≈0,22 USD/día) y el tope de
+  2.000 vueltas lo limita a ≈17 h (≈0,15 USD por incidente). Con 300 s costaría 10 veces menos, pero restablecer tardaría hasta
+  5 min: si un stage va a quedar días con incidentes abiertos, súbela en SSM (`/telecorp/<stage>/reglas`). El nivel gratuito cubre 4.000/mes.
