@@ -17,10 +17,10 @@
 
 ## Cómo probarlo
 ```bash
-pytest                                 # 416 pruebas (28 nuevas de separación y atención manual)
+pytest                                 # 423 pruebas (35 nuevas: separación, atención manual y protección de lo real)
 cd frontend && npx tsc -b && npx vite build
 ```
-En la nube (stage `dev-rodrigo`, **pendiente**: las credenciales del lab caducaron durante esta sesión): desplegar, correr la regresión E2E y comprobar con una Tormenta que el estado público y la analítica operativa no cambian.
+En la nube (stage `dev-rodrigo`, desplegado desde esta rama): regresión `e2e_aws` **32/32**; una Tormenta simulada no altera lo operativo (incidencias, colectivos, contador `GLOBAL`, candados, ventanas y KPI idénticos antes y después, 16/16); 9 reales + Tormenta + 10.º real (10/10); retomar un incidente en atención manual (9/9); casos adversos (8/8); ML en Lambda 10/10; Azure Maps + correo entregado por ACS 11/11. Los scripts de prueba viven fuera del repo (laboratorio).
 
 ## Decisiones tomadas
 - D13 (ver arriba). Cambios de contrato **aditivos** (campos opcionales): requieren el OK de la otra persona según `AGENTS.md` §4; si se prefiere un PR solo de contratos, el commit `contracts(...)` se separa sin tocar nada más.
@@ -34,10 +34,14 @@ En la nube (stage `dev-rodrigo`, **pendiente**: las credenciales del lab caducar
 
 **Cosméticos**: «Nubes conectadas» cuenta PARCIAL como operativa (está explicado en pantalla); doble pedido de `/colectivos` y `/estado` en algunas pantallas; barra móvil de 8 botones < 44 px.
 
-**Sin verificar en la nube todavía**: PITR (restauración), redrive de la DLQ, alarmas de CloudWatch, prueba de carga con los cambios, y las 10 jornadas E2E sobre esta rama.
+**Hallazgos de la prueba en la nube** (corregidos): la función `restablecerColectivo` no tenía `MAQUINA_COLECTIVO` (502 al retomar; moto no ve `serverless.yml`; ahora hay una prueba que lo vigila) y una Tormenta lanzada sobre una zona con un incidente real abierto lo confirmaba con fallas de antenas ajenas y lo cerraba al terminar (las antenas son un estado compartido): `POST /api/escenarios` y `PUT /api/simulador` responden 409 en ese caso.
+
+**Límite conocido (importante)**: si un incidente real se abre *mientras* una simulación fuerza antenas de su zona, su verificación ve esas fallas y se cierra al normalizarse. No se puede evitar sin duplicar las antenas; la interfaz muestra «simulación en curso». Además, las fallas forzadas de antenas crean su propio colectivo simulado (sin usuarios) junto al operativo de los reportes reales.
+
+**Sin verificar en la nube todavía**: PITR (restauración), redrive de la DLQ, alarmas de CloudWatch, prueba de carga, WebSocket sin conexión.
 
 ## Pendiente / siguiente paso
-- Renovar credenciales del lab, desplegar en `dev-rodrigo` (no en el stage de Gabriel), correr la regresión y repetir las capturas con un stage limpio.
+- Repetir las capturas del video con un stage limpio (`dev-rodrigo` conserva ~30 incidentes de pruebas que cuentan como operativos).
 - Confirmar con Gabriel el stage único antes del video.
 
 ## Notas para los otros agentes
