@@ -14,6 +14,7 @@ exacto, descripción libre y datos de contacto solo los ve un operador autentica
 import json
 import math
 import os
+import random
 import sys as _sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -107,6 +108,7 @@ def _historial(entidad_id: str, operador: bool = False) -> list:
         for e in eventos:
             if str(e.get("actor", "")).startswith("operador:"):
                 e["actor"] = "OPERADOR"
+                e["detalle"] = ""   # el comentario libre del operador es interno; el público solo ve el cambio de estado
     return eventos
 
 
@@ -239,16 +241,55 @@ def _confirmar_dedup(rep: dict, incidencia_id: str) -> None:
             raise  # si la reserva ya caducó o es de otro reporte, no hay nada que extender
 
 
+REINTENTOS_LOCALES = 6   # choques de transacción entre reportes simultáneos: se resuelven en milisegundos, sin pasar por la cola
+_TRANSITORIOS = {"TransactionConflict", "ThrottlingError", "ProvisionedThroughputExceeded", "TransactionInProgressException"}
+_ERRORES_TRANSITORIOS = {"ProvisionedThroughputExceededException", "ThrottlingException", "RequestLimitExceeded",
+                         "TransactionInProgressException", "InternalServerError", "ServiceUnavailable"}
+
+
+def _es_transitorio(e: Exception) -> bool:
+    """¿Vale la pena reintentar YA? Choques de transacción (varios reportes del mismo colectivo a la vez) y limitación."""
+    if not isinstance(e, ClientError):
+        return False
+    codigo = e.response.get("Error", {}).get("Code")
+    if codigo == "TransactionCanceledException":
+        return any((r or {}).get("Code") in _TRANSITORIOS for r in e.response.get("CancellationReasons") or [])
+    return codigo in _ERRORES_TRANSITORIOS
+
+
+def _con_reintentos(operacion):
+    """Reintenta con espera exponencial y jitter solo los errores transitorios (la operación es idempotente: put condicional)."""
+    for intento in range(REINTENTOS_LOCALES):
+        try:
+            return operacion()
+        except Exception as e:  # noqa: BLE001
+            if intento == REINTENTOS_LOCALES - 1 or not _es_transitorio(e):
+                raise
+            time.sleep(min(0.05 * (2 ** intento), 1.0) * (0.5 + random.random()))
+
+
+def _reintentar_pronto(registro: dict) -> None:
+    """Si un mensaje igual falló, lo devuelve a la cola con espera creciente (5 s, 15 s, 45 s…) en vez de esperar toda la
+    visibilidad de la cola (180 s): un reporte transitoriamente rechazado no debe tardar 3 minutos en aparecer."""
+    try:
+        intentos = int((registro.get("attributes") or {}).get("ApproximateReceiveCount", 1))
+        _sqs.change_message_visibility(QueueUrl=os.environ["COLA_REPORTES_URL"], ReceiptHandle=registro["receiptHandle"],
+                                       VisibilityTimeout=min(5 * (3 ** (intentos - 1)), 90))
+    except Exception as e:  # noqa: BLE001 - es una optimización: sin ella queda la visibilidad normal de la cola
+        print(f"no se pudo acortar la visibilidad ({type(e).__name__})")
+
+
 def registrar(event, context):
     """Worker SQS: crea la incidencia de forma idempotente y atómica (los reintentos de SQS no duplican ni pierden)."""
     fallidos = []
     for r in event.get("Records", []):
         try:
             m = json.loads(r["body"])
-            _registrar_incidencia(m)
-            _confirmar_dedup(m["reporte"], m["incidenciaId"])
+            _con_reintentos(lambda: _registrar_incidencia(m))
+            _con_reintentos(lambda: _confirmar_dedup(m["reporte"], m["incidenciaId"]))
         except Exception as e:  # noqa: BLE001 - vuelve a la cola; tras 5 intentos, a la DLQ (con alarma)
             print(f"ERROR reporte {r.get('messageId')}: {e!r}")
+            _reintentar_pronto(r)
             fallidos.append({"itemIdentifier": r["messageId"]})
     return {"batchItemFailures": fallidos}
 

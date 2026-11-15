@@ -91,8 +91,8 @@ def verificar_infraestructura(event, context):
     cid = event["colectivoId"]
     cc.marcar_paso(cid, "VERIFICAR_INFRAESTRUCTURA")
     col = cc.obtener(cid)
-    estados = cc.estados_antenas_zona(col["zonaId"])
-    en_falla = [{"antenaId": a, "estado": e, "desde": util.ahora_iso()} for a, e in estados.items()
+    estados, desde = cc.antenas_zona(col["zonaId"])
+    en_falla = [{"antenaId": a, "estado": e, "desde": desde.get(a) or util.ahora_iso()} for a, e in estados.items()
                 if e in reglas.ESTADOS_ANTENA_VERIFICACION]
     cc.agregar_antenas(col, en_falla)
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "COMENTARIO", "STEP_FUNCTION",
@@ -155,8 +155,8 @@ def reverificar(event, context):
     if col.get("restablecimientoSolicitado"):  # el operador manda: no depende de leer antenas
         return {"restablecido": True, "via": "OPERADOR", "iteracion": iteracion, "agotado": False, "escalar": False}
 
-    estados = cc.estados_antenas_zona(col["zonaId"])
-    nuevas = [{"antenaId": a, "estado": e, "desde": util.ahora_iso()} for a, e in estados.items()
+    estados, desde = cc.antenas_zona(col["zonaId"])
+    nuevas = [{"antenaId": a, "estado": e, "desde": desde.get(a) or util.ahora_iso()} for a, e in estados.items()
               if e in reglas.ESTADOS_ANTENA_VERIFICACION]
     antes = len(col.get("antenasEnFalla", []))
     cc.agregar_antenas(col, nuevas)  # fallas que aparecieron durante el monitoreo
