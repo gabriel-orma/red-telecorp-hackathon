@@ -17,6 +17,7 @@ from telecorp import config, db, escenarios, historial, http, reglas, util, zona
 
 _sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 import acceso  # noqa: E402
+import incidentes_reales  # noqa: E402
 
 _sfn = boto3.client("stepfunctions")
 _lambda = boto3.client("lambda")
@@ -39,6 +40,11 @@ def lanzar(event, context):
         return http.error(400, f"Zona desconocida: {zona_id}")
     if config.leer("escenario", usar_cache=False).get("activo"):
         return http.error(409, "Ya hay un escenario en curso; espera a que termine o reinicia la demo")
+    # Protección de lo operativo: el escenario fuerza antenas de su zona y sus vecinas (la ACELERADA, de zonas al azar: cualquiera).
+    en_juego = None if tipo == "ACELERADA" else {z["zonaId"] for z in escenarios.zonas_afectadas(tipo, zona_id, zonas.zonas())}
+    reales = incidentes_reales.abiertos_en(en_juego)
+    if reales:
+        return http.error(409, incidentes_reales.mensaje(reales))
     ejecucion = _sfn.start_execution(stateMachineArn=os.environ["MAQUINA_ESCENARIO"],
                                      input=json.dumps({"tipo": tipo, "zonaId": zona_id}))
     return http.respuesta(202, {"ejecucionArn": ejecucion["executionArn"], "tipo": tipo, "zonaId": zona_id})

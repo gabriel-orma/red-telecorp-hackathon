@@ -6,6 +6,8 @@ candado por zona y su propia serie de contadores. Nada se borra: los datos simul
 """
 from datetime import timedelta
 
+import pytest
+
 from telecorp import config, estadisticas, reglas, util
 
 from conftest import colectivos, historial_de, insertar, item_incidencia, tabla
@@ -269,3 +271,91 @@ def test_reiniciar_la_demo_no_cierra_los_incidentes_de_usuarios_reales(aws, monk
     assert not real.get("restablecimientoSolicitado")                    # el incidente real sigue su curso
     assert sim["restablecimientoSolicitado"] is True
     assert config.leer("simulador", usar_cache=False)["fallas"] == {}    # y las fallas forzadas se quitan
+
+
+# ======================= Una simulación no puede alterar un incidente REAL abierto =======================
+def _evento_operador(cuerpo):
+    import json
+    return {"body": json.dumps(cuerpo), "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "op-0001-abcd", "cognito:groups": "[operadores]"}}}}}
+
+
+@pytest.fixture()
+def api_escenarios(aws, monkeypatch):
+    import escenarios as api
+    config.escribir("escenario", {"activo": False})
+    monkeypatch.setenv("MAQUINA_ESCENARIO", "arn:aws:states:us-east-1:123456789012:stateMachine:esc")
+    llamadas = []
+    monkeypatch.setattr(api, "_sfn", type("S", (), {"start_execution": staticmethod(lambda **kw: llamadas.append(kw) or {"executionArn": "arn:x"})})())
+    api.llamadas = llamadas
+    return api
+
+
+def _lanzar(api, tipo, zona):
+    return api.lanzar(_evento_operador({"tipo": tipo, "zonaId": zona}), None)
+
+
+def test_no_se_lanza_una_tormenta_sobre_una_zona_con_incidente_real_abierto(api_escenarios):
+    _colectivo("COL-REAL", "ZONA-05", False, 12, estado="INCIDENCIA_CONFIRMADA")
+    r = _lanzar(api_escenarios, "TORMENTA", "ZONA-05")
+    assert r["statusCode"] == 409 and "incidente real abierto" in r["body"]
+    assert api_escenarios.llamadas == []
+
+
+def test_tampoco_sobre_una_zona_vecina_que_la_tormenta_tambien_forzaria(api_escenarios):
+    from telecorp import escenarios as esc, zonas
+    vecina = esc.zonas_afectadas("TORMENTA", "ZONA-05", zonas.zonas())[1]["zonaId"]
+    _colectivo("COL-REAL", vecina, False, 12, estado="EN_EVALUACION")
+    assert _lanzar(api_escenarios, "TORMENTA", "ZONA-05")["statusCode"] == 409
+
+
+def test_una_zona_lejana_cerrada_o_simulada_no_bloquea(api_escenarios):
+    from telecorp import escenarios as esc, zonas
+    en_juego = {z["zonaId"] for z in esc.zonas_afectadas("TORMENTA", "ZONA-05", zonas.zonas())}
+    lejana = next(z["zonaId"] for z in zonas.zonas() if z["zonaId"] not in en_juego)
+    _colectivo("COL-LEJOS", lejana, False, 12, estado="INCIDENCIA_CONFIRMADA")   # real pero fuera de las zonas del escenario
+    _colectivo("COL-CERRADO", "ZONA-05", False, 12, estado="CERRADO")             # real pero ya cerrado
+    _colectivo("COL-SIM", "ZONA-05", True, 40, estado="INCIDENCIA_CONFIRMADA")    # simulado: otra simulación no lo altera
+    assert _lanzar(api_escenarios, "TORMENTA", "ZONA-05")["statusCode"] == 202
+
+
+def test_la_acelerada_toca_zonas_al_azar_asi_que_cualquier_incidente_real_la_bloquea(api_escenarios):
+    assert _lanzar(api_escenarios, "ACELERADA", "ZONA-05")["statusCode"] == 202
+    config.escribir("escenario", {"activo": False})
+    _colectivo("COL-REAL", "ZONA-01", False, 12, estado="INCIDENCIA_CONFIRMADA")
+    assert _lanzar(api_escenarios, "ACELERADA", "ZONA-05")["statusCode"] == 409
+
+
+@pytest.fixture()
+def api_simulador(aws, monkeypatch):
+    import importlib.util
+    import pathlib
+    ruta = pathlib.Path(__file__).resolve().parents[2] / "services" / "api" / "src" / "simulador.py"
+    spec = importlib.util.spec_from_file_location("api_simulador", ruta)
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    config.escribir("simulador", {"fallas": {"ANT-013": 35}, "probSaturacion": 0.03})
+    monkeypatch.setattr(modulo, "_schedule", lambda: {"State": "ENABLED", "Name": "x"})
+    monkeypatch.setenv("FUNCION_SIMULADOR", "telecorp-test-simulador")
+    monkeypatch.setattr(modulo._lambda, "invoke", lambda **kw: {})
+    return modulo
+
+
+def test_no_se_fuerza_una_antena_de_una_zona_con_incidente_real_abierto(api_simulador):
+    _colectivo("COL-REAL", "ZONA-05", False, 12, estado="INCIDENCIA_CONFIRMADA")   # ANT-013 es de ZONA-05
+    r = api_simulador.actualizar(_evento_operador({"fallas": {"ANT-013": 0}}), None)
+    assert r["statusCode"] == 409 and "incidente real abierto" in r["body"]
+    assert config.leer("simulador", usar_cache=False)["fallas"] == {"ANT-013": 35}   # no se tocó nada
+
+
+def test_si_se_permite_restaurar_o_forzar_en_otra_zona(api_simulador):
+    _colectivo("COL-REAL", "ZONA-05", False, 12, estado="INCIDENCIA_CONFIRMADA")
+    assert api_simulador.actualizar(_evento_operador({"fallas": {"ANT-013": None}}), None)["statusCode"] == 200     # restaurar
+    assert api_simulador.actualizar(_evento_operador({"fallas": {"ANT-001": 0}}), None)["statusCode"] == 200        # ANT-001 es de ZONA-01
+
+
+def test_las_funciones_que_arrancan_step_functions_declaran_su_maquina():
+    """Lección de la prueba en la nube: `restablecer` retomaba incidentes con Step Functions pero su función no tenía la variable (502)."""
+    from conftest import cargar_yaml
+    funciones = cargar_yaml("services/api/serverless.yml")["functions"]
+    for nombre in ("restablecerColectivo", "reanudarColectivos", "escenarioReiniciar"):
+        assert "MAQUINA_COLECTIVO" in (funciones[nombre].get("environment") or {}), nombre
