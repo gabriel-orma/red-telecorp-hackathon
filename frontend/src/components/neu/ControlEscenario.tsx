@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CloudLightning, Loader2, PlugZap, RotateCcw } from "lucide-react";
+import { CloudLightning, FastForward, Loader2, PlugZap, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { apiEscenarios, type EstadoEscenario, type TipoEscenario, type Zona } from "../../lib/api";
 import { usePolling } from "../../hooks/usePolling";
@@ -9,6 +9,7 @@ import { cn } from "../../lib/utils";
 const TIPOS: Record<TipoEscenario, { etiqueta: string; icono: typeof CloudLightning; detalle: string }> = {
   TORMENTA: { etiqueta: "Tormenta", icono: CloudLightning, detalle: "Caídas y saturación en la zona y sus vecinas" },
   CORTE_ENERGIA: { etiqueta: "Corte de energía", icono: PlugZap, detalle: "Las antenas de la zona se apagan una a una" },
+  ACELERADA: { etiqueta: "Acelerada", icono: FastForward, detalle: "3 min, 4 eventos encadenados empezando por la zona elegida: detección, priorización, recuperación y cierre automáticos (1 s cuenta como 1 min para la prioridad)" },
 };
 
 /** Botón "Simular" del mapa: lanza una tormenta o un corte de energía y muestra su avance. */
@@ -59,7 +60,9 @@ export function ControlEscenario({ zonas, zonaSugerida, onCambio }: { zonas: Zon
             {(() => { const I = TIPOS[e!.tipo ?? "TORMENTA"].icono; return <I className="latido size-4 text-[#e05ab0]" />; })()}
             <div className="text-xs leading-tight">
               <div className="font-semibold">{TIPOS[e!.tipo ?? "TORMENTA"].etiqueta} en curso</div>
-              <div className="text-[10px] text-tenue">Oleada {e!.oleada ?? 0} de {e!.total ?? "…"} · {e!.reportes ?? 0} reportes · {e!.antenas ?? 0} antenas</div>
+              <div className="max-w-[260px] truncate text-[10px] text-tenue">
+                {e!.tipo === "ACELERADA" ? `Paso ${e!.oleada ?? 0} de ${e!.total ?? "…"} · ${e!.narrativa ?? "preparando"}` : `Oleada ${e!.oleada ?? 0} de ${e!.total ?? "…"}`} · {e!.reportes ?? 0} reportes · {e!.antenas ?? 0} antenas
+              </div>
             </div>
             <div className="neu-hundido h-1.5 w-16 overflow-hidden rounded-full">
               <motion.div className="degradado h-full" animate={{ width: `${(100 * (e!.oleada ?? 0)) / (e!.total || 1)}%` }} />
@@ -82,8 +85,8 @@ export function ControlEscenario({ zonas, zonaSugerida, onCambio }: { zonas: Zon
         {abierto && !enCurso && (
           <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-            className="neu absolute right-0 top-14 z-30 w-72 origin-top-right space-y-3 p-4">
-            <div className="grid grid-cols-2 gap-2">
+            className="neu absolute right-0 top-14 z-30 w-80 origin-top-right space-y-3 p-4">
+            <div className="grid grid-cols-3 gap-2">
               {(Object.keys(TIPOS) as TipoEscenario[]).map((t) => {
                 const I = TIPOS[t].icono;
                 return (

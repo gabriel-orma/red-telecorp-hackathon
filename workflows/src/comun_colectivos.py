@@ -7,7 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from telecorp import db, historial, notificador, reglas, util, zonas
+from telecorp import db, escenarios, historial, notificador, reglas, util, zonas
 
 _sfn = boto3.client("stepfunctions")
 LOCK_DIAS = 7
@@ -158,6 +158,7 @@ def crear(zona_id: str, origen: str, detalle: str, incidencias: list, antenas: l
         return existente
 
     ahora = util.ahora_iso()
+    acelerada = _simulacion_acelerada()
     col = {
         "incidenteColectivoId": colectivo_id, "zonaId": zona_id, "origen": origen, "origenDetalle": detalle,
         "detectadoEn": ahora, "actualizadoEn": ahora, "resueltoEn": None,
@@ -166,6 +167,8 @@ def crear(zona_id: str, origen: str, detalle: str, incidencias: list, antenas: l
         "primerReporteEn": None, "primeraFallaEn": None,
         "prioridad": "BAJA", "puntajePrioridad": 0, "notificacionesEnviadas": 0,
         "restablecimientoSolicitado": False,
+        # Simulación acelerada: el tiempo activo cuenta x60 para la prioridad (escala en segundos, no en horas).
+        **({"factorTiempo": escenarios.FACTOR_TIEMPO_ACELERADA} if acelerada else {}),
     }
     db.tabla("colectivos").put_item(Item=util.a_dynamo(col))
     historial.registrar(colectivo_id, "INCIDENTE_COLECTIVO", "CREADO", "SISTEMA", detalle=detalle,
@@ -174,13 +177,28 @@ def crear(zona_id: str, origen: str, detalle: str, incidencias: list, antenas: l
     agregar_antenas(col, antenas)
 
     cfg = _reglas_colectivo()
+    espera = int(cfg.get("esperaVerificacionSegundos", 30))
+    if acelerada:
+        espera = min(espera, ESPERA_ACELERADA_S)
     ejecucion = _sfn.start_execution(
         stateMachineArn=os.environ["MAQUINA_COLECTIVO"], name=colectivo_id,
-        input=json.dumps({"colectivoId": colectivo_id, "esperaSegundos": int(cfg.get("esperaVerificacionSegundos", 30)),
+        input=json.dumps({"colectivoId": colectivo_id, "esperaSegundos": espera,
                           "monitoreo": {"iteracion": 0}}),
     )
     actualizar(colectivo_id, ejecucionArn=ejecucion["executionArn"])
     return colectivo_id
+
+
+ESPERA_ACELERADA_S = 4  # monitoreo cada 4 s durante la simulación acelerada (normal: 30 s)
+
+
+def _simulacion_acelerada() -> bool:
+    from telecorp import config
+    try:
+        e = config.leer("escenario", usar_cache=False)
+    except Exception:  # noqa: BLE001 - sin el parámetro, flujo normal
+        return False
+    return bool(e.get("activo") and e.get("tipo") == "ACELERADA")
 
 
 def _reglas_colectivo() -> dict:

@@ -118,7 +118,7 @@ def reverificar(event, context):
 def _calcular(col: dict) -> tuple:
     """Puntaje con afectados, criticidad de la zona, antenas en falla y horas activo (TODO D7: pesos en SSM)."""
     cfg = config.leer("reglas").get("prioridad", {})
-    horas = (util.ahora() - util.parse_iso(col["detectadoEn"])).total_seconds() / 3600
+    horas = (util.ahora() - util.parse_iso(col["detectadoEn"])).total_seconds() / 3600 * float(col.get("factorTiempo", 1))
     return reglas.calcular_prioridad(len(col.get("usuariosAfectados", [])), zonas.criticidad(col["zonaId"]),
                                      len(col.get("antenasEnFalla", [])), cfg, horas_activo=horas)
 

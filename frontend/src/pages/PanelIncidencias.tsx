@@ -1,9 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Inbox, Loader2, MapPin, X } from "lucide-react";
 import { apiIncidencias, type DetalleIncidencia, type EstadoIncidencia, type Incidencia, type Zona } from "../lib/api";
 import { ESTADO, ESTADO_INCIDENCIA, ORDEN_INCIDENCIA, TIPO_PROBLEMA, TIPO_ZONA } from "../lib/estados";
 import { usePolling } from "../hooks/usePolling";
+import { useAlCambiar, useConexionTiempoReal } from "../lib/tiempoReal";
 import { ChipEstado, Historial, Progreso } from "../components/LineaTiempo";
 import { cn, haceCuanto } from "../lib/utils";
 
@@ -12,12 +13,25 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
   const [estado, setEstado] = useState<EstadoIncidencia | "">("");
   const [seleccion, setSeleccion] = useState<string | null>(null);
 
+  const tiempoReal = useConexionTiempoReal();
   const lista = usePolling(
     useCallback(() => apiIncidencias.listar({ zonaId, horas: 24 * 7 }), [zonaId]),
-    5000,
+    tiempoReal ? 30_000 : 5000,
   );
+  useEffect(() => { lista.refrescar(); }, [zonaId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useAlCambiar(["incidencias"], lista.refrescar, 1200);
   const todas = lista.datos?.incidencias ?? [];
-  const visibles = estado ? todas.filter((i) => i.estado === estado) : todas;
+  const filtradas = estado ? todas.filter((i) => i.estado === estado) : todas;
+  const visibles = filtradas.slice(0, MAX_FILAS); // con ráfagas de miles de reportes, la lista no se traba
+  // Filas nuevas o que cambiaron de estado desde la carga anterior: destello breve (la primera carga no destella).
+  const previas = useRef<Map<string, string> | null>(null);
+  const [cambiadas, setCambiadas] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!lista.datos) return;
+    const ahora = new Map(lista.datos.incidencias.map((i) => [i.incidenciaId, i.estado as string]));
+    if (previas.current) setCambiadas(new Set([...ahora].filter(([id, e]) => previas.current!.get(id) !== e).map(([id]) => id)));
+    previas.current = ahora;
+  }, [lista.datos]);
   const conteo = (e: EstadoIncidencia) => todas.filter((i) => i.estado === e).length;
   const nombreZona = (id: string) => zonas.find((z) => z.zonaId === id)?.nombre ?? id;
 
@@ -54,9 +68,12 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
             </div>
           )}
           <ul className="divide-y divide-borde/60">
-            {visibles.map((i) => <FilaIncidencia key={i.incidenciaId} i={i} zona={nombreZona(i.zonaId)}
+            {visibles.map((i) => <FilaIncidencia key={i.incidenciaId} i={i} zona={nombreZona(i.zonaId)} nueva={cambiadas.has(i.incidenciaId)}
               activa={i.incidenciaId === seleccion} onClick={() => setSeleccion(i.incidenciaId)} />)}
           </ul>
+          {filtradas.length > MAX_FILAS && (
+            <p className="p-3 text-center text-[11px] text-tenue">Mostrando las {MAX_FILAS} más recientes de {filtradas.length}. Filtra por zona o estado para ver el resto.</p>
+          )}
         </div>
       </section>
 
@@ -66,6 +83,8 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
     </main>
   );
 }
+
+const MAX_FILAS = 250;
 
 function BotonFiltro({ activo, onClick, etiqueta, n, color }: { activo: boolean; onClick: () => void; etiqueta: string; n: number; color?: string }) {
   return (
@@ -77,10 +96,10 @@ function BotonFiltro({ activo, onClick, etiqueta, n, color }: { activo: boolean;
   );
 }
 
-function FilaIncidencia({ i, zona, activa, onClick }: { i: Incidencia; zona: string; activa: boolean; onClick: () => void }) {
+function FilaIncidencia({ i, zona, activa, nueva, onClick }: { i: Incidencia; zona: string; activa: boolean; nueva: boolean; onClick: () => void }) {
   const Icono = TIPO_PROBLEMA[i.tipo]?.icono ?? TIPO_PROBLEMA.OTRO.icono;
   return (
-    <li>
+    <li className={nueva ? "fila-destello" : undefined}>
       <button onClick={onClick} className={cn("flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-panel-2/60", activa && "bg-panel-2")}>
         <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-acento/10 text-acento"><Icono className="size-4" /></div>
         <div className="min-w-0 flex-1">

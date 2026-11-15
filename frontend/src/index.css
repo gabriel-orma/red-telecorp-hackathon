@@ -149,3 +149,8 @@ html.alto-contraste .tema-neu .neu-chico,
 html.alto-contraste .tema-neu .boton-neu,
 html.alto-contraste .tema-neu .panel { outline: 1px solid #5a5a66; }
 html.alto-contraste .tema-neu .neu-hundido { outline: 1px solid #44444f; }
+
+/* Fila nueva o que cambió de estado (tiempo real): destello breve que se apaga solo. */
+@keyframes destello { from { background: color-mix(in srgb, var(--color-acento) 18%, transparent); } to { background: transparent; } }
+.fila-destello { animation: destello 1.6s ease-out; }
+@media (prefers-reduced-motion: reduce) { .fila-destello { animation: none; } }

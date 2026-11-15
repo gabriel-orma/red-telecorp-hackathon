@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { BarChart3, ChartArea, Contrast, ListChecks, Map, Maximize2, Minimize2, Search, Siren, Smartphone } from "lucide-react";
+import { BarChart3, ChartArea, Contrast, Film, ListChecks, Map, Maximize2, Minimize2, Search, Siren, Smartphone } from "lucide-react";
 import { useConexionTiempoReal } from "../../lib/tiempoReal";
 import { enlace, useRuta } from "../../lib/router";
 import { cn, horaLima } from "../../lib/utils";
 
 const SECCIONES = [
   { ruta: "/", etiqueta: "Mapa en vivo", icono: Map },
+  { ruta: "/linea-tiempo", etiqueta: "Línea de tiempo", icono: Film },
   { ruta: "/incidencias", etiqueta: "Incidencias", icono: ListChecks },
   { ruta: "/colectivos", etiqueta: "Colectivos", icono: Siren },
   { ruta: "/analitica", etiqueta: "Analítica", icono: BarChart3 },

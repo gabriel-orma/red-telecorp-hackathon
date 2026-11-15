@@ -49,3 +49,16 @@ Mapa base: CARTO Dark Matter (gratuito, sin API key, con atribución).
 - **Reporte por voz** (`components/Dictado.tsx`): Web Speech API (`es-PE`); si el navegador no la soporta, el botón no aparece.
 - **Mapa 3D**: botón "3D" en la leyenda; las zonas se extruyen según los reportes de 24 h y la cámara se inclina.
 - **Modo sala** (pantalla completa, sin barra lateral ni listas largas) y **alto contraste**: botones en la barra superior, guardados en el navegador.
+
+## Línea de tiempo y simulación acelerada (E7.5)
+- `pages/LineaTiempoNeu.tsx` (`/linea-tiempo`): mapa ("monitor") + "En este instante" + editor.
+- `components/neu/EditorTiempo.tsx`: barra de transporte (play, en vivo, velocidad, ventana, zoom), regla, pistas y cabezal.
+  - Las pistas están memorizadas; en cada cuadro solo se mueve el cabezal y la parte "reproducida" de la onda.
+  - Teclado: espacio reproduce, ← → mueven el cabezal (Shift: ×10), Inicio/Fin.
+- `lib/lineaTiempo.ts`: indexa los datos una vez y responde "¿cómo estaba la red en t?" con búsqueda binaria.
+- Fuera de "en vivo" los datos se **congelan** (los clips no se mueven bajo el cursor); al llegar al final de la reproducción vuelve a "en vivo".
+- Robustez ante cambios rápidos:
+  - `usePolling`: un solo pedido en vuelo; los avisos que llegan mientras tanto agendan UNA recarga más.
+  - `useAlCambiar`: throttle con ejecución final garantizada (un debounce nunca dispararía con avisos continuos).
+  - Toasts: máximo 3 visibles y agrupados si llegan más de 2 incidentes a la vez.
+  - Cola de atención con animación de posición; incidencias con destello en filas nuevas o que cambian de estado y tope de 250 filas.

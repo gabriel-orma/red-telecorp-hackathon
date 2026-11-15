@@ -214,10 +214,11 @@ export const apiPortal = {
 };
 
 // ---------------- Escenarios de demo (E5) ----------------
-export type TipoEscenario = "TORMENTA" | "CORTE_ENERGIA";
+export type TipoEscenario = "TORMENTA" | "CORTE_ENERGIA" | "ACELERADA";
 export interface EstadoEscenario {
   activo: boolean; tipo?: TipoEscenario; zonaId?: string; oleada?: number; total?: number;
   inicio?: string; fin?: string | null; reportes?: number; antenas?: number; error?: string | null;
+  narrativa?: string | null; acelerada?: boolean;
 }
 export const apiEscenarios = {
   estado: () => pedir<EstadoEscenario>("/escenarios"),
@@ -241,4 +242,19 @@ export interface Analitica {
 export const apiAnalitica = {
   obtener: (dias: number) => pedir<Analitica>(`/analitica?dias=${dias}`),
   recurrencia: () => pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST" }),
+};
+
+// ---------------- Línea de tiempo (editor de video) ----------------
+export interface DatosLineaTiempo {
+  desde: string; hasta: string; horas: number; generadoEn: string;
+  reportes: { id: string; t: string; zonaId: string; tipo: TipoProblema; lat?: number; lng?: number }[];
+  antenas: { antenaId: string; zonaId: string; inicial: EstadoAntena; cambios: { t: string; estado: EstadoAntena }[] }[];
+  colectivos: {
+    id: string; zonaId: string; zonaNombre: string; origen: string; inicio: string; fin: string | null;
+    prioridad: Prioridad; afectados: number;
+    estados: { t: string; estado: EstadoColectivo }[]; prioridades: { t: string; prioridad: Prioridad }[];
+  }[];
+}
+export const apiLineaTiempo = {
+  obtener: (horas: number) => pedir<DatosLineaTiempo>(`/linea-tiempo?horas=${horas}`),
 };
