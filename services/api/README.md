@@ -39,6 +39,8 @@ Un único **HTTP API (HTTPS)** sirve los datos (`/api/*`) y el frontend (`/*`). 
 **Privacidad (R3)**: sin sesión solo sale una lista blanca de campos. El operador ve el detalle, pero DNI/servicio/correo/teléfono enmascarados (`70***56`, `g***@dominio`: ≤ 4 de 8 dígitos visibles). La vista pública del historial muestra `OPERADOR`, no el `sub`.
 
 ### Operadores
+**Atajo:** `bash scripts/crear-operador.sh <stage> <correo>` crea el usuario confirmado, le pone una contraseña (guardada en `scripts/demo/.operador-<stage>.local`, ignorado por git) y lo agrega al grupo. Lo de abajo es el paso manual equivalente.
+
 Se crean desde cuentas normales (se registran en el portal) y un humano con credenciales del Lab las agrega al grupo; después deben **volver a iniciar sesión** para que su token traiga el grupo:
 ```bash
 POOL=$(aws cloudformation describe-stacks --stack-name telecorp-base-<stage> --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)

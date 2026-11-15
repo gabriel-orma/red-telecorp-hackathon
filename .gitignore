@@ -36,3 +36,6 @@ Thumbs.db
 services/base/layer/python/telecorp/zonas.json
 .pytest_cache/
 *.tsbuildinfo
+
+# Credenciales de demo generadas por scripts (nunca al repo)
+*.local
