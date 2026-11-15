@@ -25,11 +25,20 @@ from telecorp import reglas, util
 from telecorp.nube2 import estado, http_cliente, secretos
 
 SERVICIO = "gcp-gemini"
-MODELO_DEFECTO = "gemini-2.5-flash-lite"   # se fija en el secreto (`modelo`); aquí solo hay un valor por defecto
+# Solo modelos con «Free of charge» en el nivel gratuito según la página oficial de precios de Gemini (verificada el 14-nov-2026).
+# Cualquier otro modelo se rechaza: así un cambio de configuración no puede mandar tráfico a un modelo de pago.
+MODELOS_GRATUITOS = ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
+MODELO_DEFECTO = MODELOS_GRATUITOS[0]
 BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 MAX_TEXTO = 500
-LIMITES_DEFECTO = {"limiteMinuto": 10, "limiteHora": 60, "limiteDia": 400}
+# Protección ECONÓMICA adicional (la principal es que el proyecto de Google no tenga facturación): como máximo 2 llamadas por minuto
+# y 10 al día para TODO el proyecto, con contadores atómicos y persistentes. La configuración puede bajarlos, pero nunca superar los TOPES.
+LIMITES_DEFECTO = {"limiteMinuto": 2, "limiteHora": 10, "limiteDia": 10}
+LIMITES_TOPE = {"limiteMinuto": 5, "limiteHora": 30, "limiteDia": 50}
+MAX_ENTRADA_CARACTERES = 4000     # tope de lo que se envía (el prompt de análisis lleva solo agregados: ~1.000)
+MAX_SALIDA_TOKENS = {"analisis": 600, "triage": 200}
 DISYUNTOR_FALLOS, DISYUNTOR_PAUSA_S = 3, 300
+PAUSA_429_S = 3600                # cuota agotada (429): se deja de llamar una hora; NUNCA se reintenta
 TIPOS_SERVICIO = tuple(t for t in reglas.TIPOS_PROBLEMA if t != "OTRO")
 PROBABILIDADES = ("ALTA", "MEDIA", "BAJA")
 
@@ -161,16 +170,23 @@ SISTEMA_ANALISIS = (
 
 
 # ================================================================ 4) Cliente Gemini
-def _config() -> dict | None:
-    s = secretos.leer("ia")
+def _config(fresco: bool = False) -> dict | None:
+    """Configuración de la IA. `fresco=True` lee el secreto sin caché: así el interruptor `habilitada: false` surte efecto ya,
+    en la siguiente llamada (se usa justo antes de cada petición a Gemini, que son pocas)."""
+    s = secretos.leer("ia", usar_cache=not fresco)
     return s if s and s.get("geminiApiKey") else None
+
+
+def gemini_habilitado(cfg: dict | None) -> bool:
+    """Gemini solo se usa si hay clave Y `habilitada` es exactamente true (apagado por defecto: tener la clave guardada no basta)."""
+    return bool(cfg and cfg.get("habilitada") is True)
 
 
 def cuerpo_solicitud(sistema: str, prompt: str, esquema: dict, max_tokens: int) -> dict:
     return {"systemInstruction": {"parts": [{"text": sistema}]},
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.1, "maxOutputTokens": max_tokens, "responseMimeType": "application/json",
-                                 "responseSchema": esquema}}
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": max_tokens, "candidateCount": 1,
+                                 "responseMimeType": "application/json", "responseSchema": esquema}}
 
 
 def extraer_json(respuesta) -> dict | None:
@@ -188,8 +204,20 @@ def extraer_json(respuesta) -> dict | None:
         return None
 
 
+def limites_efectivos(cfg: dict) -> dict:
+    """Límites de la configuración, acotados por los TOPES (un valor absurdo en el secreto no abre la puerta a un gasto)."""
+    salida = {}
+    for k, defecto in LIMITES_DEFECTO.items():
+        try:
+            v = int(cfg.get(k, defecto))
+        except (TypeError, ValueError):
+            v = defecto
+        salida[k] = max(0, min(v, LIMITES_TOPE[k]))
+    return salida
+
+
 def _cupos_ok(cfg: dict) -> bool:
-    lim = {**LIMITES_DEFECTO, **{k: int(cfg[k]) for k in LIMITES_DEFECTO if k in cfg}}
+    lim = limites_efectivos(cfg)
     return (estado.reservar_cupo("ia-min", lim["limiteMinuto"], 60) and estado.reservar_cupo("ia-hora", lim["limiteHora"], 3600)
             and estado.reservar_cupo("ia-dia", lim["limiteDia"], 86400))
 
@@ -198,21 +226,31 @@ def consultar_modelo(sistema: str, prompt: str, esquema: dict, timeout: float, m
     """(JSON | None, motivo). Aplica configuración, disyuntor, cupos, timeout y registro de salud. NUNCA lanza."""
     inicio = time.time()
     try:
-        cfg = _config()
+        cfg = _config(fresco=True)
         if not cfg:
             estado.anotar(SERVICIO, False, estado="NO_CONFIGURADA")
             return None, "NO_CONFIGURADA"
+        if not gemini_habilitado(cfg):
+            return None, "DESACTIVADA"                     # interruptor de emergencia (o nunca activada)
+        if str(cfg.get("modelo") or MODELO_DEFECTO) not in MODELOS_GRATUITOS:
+            return None, "MODELO_NO_PERMITIDO"             # solo modelos verificados como gratuitos
+        if len(sistema) + len(prompt) > MAX_ENTRADA_CARACTERES:
+            return None, "ENTRADA_LARGA"
         if estado.disyuntor_abierto(SERVICIO):
             return None, "DISYUNTOR"
         if not _cupos_ok(cfg):
             return None, "LIMITE"
+        max_tokens = min(max_tokens, max(MAX_SALIDA_TOKENS.values()))
         modelo = urllib.parse.quote(str(cfg.get("modelo") or MODELO_DEFECTO), safe="-._")
         st, _, cuerpo = http_cliente.pedir(
             "POST", f"{BASE}/{modelo}:generateContent", {"x-goog-api-key": cfg["geminiApiKey"]},
             cuerpo_solicitud(sistema, prompt, esquema, max_tokens), timeout=timeout)
         ms = int((time.time() - inicio) * 1000)
         if st != 200:
-            estado.registrar_fallo(SERVICIO, DISYUNTOR_FALLOS, DISYUNTOR_PAUSA_S)
+            if st == 429:   # cuota agotada: una sola señal basta para dejar de llamar una hora (y jamás se reintenta)
+                estado.registrar_fallo(SERVICIO, 1, PAUSA_429_S)
+            else:
+                estado.registrar_fallo(SERVICIO, DISYUNTOR_FALLOS, DISYUNTOR_PAUSA_S)
             estado.anotar(SERVICIO, False, ms, error=f"HTTP_{st} {http_cliente.codigo_error(cuerpo)}".strip())
             return None, f"HTTP_{st}"
         datos = extraer_json(http_cliente.como_json(cuerpo))
@@ -234,7 +272,7 @@ def consultar_modelo(sistema: str, prompt: str, esquema: dict, timeout: float, m
 
 def modelo_configurado() -> str | None:
     cfg = _config()
-    return str(cfg.get("modelo") or MODELO_DEFECTO) if cfg else None
+    return str(cfg.get("modelo") or MODELO_DEFECTO) if cfg and gemini_habilitado(cfg) else None
 
 
 # ================================================================ 5) Triage de reportes
@@ -262,6 +300,8 @@ def triage_reporte(texto, tipo_declarado: str, plazo_s: float = 4.0) -> dict:
     cfg = _config()
     if not cfg:
         return {**base, "motivo": "NO_CONFIGURADA"}
+    if not gemini_habilitado(cfg):
+        return {**base, "motivo": "DESACTIVADA"}
     if cfg.get("triageTexto") is not True:
         return {**base, "motivo": "TRIAGE_APAGADO"}
     prompt = f"<reporte_usuario>\n{limpio}\n</reporte_usuario>\nTipo declarado por el usuario: {tipo_declarado}"
@@ -350,6 +390,12 @@ def _contexto_para_prompt(ctx: dict) -> dict:
 def analizar_colectivo(ctx: dict, plazo_s: float = 8.0) -> dict:
     """Análisis del incidente (esquema `analisisIA` del contrato). Siempre devuelve un resultado completo."""
     base = analisis_reglas(ctx)
+    if ctx.get("simulacion"):
+        # Durante simulaciones y pruebas de carga no se gasta la cuota gratuita en datos simulados. Para grabar la demo con IA
+        # real se activa `permitirEnSimulacion: true` en el secreto y se vuelve a quitar después.
+        cfg = _config()
+        if not (gemini_habilitado(cfg) and cfg.get("permitirEnSimulacion") is True):
+            return {**base, "motivoFallback": "SIMULACION"}
     prompt = "DATOS DEL INCIDENTE (JSON):\n" + json.dumps(_contexto_para_prompt(ctx), ensure_ascii=False, separators=(",", ":"))
     datos, motivo = consultar_modelo(SISTEMA_ANALISIS, prompt, ESQUEMA_ANALISIS, plazo_s, 1200)
     if datos is None:
