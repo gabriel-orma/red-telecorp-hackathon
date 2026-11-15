@@ -62,3 +62,9 @@ Mapa base: CARTO Dark Matter (gratuito, sin API key, con atribución).
   - `useAlCambiar`: throttle con ejecución final garantizada (un debounce nunca dispararía con avisos continuos).
   - Toasts: máximo 3 visibles y agrupados si llegan más de 2 incidentes a la vez.
   - Cola de atención con animación de posición; incidencias con destello en filas nuevas o que cambian de estado y tope de 250 filas.
+
+## Inicio (dashboard) y navegación
+- `/` es ahora **Inicio** (`pages/Inicio.tsx`): estado general de la red, indicadores (incidentes, antenas en falla, reportes 24 h, clientes en zonas con falla), gráfico de reportes contra lo normal, cola de atención, zonas por gravedad y accesos a todas las pantallas. Si hay una simulación en curso, lo avisa con enlace a la línea de tiempo.
+- El mapa en vivo pasó a `/mapa` (la paleta Ctrl+K y la analítica ya enlazan ahí: `/mapa?zona=` y `/mapa?antena=`).
+- El portal (estado público, reportar, cuenta, seguimiento) tiene un botón **Inicio** para volver al panel; en celular la barra del portal muestra solo íconos.
+- El logotipo "TC" de la barra lateral también lleva al inicio.

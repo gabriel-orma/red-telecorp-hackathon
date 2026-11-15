@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { BarChart3, ChartArea, Cloud, Contrast, Film, ListChecks, Map, Maximize2, Minimize2, Search, Siren, Smartphone } from "lucide-react";
+import { BarChart3, ChartArea, Cloud, Contrast, Film, LayoutDashboard, ListChecks, Map, Maximize2, Minimize2, Search, Siren, Smartphone } from "lucide-react";
 import { useConexionTiempoReal } from "../../lib/tiempoReal";
 import { enlace, useRuta } from "../../lib/router";
 import { useSesionCaducada } from "../../lib/auth";
@@ -7,7 +7,8 @@ import { AvisoSesion } from "../AvisoSesion";
 import { cn, horaLima } from "../../lib/utils";
 
 const SECCIONES = [
-  { ruta: "/", etiqueta: "Mapa en vivo", icono: Map },
+  { ruta: "/", etiqueta: "Inicio", icono: LayoutDashboard },
+  { ruta: "/mapa", etiqueta: "Mapa en vivo", icono: Map },
   { ruta: "/linea-tiempo", etiqueta: "Línea de tiempo", icono: Film },
   { ruta: "/incidencias", etiqueta: "Incidencias", icono: ListChecks },
   { ruta: "/colectivos", etiqueta: "Colectivos", icono: Siren },
@@ -62,7 +63,8 @@ export function ShellNeu({ titulo, enVivo, colectivosActivos, onBuscar, acciones
       </a>
       {/* Barra lateral (escritorio) */}
       <aside className="neu ocultar-en-sala hidden w-[68px] shrink-0 flex-col items-center gap-3 py-4 md:flex">
-        <div className="degradado mb-3 grid size-10 place-items-center rounded-2xl text-sm font-bold text-white">TC</div>
+        <a {...enlace("/")} title="Inicio" aria-label="Red TeleCorp, ir al inicio"
+          className="degradado mb-3 grid size-10 place-items-center rounded-2xl text-sm font-bold text-white">TC</a>
         {nav}
       </aside>
 

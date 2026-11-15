@@ -144,7 +144,7 @@ export function Analitica() {
                   const max = d.antenas[0].fallas || 1;
                   return (
                     <li key={a.antenaId}>
-                      <button onClick={() => navegar(`/?antena=${a.antenaId}`)} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-panel-2">
+                      <button onClick={() => navegar(`/mapa?antena=${a.antenaId}`)} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-panel-2">
                         <RadioTower className="size-4 shrink-0" style={{ color: a.estructural ? COLOR_NEU.CAIDA : "#8b8b97" }} />
                         <span className="w-24 shrink-0">
                           <span className="cifra block text-sm font-semibold">{a.antenaId}</span>
