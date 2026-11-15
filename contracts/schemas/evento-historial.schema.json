@@ -15,6 +15,7 @@
     "estadoAnterior": { "type": ["string", "null"] },
     "estadoNuevo": { "type": ["string", "null"] },
     "actor": { "type": "string", "description": "SISTEMA, STEP_FUNCTION, IA, USUARIO (quien envió el reporte) u operador:<sub de Cognito> (quién ejecutó la acción; la vista pública lo muestra como OPERADOR)" },
-    "detalle": { "type": "string" }
+    "detalle": { "type": "string" },
+    "simulado": { "type": "boolean", "description": "true si el evento nace de una simulación (p. ej. una falla forzada). Ausente = operativo" }
   }
 }

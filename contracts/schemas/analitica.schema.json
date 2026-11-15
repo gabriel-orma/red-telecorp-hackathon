@@ -11,11 +11,20 @@
       "type": "string",
       "format": "date-time"
     },
+    "datos": {
+      "type": "string",
+      "enum": ["OPERATIVOS", "SIMULADOS"],
+      "description": "Universo de datos del resultado (`?datos=operativos|simulados`, por defecto operativos). Nunca se mezclan"
+    },
     "kpis": {
       "type": "object",
       "properties": {
         "incidentes": {
           "type": "integer"
+        },
+        "requierenAtencion": {
+          "type": "integer",
+          "description": "Incidentes en REQUIERE_ATENCION (el flujo automático se detuvo; siguen sin resolverse)"
         },
         "duracionPromedioMin": {
           "type": [

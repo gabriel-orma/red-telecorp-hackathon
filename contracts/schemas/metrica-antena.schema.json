@@ -9,6 +9,10 @@
     "zonaId": { "type": "string" },
     "medidoEn": { "type": "string", "format": "date-time" },
     "gbPorMinuto": { "type": "number", "minimum": 0 },
+    "simulada": {
+      "type": "boolean",
+      "description": "Opcional. true solo en lecturas de fallas forzadas por una persona o un escenario de demo: el detector, la analítica y la recurrencia las separan de los datos operativos"
+    },
     "estado": {
       "$ref": "#/$defs/EstadoAntena",
       "description": "Lo agrega el clasificador: 0 → INHABILITADA; <60 → CAIDA; 60..129 → NORMAL; >129 → SATURADA"
