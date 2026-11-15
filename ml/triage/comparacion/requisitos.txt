@@ -1,0 +1,14 @@
+# Versiones con las que se corrió el experimento (Python 3.13.2, Windows 11, CPU). comparar.py no instala nada.
+# Núcleo (línea base + regresión logística sobre embeddings)
+numpy==2.5.4
+scipy==1.18.1
+scikit-learn==1.9.1
+# Embeddings en ONNX int8 (la forma que cabría en una Lambda: SIN torch)
+onnxruntime==1.32.0
+tokenizers==0.23.3
+huggingface_hub==2.4.0        # solo para bajar los pesos la primera vez (HF_HOME fuera del repo)
+# Solo para la variante opcional --fp32 (comparación con los pesos originales; NO cabe en Lambda)
+# pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0
+sentence-transformers==6.3.0
+transformers==5.23.0
