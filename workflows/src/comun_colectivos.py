@@ -508,7 +508,7 @@ def asegurar_ejecucion(col: dict) -> str:
     return arn
 
 
-ESPERA_ACELERADA_S = 4  # monitoreo cada 4 s durante la simulación acelerada (normal: 30 s)
+ESPERA_ACELERADA_S = 8  # monitoreo cada 8 s en la simulación acelerada (normal: 30 s); D14: el motor tiene tope 2
 
 
 def _simulacion_acelerada() -> bool:

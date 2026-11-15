@@ -1,5 +1,6 @@
 // Cliente del API (mismo origen: /api). Los tipos siguen contracts/.
 import { caducarSesion, tokenVigente } from "./auth";
+import { fetchApi } from "./limitador";
 import { aproximarCoordenada } from "./utils";
 
 export type EstadoAntena = "NORMAL" | "SATURADA" | "CAIDA" | "INHABILITADA" | "SIN_DATOS";
@@ -53,7 +54,7 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
   // Con sesión, el ID token acompaña a las llamadas que lo necesitan; las consultas públicas de lectura van sin él.
   const publica = (init?.method ?? "GET").toUpperCase() === "GET" && RUTAS_PUBLICAS.test(ruta);
   const token = publica ? null : await tokenVigente();
-  const r = await fetch(`/api${ruta}`, {
+  const r = await fetchApi(`/api${ruta}`, {
     ...init,
     headers: { "content-type": "application/json", ...(token ? { authorization: token } : {}), ...(init?.headers ?? {}) },
   });

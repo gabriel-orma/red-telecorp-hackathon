@@ -357,5 +357,7 @@ def test_las_funciones_que_arrancan_step_functions_declaran_su_maquina():
     """Lección de la prueba en la nube: `restablecer` retomaba incidentes con Step Functions pero su función no tenía la variable (502)."""
     from conftest import cargar_yaml
     funciones = cargar_yaml("services/api/serverless.yml")["functions"]
-    for nombre in ("restablecerColectivo", "reanudarColectivos", "escenarioReiniciar"):
-        assert "MAQUINA_COLECTIVO" in (funciones[nombre].get("environment") or {}), nombre
+    # D14: todas las rutas están en el router único `api`, que declara las máquinas que arranca.
+    entorno = funciones["api"].get("environment") or {}
+    for variable in ("MAQUINA_COLECTIVO", "MAQUINA_ESCENARIO", "MAQUINA_RECURRENCIA"):
+        assert variable in entorno, variable

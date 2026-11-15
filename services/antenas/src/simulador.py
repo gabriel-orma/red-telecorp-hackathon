@@ -9,7 +9,6 @@ import json
 import math
 import os
 import random
-import time
 
 import boto3
 
@@ -40,8 +39,10 @@ def generar_valor(antena_id: str, minuto_del_dia: float, prob_saturacion: float,
     return round(min(max(valor, 62), 128), 1)
 
 
-def metricas_actuales(fallas: dict, prob_saturacion: float) -> list:
-    ahora = util.ahora()
+def metricas_actuales(fallas: dict, prob_saturacion: float, desfase_s: float = 0) -> list:
+    """Lecturas de las 36 antenas en el instante ahora + desfase_s (las muestras futuras del mismo minuto)."""
+    from datetime import timedelta
+    ahora = util.ahora() + timedelta(seconds=desfase_s)
     minuto = ahora.hour * 60 + ahora.minute
     medido_en = util.iso(ahora)
     salida = []
@@ -55,29 +56,34 @@ def metricas_actuales(fallas: dict, prob_saturacion: float) -> list:
     return salida
 
 
-def enviar(metricas: list) -> None:
+def enviar(metricas: list, retraso_s: int = 0) -> None:
+    """Encola las lecturas; `retraso_s` (DelaySeconds de SQS) las entrega más tarde sin dejar la Lambda esperando."""
     url = os.environ["COLA_METRICAS_URL"]
     for i in range(0, len(metricas), 10):
         lote = metricas[i:i + 10]
         resp = _sqs.send_message_batch(
             QueueUrl=url,
-            Entries=[{"Id": str(j), "MessageBody": json.dumps(m)} for j, m in enumerate(lote)],
+            Entries=[{"Id": str(j), "MessageBody": json.dumps(m), "DelaySeconds": int(retraso_s)} for j, m in enumerate(lote)],
         )
         if resp.get("Failed"):
             raise RuntimeError(f"SQS rechazó {len(resp['Failed'])} métricas: {resp['Failed'][:2]}")
 
 
+def plan_muestras(muestras: int) -> list:
+    """Segundos de retraso de cada muestra del minuto: 4 muestras → [0, 15, 30, 45]."""
+    intervalo = 60 / max(1, muestras)
+    return [int(n * intervalo) for n in range(max(1, muestras))]
+
+
 def handler(event, context):
-    """event = {} (Scheduler) o {"unaVez": true} (disparo inmediato desde el API)."""
+    """event = {} (Scheduler) o {"unaVez": true} (disparo inmediato desde el API).
+
+    Presupuesto de concurrencia (D14): antes la Lambda DORMÍA entre muestras y ocupaba un cupo casi todo el minuto.
+    Ahora encola las 4 muestras de una vez con retraso en SQS (0, 15, 30 y 45 s) y termina en menos de un segundo.
+    Las fallas forzadas se leen al inicio del minuto; un escenario que cambie fallas dispara además una muestra inmediata.
+    """
     cfg = config.leer("simulador", usar_cache=False)
     muestras = 1 if event.get("unaVez") else max(1, int(cfg.get("muestrasPorMinuto", 4)))
-    intervalo = 60 / muestras
-    for n in range(muestras):
-        inicio = time.time()
-        if n > 0:
-            cfg = config.leer("simulador", usar_cache=False)  # recoge fallas forzadas entre muestras
-        enviar(metricas_actuales(cfg.get("fallas", {}), cfg.get("probSaturacion", 0.03)))
-        # No dormir después de la última muestra ni pasarse del tiempo de la Lambda.
-        if n < muestras - 1 and context.get_remaining_time_in_millis() > (intervalo + 5) * 1000:
-            time.sleep(max(0, intervalo - (time.time() - inicio)))
+    for retraso in plan_muestras(muestras):
+        enviar(metricas_actuales(cfg.get("fallas", {}), cfg.get("probSaturacion", 0.03), desfase_s=retraso), retraso)
     return {"muestras": muestras, "antenas": len(zonas.antenas())}

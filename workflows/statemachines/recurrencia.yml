@@ -4,10 +4,17 @@ StartAt: ContarFallas
 States:
   ContarFallas:
     Type: Task
-    Resource: { "Fn::GetAtt": [recurrenciaContar, Arn] }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "recurrenciaContar", "datos.$": "$" }
     ResultPath: $.conteo
     Retry: &reintentos
-      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException]
+      - ErrorEquals: [Lambda.TooManyRequestsException]   # D14: el motor está ocupado (tope de concurrencia) → esperar, no fallar
+        IntervalSeconds: 2
+        MaxAttempts: 40
+        BackoffRate: 1.5
+        MaxDelaySeconds: 15
+        JitterStrategy: FULL
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException]
         IntervalSeconds: 2
         MaxAttempts: 3
         BackoffRate: 2
@@ -22,21 +29,23 @@ States:
   MarcarEstructurales:
     Type: Map
     ItemsPath: $.conteo.estructurales
-    MaxConcurrency: 5
+    MaxConcurrency: 1
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
       StartAt: Marcar
       States:
         Marcar:
           Type: Task
-          Resource: { "Fn::GetAtt": [recurrenciaMarcar, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "recurrenciaMarcar", "datos.$": "$" }
           Retry: *reintentos
           End: true
     ResultPath: $.marcadas
     Next: Resumen
   Resumen:
     Type: Task
-    Resource: { "Fn::GetAtt": [recurrenciaResumen, Arn] }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "recurrenciaResumen", "datos.$": "$" }
     ResultPath: $.resumen
     Retry: *reintentos
     End: true

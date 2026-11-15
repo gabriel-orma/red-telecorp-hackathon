@@ -49,8 +49,9 @@ if quiere frontend && [ -f frontend/package.json ]; then
   (cd frontend && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
   BUCKET="$(salida "telecorp-api-$STAGE" BucketFrontendNombre)"
   paso "Publicando frontend en s3://$BUCKET"
-  # assets con hash: caché larga; index.html y demás: sin caché
-  aws s3 sync frontend/dist "s3://$BUCKET" --delete --only-show-errors
+  # Sin Lambda (D14): el HTTP API entrega lo que guarda S3, así que el tipo, la caché y la compresión se fijan al subir.
+  PY=python3; "$PY" -c "import boto3" 2>/dev/null || PY=python
+  "$PY" scripts/publicar-frontend.py "$BUCKET"
 fi
 
 printf '\n\033[1;32m✔ Listo.\033[0m  Centro de control: %s\n' "$URL"

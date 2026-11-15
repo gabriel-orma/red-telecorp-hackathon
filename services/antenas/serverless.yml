@@ -1,4 +1,4 @@
-# Stack ANTENAS: simulador (EventBridge Scheduler → Lambda → SQS) y clasificador (SQS → DynamoDB).
+# Stack ANTENAS: simulador (EventBridge Scheduler → Lambda → SQS) y clasificador (SQS → DynamoDB), en una sola Lambda.
 service: telecorp-antenas
 frameworkVersion: "3"
 
@@ -27,19 +27,19 @@ package:
   patterns: ["!**", "src/**"]
 
 functions:
+  # Presupuesto de concurrencia (D14): simulador y clasificador en UNA función con tope 1 (ver services/api/serverless.yml).
+  # Conserva el nombre `-simulador` (lo usan el API, los escenarios y la programación).
   simulador:
-    handler: src/simulador.handler
+    handler: src/motor_antenas.handler
     name: ${self:custom.prefijo}-simulador
-    timeout: 70
-  clasificador:
-    handler: src/clasificador.handler
-    name: ${self:custom.prefijo}-clasificador
+    reservedConcurrency: 1
     timeout: 30
     events:
       - sqs:
           arn: ${cf:${self:custom.base}.ColaMetricasArn}
           batchSize: 36
           maximumBatchingWindow: 1
+          maximumConcurrency: 2   # mínimo de AWS; el tope real es reservedConcurrency
           functionResponseType: ReportBatchItemFailures
 
 resources:

@@ -1,6 +1,7 @@
 // Autenticación con Cognito (D9) usando su API JSON directamente (sin SDK).
 // Los tokens se guardan en localStorage como comodidad local; la validación real la hace el autorizador JWT del API.
 import { useEffect, useState } from "react";
+import { fetchApi } from "./limitador";
 
 interface Config { region: string; userPoolId: string; clientId: string }
 export interface Perfil {
@@ -20,7 +21,7 @@ class ErrorCognito extends Error {
 }
 
 function obtenerConfig(): Promise<Config> {
-  config ??= fetch("/api/config").then((r) => r.json());
+  config ??= fetchApi("/api/config").then((r) => r.json());
   return config;
 }
 
