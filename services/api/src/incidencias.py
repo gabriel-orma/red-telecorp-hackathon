@@ -221,8 +221,10 @@ def _registrar_incidencia(m: dict, triage: dict | None = None) -> None:
             estado_nuevo="REGISTRADA", ocurrido_en=m["creadaEn"], token="creado")}),
     ]
     # Contadores para la página pública de estado (serie global y de la zona).
+    simulado = reglas.es_simulado({"reporte": rep})   # los vecinos ficticios cuentan en series aparte (`SIM#...`)
     for serie in ("GLOBAL", rep["zonaId"]):
-        operaciones.append(("Update", "estadisticas", estadisticas.argumentos_incremento(serie, b, rep["tipo"], ttl)))
+        operaciones.append(("Update", "estadisticas",
+                            estadisticas.argumentos_incremento(estadisticas.serie_de(serie, simulado), b, rep["tipo"], ttl)))
     try:
         db.transaccion(operaciones)
     except ClientError as e:

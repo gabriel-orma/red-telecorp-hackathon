@@ -1,7 +1,10 @@
 """Analítica operativa (E6). Contrato: contracts/schemas/analitica.schema.json
 
 GET  /api/analitica?dias=7   → KPIs, zonas, antenas más problemáticas, tipos, incidentes (duración y afectados)
-POST /api/recurrencia        → ejecuta ahora la Step Function de recurrencia (además de la ejecución diaria)
+     &datos=simulados       → lo mismo, pero SOLO con datos de simulación (por defecto: solo datos operativos).
+                              Los dos universos no se mezclan nunca: una Tormenta no infla los KPI reales.
+POST /api/recurrencia        → ejecuta ahora la Step Function de recurrencia (además de la ejecución diaria).
+                               Body opcional {"simulados": true}: evalúa las fallas simuladas (no alerta al NOC).
 """
 import json
 import os
@@ -36,12 +39,13 @@ def _suma_serie(serie: str, desde: str) -> dict:
         kwargs["ExclusiveStartKey"] = r["LastEvaluatedKey"]
 
 
-def _calcular(dias: int) -> dict:
+def _calcular(dias: int, simulados: bool = False) -> dict:
     desde = util.hace_iso(days=dias)
     desde_bucket = est.bucket(util.ahora()) if dias == 0 else est.bucket_de_iso(desde)
 
     # Incidentes colectivos del periodo
-    cols = db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("detectadoEn").gte(desde))
+    cols = [c for c in db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("detectadoEn").gte(desde))
+            if reglas.es_simulado(c) == simulados]
     incidentes = []
     for c in cols:
         abierto = c["estado"] in reglas.ESTADOS_COLECTIVO_ABIERTOS
@@ -50,7 +54,7 @@ def _calcular(dias: int) -> dict:
         incidentes.append({
             "incidenteColectivoId": c["incidenteColectivoId"], "zonaId": c["zonaId"],
             "nombre": (zonas.zona(c["zonaId"]) or {}).get("nombre"), "detectadoEn": c["detectadoEn"],
-            "estado": c["estado"], "abierto": abierto, "duracionMin": duracion,
+            "estado": c["estado"], "abierto": abierto, "duracionMin": duracion, "simulado": simulados,
             "afectados": len(c.get("usuariosAfectados", [])), "prioridad": c.get("prioridad"),
             "puntaje": float(c.get("puntajePrioridad", 0)), "origen": c.get("origen"),
             "deteccionAnticipadaMin": reglas.deteccion_anticipada_min(c.get("primeraFallaEn"), c.get("primerReporteEn")),
@@ -58,7 +62,7 @@ def _calcular(dias: int) -> dict:
     incidentes.sort(key=lambda i: i["detectadoEn"])
 
     # Reportes y tipos (contadores agregados, D10)
-    glob = _suma_serie("GLOBAL", desde_bucket)
+    glob = _suma_serie(est.serie_de("GLOBAL", simulados), desde_bucket)
     total_tipos = sum(v for k, v in glob.items() if k.startswith("t_")) or 1
     tipos = sorted(({"tipo": k[2:], "total": v, "pct": round(100 * v / total_tipos, 1)} for k, v in glob.items() if k.startswith("t_")),
                    key=lambda x: -x["total"])
@@ -68,7 +72,7 @@ def _calcular(dias: int) -> dict:
     for z in zonas.zonas():
         de_zona = [i for i in incidentes if i["zonaId"] == z["zonaId"]]
         zonas_out.append({"zonaId": z["zonaId"], "nombre": z["nombre"], "tipo": z["tipo"], "incidentes": len(de_zona),
-                          "reportes": _suma_serie(z["zonaId"], desde_bucket)["total"],
+                          "reportes": _suma_serie(est.serie_de(z["zonaId"], simulados), desde_bucket)["total"],
                           "afectados": sum(i["afectados"] for i in de_zona)})
     zonas_out.sort(key=lambda z: (-z["incidentes"], -z["reportes"]))
 
@@ -77,8 +81,10 @@ def _calcular(dias: int) -> dict:
     antenas_out = []
     for a in zonas.antenas():
         eventos = hist.query(KeyConditionExpression=Key("entidadId").eq(a["antenaId"]) & Key("sk").gte(desde))["Items"]
-        fallas = reglas.contar_fallas(eventos, desde)
+        fallas = reglas.contar_fallas(eventos, desde, simulados)
         estructural = tabla_antenas.get_item(Key={"antenaId": a["antenaId"]}).get("Item", {}).get("estructural")
+        if estructural and reglas.es_simulado(estructural) != simulados:
+            estructural = None   # la marca pertenece al otro universo de datos
         if fallas or estructural:
             antenas_out.append({"antenaId": a["antenaId"], "zonaId": a["zonaId"],
                                 "zona": (zonas.zona(a["zonaId"]) or {}).get("nombre"), "fallas": fallas,
@@ -89,10 +95,11 @@ def _calcular(dias: int) -> dict:
     cerrados = [i["duracionMin"] for i in incidentes if not i["abierto"] and i["duracionMin"] is not None]
     rec_cfg = {"umbralFallas": 3, "ventanaDias": 7, **config.leer("reglas").get("recurrencia", {})}
     return {
-        "dias": dias, "generadoEn": util.ahora_iso(),
+        "dias": dias, "generadoEn": util.ahora_iso(), "datos": "SIMULADOS" if simulados else "OPERATIVOS",
         "kpis": {
             "incidentes": len(incidentes),
             "abiertos": sum(1 for i in incidentes if i["abierto"]),
+            "requierenAtencion": sum(1 for i in incidentes if i["estado"] == "REQUIERE_ATENCION"),
             "duracionPromedioMin": round(sum(cerrados) / len(cerrados), 1) if cerrados else None,
             "afectadosTotales": sum(i["afectados"] for i in incidentes),
             # Mediana (no promedio): un incidente atípico (p. ej. uno que quedó abierto horas) no la distorsiona.
@@ -110,17 +117,28 @@ def _calcular(dias: int) -> dict:
 
 
 def analitica(event, context):
+    q = event.get("queryStringParameters") or {}
     try:
-        dias = min(max(int((event.get("queryStringParameters") or {}).get("dias", 7)), 1), 30)
+        dias = min(max(int(q.get("dias", 7)), 1), 30)
     except ValueError:
         return http.error(400, "dias debe ser un entero entre 1 y 30")
-    if dias not in _cache or time.time() - _cache[dias][0] > CACHE_SEGUNDOS:
-        _cache[dias] = (time.time(), _calcular(dias))
-    return http.ok(_cache[dias][1])
+    datos = str(q.get("datos", "operativos")).lower()
+    if datos not in ("operativos", "simulados"):
+        return http.error(400, "datos debe ser 'operativos' o 'simulados'")
+    clave = (dias, datos)
+    if clave not in _cache or time.time() - _cache[clave][0] > CACHE_SEGUNDOS:
+        _cache[clave] = (time.time(), _calcular(dias, datos == "simulados"))
+    return http.ok(_cache[clave][1])
 
 
 @acceso.solo_operadores
 def ejecutar_recurrencia(event, context):
-    r = _sfn.start_execution(stateMachineArn=os.environ["MAQUINA_RECURRENCIA"], input=json.dumps({"origen": "manual"}))
+    try:
+        cuerpo = json.loads(event.get("body") or "{}")
+    except ValueError:
+        return http.error(400, "El cuerpo debe ser JSON")
+    simulados = bool(cuerpo.get("simulados")) if isinstance(cuerpo, dict) else False
+    r = _sfn.start_execution(stateMachineArn=os.environ["MAQUINA_RECURRENCIA"],
+                             input=json.dumps({"origen": "manual", "simulados": simulados}))
     _cache.clear()
     return http.respuesta(202, {"ejecucionArn": r["executionArn"]})

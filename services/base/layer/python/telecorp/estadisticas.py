@@ -11,6 +11,13 @@ MINUTOS_BUCKET = 15
 BUCKETS_DIA = 24 * 60 // MINUTOS_BUCKET  # 96
 DIAS_BASE = 7
 TTL_DIAS = 35
+PREFIJO_SIMULACION = "SIM#"
+
+
+def serie_de(serie: str, simulado: bool = False) -> str:
+    """Nombre de la serie de contadores. Lo simulado va a series `SIM#...`: la página pública y la analítica operativa
+    leen solo `GLOBAL` / `ZONA-xx`, así una Tormenta o una prueba de carga simulada nunca las infla."""
+    return f"{PREFIJO_SIMULACION}{serie}" if simulado else serie
 
 
 def bucket(dt: datetime) -> str:

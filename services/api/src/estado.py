@@ -38,21 +38,23 @@ def _resumen_serie(items: dict, buckets24: list) -> dict:
             "total24h": sum(p["total"] for p in serie), "tipos": tipos}
 
 
-def _colectivos_activos() -> list:
+def _colectivos_activos() -> tuple:
+    """(operativos abiertos, cuántos colectivos SIMULADOS hay abiertos). Los simulados no mueven el semáforo público."""
     from boto3.dynamodb.conditions import Attr
-    items = db.scan_todo(db.tabla("colectivos"),
-                         FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+    todos = db.scan_todo(db.tabla("colectivos"),
+                         FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS | {"REQUIERE_ATENCION"})))
+    items = [c for c in todos if not reglas.es_simulado(c)]
     return [{"incidenteColectivoId": c["incidenteColectivoId"], "zonaId": c["zonaId"],
              "nombre": (zonas.zona(c["zonaId"]) or {}).get("nombre"), "estado": c["estado"],
              "prioridad": c.get("prioridad"), "afectados": len(c.get("usuariosAfectados", [])),
-             "detectadoEn": c["detectadoEn"], "antenasEnFalla": len(c.get("antenasEnFalla", []))} for c in items]
+             "detectadoEn": c["detectadoEn"], "antenasEnFalla": len(c.get("antenasEnFalla", []))} for c in items], len(todos) - len(items)
 
 
 def _calcular(alcance: str) -> dict:
     ahora = util.ahora()
     buckets24 = est.buckets_ultimas_24h(ahora)
     desde = est.bucket(ahora - timedelta(days=est.DIAS_BASE + 1))
-    colectivos = _colectivos_activos()
+    colectivos, simulados_abiertos = _colectivos_activos()
     zonas_con_colectivo = {c["zonaId"] for c in colectivos}
 
     # Resumen por zona (ranking + semáforo por zona)
@@ -87,6 +89,8 @@ def _calcular(alcance: str) -> dict:
                         key=lambda x: -x["total"]),
         "zonas": [{k: v for k, v in z.items() if k != "_r"} for z in resumen_zonas],
         "colectivos": [c for c in colectivos if alcance == "GLOBAL" or c["zonaId"] == alcance],
+        # Hay una simulación en curso: no cuenta en este panel (que muestra solo reportes y colectivos reales).
+        "simulacion": {"colectivosAbiertos": simulados_abiertos},
     }
 
 

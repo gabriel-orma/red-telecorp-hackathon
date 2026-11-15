@@ -26,3 +26,10 @@ def test_fallas_forzadas_reemplazan_el_valor():
     assert m["ANT-014"]["gbPorMinuto"] == 35
     assert m["ANT-013"]["zonaId"] == "ZONA-05"
     assert len(m) == 36
+
+
+def test_solo_las_lecturas_forzadas_se_marcan_como_simuladas():
+    """El detector, la analítica y la recurrencia separan lo simulado de lo operativo con esta marca."""
+    m = {x["antenaId"]: x for x in simulador.metricas_actuales({"ANT-013": 0}, 0)}
+    assert m["ANT-013"]["simulada"] is True
+    assert all("simulada" not in x for antena, x in m.items() if antena != "ANT-013")

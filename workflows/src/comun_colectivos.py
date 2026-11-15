@@ -8,6 +8,10 @@ Garantías (cada una tiene su prueba en workflows/tests/test_deteccion.py):
 - Agrupar incidencias es un `list_append` condicional y atómico por incidencia (sin leer antes): dos detectores en
   paralelo no se pisan ni entran en conflicto, y reintentar no duplica. Las antenas (pocas por colectivo) usan control
   de versión: escritura condicional + relectura.
+- Datos operativos y simulados NUNCA se mezclan (`reglas.es_simulado`): cada modo tiene su propia ventana y su propio candado
+  (`...~SIM`). Nueve vecinos reales + uno simulado no forman un colectivo, y una Tormenta no consume ni bloquea la zona
+  de los reportes reales. El colectivo queda marcado `simulado: true` y todo lo que lo lee (analítica, recurrencia, estado
+  público) lo separa. Sin indicar `sim`, todo funciona como antes (modo operativo).
 - Conteo exacto de usuarios sin depender del GSI (eventualmente consistente): la "ventana" de la zona
   (`VENTANA#<zona>` en la tabla `dedup`) es un mapa usuario → {ts, inc} que se actualiza de forma atómica y se lee con
   consistencia fuerte; el detector la une con lo que ve el GSI.
@@ -49,24 +53,25 @@ def obtener(colectivo_id: str) -> dict:
     return item
 
 
-def incidencias_ventana_zona(zona_id: str, horas: int) -> list:
+def incidencias_ventana_zona(zona_id: str, horas: int, sim: bool = False) -> list:
     """Incidencias de la zona dentro de la ventana (creadaEn ESTRICTAMENTE posterior a ahora-horas), de CUALQUIER
     estado (H10: un reporte que el operador ya cerró sigue siendo un usuario que reportó en <24 h) y que todavía
-    no pertenecen a un colectivo. Lee el GSI (eventualmente consistente)."""
+    no pertenecen a un colectivo. Solo las del modo pedido (operativas o simuladas). Lee el GSI (eventualmente consistente)."""
     corte = util.hace_iso(hours=horas)
     t, items, kwargs = db.tabla("incidencias"), [], {}
     while True:
         r = t.query(IndexName="zona-fecha",
                     KeyConditionExpression=Key("zonaId").eq(zona_id) & Key("creadaEn").gt(corte), **kwargs)
-        items.extend(i for i in r["Items"] if i["creadaEn"] > corte and not i.get("incidenteColectivoId"))
+        items.extend(i for i in r["Items"] if i["creadaEn"] > corte and not i.get("incidenteColectivoId")
+                     and reglas.es_simulado(i) == sim)
         if "LastEvaluatedKey" not in r:
             return items
         kwargs["ExclusiveStartKey"] = r["LastEvaluatedKey"]
 
 
-def incidencias_activas_zona(zona_id: str, horas: int) -> list:
+def incidencias_activas_zona(zona_id: str, horas: int, sim: bool = False) -> list:
     """Solo las que siguen abiertas (para sumarlas a un colectivo creado por métricas de antena)."""
-    return [i for i in incidencias_ventana_zona(zona_id, horas) if i.get("estado") in reglas.ESTADOS_INCIDENCIA_ACTIVOS]
+    return [i for i in incidencias_ventana_zona(zona_id, horas, sim) if i.get("estado") in reglas.ESTADOS_INCIDENCIA_ACTIVOS]
 
 
 def cargar_incidencias(ids: list, horas: int) -> list:
@@ -94,8 +99,11 @@ def estados_antenas_zona(zona_id: str) -> dict:
 
 
 # ---------------- Ventana por zona (conteo exacto sin GSI) ----------------
-def _clave_ventana(zona_id: str) -> str:
-    return f"VENTANA#{zona_id}"
+SUFIJO_SIMULACION = "~SIM"
+
+
+def _clave_ventana(zona_id: str, sim: bool = False) -> str:
+    return f"VENTANA#{zona_id}{SUFIJO_SIMULACION if sim else ''}"
 
 
 def _vigentes(usuarios: dict, horas: int) -> dict:
@@ -103,13 +111,13 @@ def _vigentes(usuarios: dict, horas: int) -> dict:
     return {u: e for u, e in (usuarios or {}).items() if str(e.get("ts", "")) > corte}
 
 
-def leer_ventana(zona_id: str, horas: int) -> dict:
+def leer_ventana(zona_id: str, horas: int, sim: bool = False) -> dict:
     """{usuarioId: {ts, inc}} de los usuarios con reporte vigente aún sin colectivo (lectura fuertemente consistente)."""
-    item = db.tabla("dedup").get_item(Key={"clave": _clave_ventana(zona_id)}, ConsistentRead=True).get("Item") or {}
+    item = db.tabla("dedup").get_item(Key={"clave": _clave_ventana(zona_id, sim)}, ConsistentRead=True).get("Item") or {}
     return _vigentes(item.get("usuarios"), horas)
 
 
-def registrar_en_ventana(zona_id: str, incidencia: dict, horas: int) -> dict:
+def registrar_en_ventana(zona_id: str, incidencia: dict, horas: int, sim: bool = False) -> dict:
     """Anota al usuario en la ventana de la zona con UN update atómico y devuelve la ventana vigente resultante.
 
     El `ReturnValues=ALL_NEW` de DynamoDB refleja todas las escrituras confirmadas antes de ésta: de dos detectores
@@ -118,7 +126,7 @@ def registrar_en_ventana(zona_id: str, incidencia: dict, horas: int) -> dict:
     t = db.tabla("dedup")
     entrada = {"ts": incidencia["creadaEn"], "inc": incidencia["incidenciaId"]}
     expira = int(time.time()) + (horas + 1) * 3600
-    kw = dict(Key={"clave": _clave_ventana(zona_id)}, UpdateExpression="SET usuarios.#u = :e, expiraEn = :x",
+    kw = dict(Key={"clave": _clave_ventana(zona_id, sim)}, UpdateExpression="SET usuarios.#u = :e, expiraEn = :x",
               ExpressionAttributeNames={"#u": incidencia["usuarioId"]},
               ExpressionAttributeValues={":e": entrada, ":x": expira}, ReturnValues="ALL_NEW")
     try:
@@ -132,11 +140,11 @@ def registrar_en_ventana(zona_id: str, incidencia: dict, horas: int) -> dict:
         r = t.update_item(**kw)
     todos = r["Attributes"].get("usuarios", {})
     vigentes = _vigentes(todos, horas)
-    quitar_de_ventana(zona_id, {u: e for u, e in todos.items() if u not in vigentes})  # poda de caducados
+    quitar_de_ventana(zona_id, {u: e for u, e in todos.items() if u not in vigentes}, sim)  # poda de caducados
     return vigentes
 
 
-def quitar_de_ventana(zona_id: str, entradas: dict) -> None:
+def quitar_de_ventana(zona_id: str, entradas: dict, sim: bool = False) -> None:
     """Quita usuarios de la ventana solo si siguen siendo la misma entrada (no pisa a un reporte nuevo). Mejor esfuerzo."""
     entradas = {u: e for u, e in (entradas or {}).items() if e.get("inc")}
     if not entradas:
@@ -146,7 +154,7 @@ def quitar_de_ventana(zona_id: str, entradas: dict) -> None:
         nombres = {f"#k{n}": u for n, (u, _) in enumerate(par)}
         valores = {f":i{n}": e["inc"] for n, (_, e) in enumerate(par)}
         db.tabla("dedup").update_item(
-            Key={"clave": _clave_ventana(zona_id)},
+            Key={"clave": _clave_ventana(zona_id, sim)},
             UpdateExpression="REMOVE " + ", ".join(f"usuarios.#k{n}" for n in range(len(par))),
             ConditionExpression=" AND ".join(f"usuarios.#k{n}.inc = :i{n}" for n in range(len(par))),
             ExpressionAttributeNames=nombres, ExpressionAttributeValues=valores)
@@ -163,30 +171,30 @@ def quitar_de_ventana(zona_id: str, entradas: dict) -> None:
 
 
 # ---------------- Candado: un solo colectivo abierto por zona ----------------
-def _clave_lock(zona_id: str) -> str:
-    return f"LOCK#COLECTIVO#{zona_id}"
+def _clave_lock(zona_id: str, sim: bool = False) -> str:
+    return f"LOCK#COLECTIVO#{zona_id}{SUFIJO_SIMULACION if sim else ''}"
 
 
-def colectivo_abierto(zona_id: str) -> str | None:
-    """Id del colectivo abierto de la zona, o None. Un candado cuyo colectivo no existe (o ya cerró) se considera
+def colectivo_abierto(zona_id: str, sim: bool = False) -> str | None:
+    """Id del colectivo abierto de la zona (en el modo operativo o en el simulado), o None. Un candado cuyo colectivo no existe (o ya cerró) se considera
     huérfano: se libera y la zona vuelve a poder detectar (H05)."""
-    item = db.tabla("dedup").get_item(Key={"clave": _clave_lock(zona_id)}, ConsistentRead=True).get("Item")
+    item = db.tabla("dedup").get_item(Key={"clave": _clave_lock(zona_id, sim)}, ConsistentRead=True).get("Item")
     if not item or int(item.get("expiraEn", 0)) <= time.time():
         return None
     colectivo_id = item["incidenciaId"]  # la tabla dedup guarda el id en el atributo incidenciaId
     col = db.tabla("colectivos").get_item(Key={"incidenteColectivoId": colectivo_id}, ConsistentRead=True).get("Item")
     if not col or col.get("estado") == "CERRADO":
-        liberar_lock(zona_id, colectivo_id)
+        liberar_lock(zona_id, colectivo_id, sim)
         return None
     return colectivo_id
 
 
-def tomar_lock(zona_id: str, colectivo_id: str) -> str | None:
+def tomar_lock(zona_id: str, colectivo_id: str, sim: bool = False) -> str | None:
     """Reserva la zona (sin transacción). La creación normal usa `crear`, que toma el candado junto con el colectivo."""
     ahora = int(time.time())
     try:
         db.tabla("dedup").put_item(
-            Item={"clave": _clave_lock(zona_id), "incidenciaId": colectivo_id, "expiraEn": ahora + LOCK_DIAS * 86400},
+            Item={"clave": _clave_lock(zona_id, sim), "incidenciaId": colectivo_id, "expiraEn": ahora + LOCK_DIAS * 86400},
             ConditionExpression="attribute_not_exists(clave) OR expiraEn < :ahora",
             ExpressionAttributeValues={":ahora": ahora},
         )
@@ -194,12 +202,12 @@ def tomar_lock(zona_id: str, colectivo_id: str) -> str | None:
     except ClientError as e:
         if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
             raise
-        return colectivo_abierto(zona_id)
+        return colectivo_abierto(zona_id, sim)
 
 
-def liberar_lock(zona_id: str, colectivo_id: str) -> None:
+def liberar_lock(zona_id: str, colectivo_id: str, sim: bool = False) -> None:
     try:
-        db.tabla("dedup").delete_item(Key={"clave": _clave_lock(zona_id)}, ConditionExpression="incidenciaId = :c",
+        db.tabla("dedup").delete_item(Key={"clave": _clave_lock(zona_id, sim)}, ConditionExpression="incidenciaId = :c",
                                       ExpressionAttributeValues={":c": colectivo_id})
     except ClientError as e:
         if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
@@ -386,7 +394,8 @@ def _comentar_antena(colectivo_id: str, antena: dict) -> None:
 
 
 # ---------------- Creación atómica y arranque idempotente de la Step Function ----------------
-def _colectivo_nuevo(colectivo_id: str, zona_id: str, origen: str, detalle: str, incidencias: list, antenas: list) -> dict:
+def _colectivo_nuevo(colectivo_id: str, zona_id: str, origen: str, detalle: str, incidencias: list, antenas: list,
+                     simulado: bool = False) -> dict:
     ahora = util.ahora_iso()
     acelerada = _simulacion_acelerada()
     por_id = {i["incidenciaId"]: i for i in incidencias}
@@ -405,26 +414,30 @@ def _colectivo_nuevo(colectivo_id: str, zona_id: str, origen: str, detalle: str,
         "restablecimientoSolicitado": False, "version": 1,
         # Simulación acelerada: el tiempo activo cuenta x60 para la prioridad (escala en segundos, no en horas).
         **({"factorTiempo": escenarios.FACTOR_TIEMPO_ACELERADA} if acelerada else {}),
+        # Colectivo de simulación: se ve y funciona igual, pero se etiqueta y no cuenta en lo operativo.
+        **({"simulado": True} if simulado else {}),
     }
 
 
-def crear(zona_id: str, origen: str, detalle: str, incidencias: list, antenas: list, consumidos: dict | None = None) -> str:
+def crear(zona_id: str, origen: str, detalle: str, incidencias: list, antenas: list, consumidos: dict | None = None,
+          simulado: bool = False) -> str:
     """Crea el colectivo de la zona (o se suma al que ya esté abierto) y garantiza que la Step Function arranque.
 
     `consumidos`: entradas de la ventana que este colectivo absorbe (se quitan de ella al terminar).
+    `simulado`: el colectivo nace de datos simulados; usa su propio candado y ventana (ver cabecera del módulo).
     """
     incidencias = list({i["incidenciaId"]: i for i in incidencias}.values())  # una transacción no admite ítems repetidos
     for _ in range(3):
-        abierto = colectivo_abierto(zona_id)
+        abierto = colectivo_abierto(zona_id, simulado)
         if abierto:
             return unir(abierto, incidencias, antenas)
         colectivo_id = util.nuevo_id("COL")
-        col = _colectivo_nuevo(colectivo_id, zona_id, origen, detalle, incidencias, antenas)
+        col = _colectivo_nuevo(colectivo_id, zona_id, origen, detalle, incidencias, antenas, simulado)
         ahora = int(time.time())
         en_tx = list(incidencias)[:MAX_INCIDENCIAS_EN_TRANSACCION]
         operaciones = [
             ("Put", "dedup", {
-                "Item": {"clave": _clave_lock(zona_id), "incidenciaId": colectivo_id, "expiraEn": ahora + LOCK_DIAS * 86400},
+                "Item": {"clave": _clave_lock(zona_id, simulado), "incidenciaId": colectivo_id, "expiraEn": ahora + LOCK_DIAS * 86400},
                 "ConditionExpression": "attribute_not_exists(clave) OR expiraEn < :ahora",
                 "ExpressionAttributeValues": {":ahora": ahora}}),
             ("Put", "colectivos", {"Item": util.a_dynamo(col), "ConditionExpression": "attribute_not_exists(incidenteColectivoId)"}),
@@ -451,7 +464,7 @@ def crear(zona_id: str, origen: str, detalle: str, incidencias: list, antenas: l
             _etiquetar_y_registrar(col, i, notificar_estado=False)  # la SFN avisa a todos en su primer paso
         for a in col["antenasEnFalla"]:
             _comentar_antena(colectivo_id, a)
-        quitar_de_ventana(zona_id, consumidos)
+        quitar_de_ventana(zona_id, consumidos, simulado)
         asegurar_ejecucion(col)
         return colectivo_id
     raise RuntimeError(f"No se pudo crear ni unirse al colectivo de {zona_id}: se reintentará")

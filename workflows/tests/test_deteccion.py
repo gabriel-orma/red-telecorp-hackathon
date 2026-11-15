@@ -201,7 +201,7 @@ def test_carrera_9_10_con_GSI_rancio_el_ultimo_en_confirmar_ve_a_los_diez(aws, m
     """El GSI es eventualmente consistente: aquí devuelve SIEMPRE vacío. Solo la ventana atómica puede revelar al 10.º.
     Diez detectores en paralelo, uno por usuario: exactamente UN colectivo con los diez, una sola Step Function."""
     import comun_colectivos as cc, detector
-    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h: [])
+    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h, s=False: [])
     its = [_reporte(i) for i in range(10)]
     en_paralelo([lambda it=it: detector.nueva_incidencia(it) for it in its])
     (col,) = colectivos()
@@ -212,7 +212,7 @@ def test_carrera_9_10_con_GSI_rancio_el_ultimo_en_confirmar_ve_a_los_diez(aws, m
 @pytest.mark.parametrize("ronda", range(3))
 def test_nueve_en_paralelo_no_crean_colectivo(aws, monkeypatch, hilos_agresivos, ronda):
     import comun_colectivos as cc, detector
-    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h: [])
+    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h, s=False: [])
     its = [_reporte(i) for i in range(9)]
     en_paralelo([lambda it=it: detector.nueva_incidencia(it) for it in its])
     assert colectivos() == [] and aws.llamadas == []
