@@ -2,7 +2,7 @@
 
 - **Autor**: rodrigo (+ Claude Code)
 - **Fecha**: 2026-11-14
-- **Issue / PR**: #41 (apilado sobre #40)
+- **Issue / PR**: #42 (apilado sobre #40)
 - **Rama**: `feat/ml-triage-local`
 
 ## Qué se hizo
