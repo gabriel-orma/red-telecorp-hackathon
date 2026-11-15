@@ -104,13 +104,18 @@ ESTADOS_ANTENA_VERIFICACION = ESTADOS_ANTENA_FALLA | {"SATURADA"}
 # Reporte de texto libre (`OTRO`) clasificado por la IA: "la IA solo suma". Un OTRO cuenta para disparar un colectivo
 # únicamente si la IA REAL lo clasificó como problema del servicio con confianza suficiente y un tipo del catálogo; si la IA
 # falla, no responde o duda, sigue sin contar (como antes). La IA nunca resta reportes que las reglas ya cuentan.
-UMBRAL_CONFIANZA_TRIAGE_IA = 0.8
+UMBRAL_CONFIANZA_TRIAGE_IA = 0.8       # IA generativa (Gemini): cuando se activa el triage de texto
+UMBRAL_CONFIANZA_TRIAGE_ML = 0.5       # modelo local (TF-IDF + regresión logística): se fija con la validación cruzada del entrenamiento
+                                       # (ml/triage/resultados.json); una prueba comprueba que coincide con el que guarda el modelo
+_UMBRAL_TRIAGE = {"IA": UMBRAL_CONFIANZA_TRIAGE_IA, "ML": UMBRAL_CONFIANZA_TRIAGE_ML}
 
 
 def triage_ia_confirma_servicio(triage) -> bool:
+    """¿Un reporte OTRO clasificado automáticamente cuenta como problema del servicio? Solo si lo clasificó un MODELO real (IA
+    generativa o ML local; nunca las reglas) con confianza suficiente y un tipo del catálogo."""
     try:
-        return (isinstance(triage, dict) and triage.get("fuente") == "IA" and triage.get("relacionado") is True
-                and float(triage.get("confianza", 0)) >= UMBRAL_CONFIANZA_TRIAGE_IA
+        umbral = _UMBRAL_TRIAGE.get(triage.get("fuente")) if isinstance(triage, dict) else None
+        return (umbral is not None and triage.get("relacionado") is True and float(triage.get("confianza", 0)) >= umbral
                 and triage.get("tipoSugerido") in TIPOS_PROBLEMA and triage.get("tipoSugerido") != "OTRO")
     except (TypeError, ValueError):
         return False

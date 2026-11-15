@@ -22,6 +22,7 @@ import time
 import urllib.parse
 
 from telecorp import reglas, util
+from telecorp.ml import triage as ml_triage
 from telecorp.nube2 import estado, http_cliente, secretos
 
 SERVICIO = "gcp-gemini"
@@ -257,13 +258,11 @@ def triage_reporte(texto, tipo_declarado: str, plazo_s: float = 4.0) -> dict:
     if parece_inyeccion(str(texto)) or parece_inyeccion(limpio):
         return {**base, "motivo": "SOSPECHA_INYECCION"}          # ni se llama al modelo
     # El texto libre de una persona NO sale hacia Gemini salvo que se active expresamente (`triageTexto: true` en el secreto
-    # `ia`): por defecto la IA solo recibe datos agregados (análisis de colectivos). Las máscaras de PII reducen el riesgo pero
-    # no lo eliminan (nombres sin disparador, direcciones, cifras en letras), así que no se confía en ellas como única defensa.
+    # `ia`). Por defecto lo clasifica el modelo de ML LOCAL (sin salir de AWS, gratis, en milisegundos). Las máscaras de PII
+    # reducen el riesgo pero no lo eliminan (nombres sin disparador, direcciones, cifras en letras): no son la única defensa.
     cfg = _config()
-    if not cfg:
-        return {**base, "motivo": "NO_CONFIGURADA"}
-    if cfg.get("triageTexto") is not True:
-        return {**base, "motivo": "TRIAGE_APAGADO"}
+    if not (cfg and cfg.get("triageTexto") is True):
+        return _triage_ml(texto, base)
     prompt = f"<reporte_usuario>\n{limpio}\n</reporte_usuario>\nTipo declarado por el usuario: {tipo_declarado}"
     datos, motivo = consultar_modelo(SISTEMA_TRIAGE, prompt, ESQUEMA_TRIAGE, plazo_s, 300)
     if datos is None:
@@ -273,6 +272,15 @@ def triage_reporte(texto, tipo_declarado: str, plazo_s: float = 4.0) -> dict:
         estado.anotar(SERVICIO, False, error="SALIDA_INVALIDA")
         return {**base, "motivo": "SALIDA_INVALIDA"}
     return {**v, "fuente": "IA", "proveedor": "gemini", "modelo": modelo_configurado()}
+
+
+def _triage_ml(texto, base: dict) -> dict:
+    """Clasificación con el modelo local. Sin modelo (archivo ausente) cae a las reglas y lo dice: nunca finge ML."""
+    r = ml_triage.clasificar(texto)
+    if r is None:
+        return {**base, "motivo": "MODELO_NO_DISPONIBLE"}
+    return {"relacionado": r["clase"] != "OTRO", "tipoSugerido": r["clase"], "urgencia": 3, "confianza": r["confianza"],
+            "fuente": "ML", "proveedor": "modelo-local", "modelo": r["modelo"]}
 
 
 def cuenta_como_servicio(triage) -> bool:

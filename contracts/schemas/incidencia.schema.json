@@ -64,7 +64,7 @@
     },
     "iaTriage": {
       "type": "object",
-      "description": "Solo para reportes de tipo OTRO. La IA (Gemini, texto enmascarado) clasifica si trata del servicio. El detector lo cuenta SOLO si fuente=IA, relacionado=true, confianza>=0.8 y tipoSugerido distinto de OTRO ('la IA solo suma'). La escribe únicamente el worker de ingesta; la vista pública no la expone.",
+      "description": "Solo para reportes de tipo OTRO. Un modelo clasifica si trata del servicio: ML local (TF-IDF + regresión logística, el texto no sale de AWS) o, si se activa expresamente, Gemini (texto enmascarado). El detector lo cuenta SOLO si fuente es IA o ML (nunca REGLAS), relacionado=true, la confianza supera el umbral de esa fuente (0.8 para IA; el del modelo para ML) y tipoSugerido es distinto de OTRO ('el modelo solo suma'). La escribe únicamente el worker de ingesta; la vista pública no la expone.",
       "properties": {
         "relacionado": {
           "type": "boolean"
@@ -85,6 +85,7 @@
         "fuente": {
           "enum": [
             "IA",
+            "ML",
             "REGLAS"
           ]
         },

@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1872 758" width="1872" height="758" font-family="Inter, Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1872 770" width="1872" height="770" font-family="Inter, Segoe UI, Arial, sans-serif">
 <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker><marker id="fd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker><filter id="s" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.12"/></filter></defs>
-<rect width="1872" height="758" fill="#ffffff"/>
+<rect width="1872" height="770" fill="#ffffff"/>
 <text x="20" y="30" font-size="22" font-weight="700" fill="#1f2937" text-anchor="start">Red TeleCorp · arquitectura implementada (AWS + Azure)</text>
 <text x="20" y="52" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Fiel a los recursos desplegados (stage dev-rodrigo, us-east-1) · 100 % serverless: nada encendido 24/7 · flechas continuas = flujo principal, punteadas = respaldo / sondeo</text>
-<rect x="276" y="66" width="1320" height="622" rx="14" fill="#fff7ea" stroke="#ff9900" stroke-width="1.5" stroke-dasharray="6 4"/>
+<rect x="276" y="66" width="1320" height="634" rx="14" fill="#fff7ea" stroke="#ff9900" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="290" y="84" font-size="13" font-weight="700" fill="#b45309" text-anchor="start">AWS · us-east-1 · Learner Lab (LabRole)</text>
 <rect x="1626" y="66" width="240" height="220" rx="14" fill="#eef6ff" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="1640" y="84" font-size="13" font-weight="700" fill="#0b5cab" text-anchor="start">Microsoft Azure · recursos globales</text>
@@ -42,24 +42,25 @@
 <g filter="url(#s)"><rect x="570" y="118" width="192" height="58" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="118" width="5" height="58" rx="2.5" fill="#ff9900"/></g>
 <text x="584" y="138" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">SQS reportes + DLQ</text>
 <text x="584" y="154" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">absorbe picos sin perder reportes</text>
-<g filter="url(#s)"><rect x="570" y="200" width="192" height="70" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="200" width="5" height="70" rx="2.5" fill="#ff9900"/></g>
+<g filter="url(#s)"><rect x="570" y="200" width="192" height="84" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="200" width="5" height="84" rx="2.5" fill="#ff9900"/></g>
 <text x="584" y="220" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">Lambda registrarReporte</text>
-<text x="584" y="236" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">transacción atómica</text>
-<text x="584" y="250" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">reintento rápido (≤ 15 s)</text>
-<g filter="url(#s)"><rect x="570" y="294" width="192" height="70" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="294" width="5" height="70" rx="2.5" fill="#ff9900"/></g>
-<text x="584" y="314" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">EventBridge Scheduler</text>
-<text x="584" y="330" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">simulador de antenas</text>
-<text x="584" y="344" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">(apagado por defecto)</text>
-<g filter="url(#s)"><rect x="570" y="388" width="192" height="58" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="388" width="5" height="58" rx="2.5" fill="#ff9900"/></g>
-<text x="584" y="408" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">Lambda simulador</text>
-<text x="584" y="424" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">métricas GB/min por antena</text>
-<g filter="url(#s)"><rect x="570" y="470" width="192" height="58" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="470" width="5" height="58" rx="2.5" fill="#ff9900"/></g>
-<text x="584" y="490" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">SQS métricas + DLQ</text>
-<text x="584" y="506" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">buffer de métricas</text>
-<g filter="url(#s)"><rect x="570" y="552" width="192" height="70" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="552" width="5" height="70" rx="2.5" fill="#ff9900"/></g>
-<text x="584" y="572" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">Lambda clasificador</text>
-<text x="584" y="588" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">inhabilitada · caída</text>
-<text x="584" y="602" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">normal · saturada</text>
+<text x="584" y="236" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">transacción atómica · reintento rápido</text>
+<text x="584" y="250" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">ML local (TF-IDF + regresión</text>
+<text x="584" y="264" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">logística) clasifica los OTRO</text>
+<g filter="url(#s)"><rect x="570" y="308" width="192" height="70" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="308" width="5" height="70" rx="2.5" fill="#ff9900"/></g>
+<text x="584" y="328" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">EventBridge Scheduler</text>
+<text x="584" y="344" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">simulador de antenas</text>
+<text x="584" y="358" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">(apagado por defecto)</text>
+<g filter="url(#s)"><rect x="570" y="402" width="192" height="58" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="402" width="5" height="58" rx="2.5" fill="#ff9900"/></g>
+<text x="584" y="422" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">Lambda simulador</text>
+<text x="584" y="438" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">métricas GB/min por antena</text>
+<g filter="url(#s)"><rect x="570" y="484" width="192" height="58" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="484" width="5" height="58" rx="2.5" fill="#ff9900"/></g>
+<text x="584" y="504" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">SQS métricas + DLQ</text>
+<text x="584" y="520" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">buffer de métricas</text>
+<g filter="url(#s)"><rect x="570" y="566" width="192" height="70" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="570" y="566" width="5" height="70" rx="2.5" fill="#ff9900"/></g>
+<text x="584" y="586" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">Lambda clasificador</text>
+<text x="584" y="602" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">inhabilitada · caída</text>
+<text x="584" y="616" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">normal · saturada</text>
 <g filter="url(#s)"><rect x="840" y="118" width="192" height="132" rx="9" fill="#ffffff" stroke="#d1d5db"/><rect x="840" y="118" width="5" height="132" rx="2.5" fill="#ff9900"/></g>
 <text x="854" y="138" font-size="12.5" font-weight="700" fill="#1f2937" text-anchor="start">DynamoDB</text>
 <text x="854" y="154" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">8 tablas on-demand · PITR</text>
@@ -128,11 +129,11 @@
 <rect x="502.6" y="169.0" width="56.8" height="15" rx="4" fill="#ffffff" opacity="0.92"/>
 <text x="531.0" y="180.0" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">reportes</text>
 <path d="M666.0,176 V200" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
-<path d="M762,235.0 H801.0 V154.0 H840" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
-<path d="M666.0,364 V388" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
-<path d="M666.0,446 V470" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
-<path d="M666.0,528 V552" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
-<path d="M762,587.0 H801.0 V214.0 H840" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
+<path d="M762,242.0 H801.0 V154.0 H840" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
+<path d="M666.0,378 V402" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
+<path d="M666.0,460 V484" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
+<path d="M666.0,542 V566" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
+<path d="M762,601.0 H801.0 V214.0 H840" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
 <path d="M1032,150.0 H1052 V235.0 H1110" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
 <rect x="1026.65" y="177.5" width="50.699999999999996" height="15" rx="4" fill="#ffffff" opacity="0.92"/>
 <text x="1052" y="188.5" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">Streams</text>
@@ -157,10 +158,10 @@
 <path d="M1572,159.0 H1606 V382.0 H1650" fill="none" stroke-width="1.6" stroke="#9ca3af" stroke-dasharray="5 4" marker-end="url(#fd)"/>
 <rect x="1574.55" y="255.5" width="62.9" height="15" rx="4" fill="#ffffff" opacity="0.92"/>
 <text x="1606" y="266.5" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">agregados</text>
-<path d="M1206.0,624 V672 H396.0 V528" fill="none" stroke="#374151" stroke-width="1.6" marker-end="url(#f)"/>
-<text x="801.0" y="666" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">tiempo real (WebSocket): antenas, colectivos e incidencias</text>
+<path d="M1206.0,624 V684 H396.0 V528" fill="none" stroke="#374151" stroke-width="1.6" marker-end="url(#f)"/>
+<text x="801.0" y="678" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">tiempo real (WebSocket): antenas, colectivos e incidencias</text>
 <path d="M300,507.0 H262 V237.0 H222" fill="none" stroke-width="1.6" stroke="#374151" marker-end="url(#f)"/>
-<rect x="20" y="696" width="1832" height="48" rx="9" fill="#f3f4f6"/>
-<text x="34" y="715" font-size="11" font-weight="500" fill="#374151" text-anchor="start">Secretos: las Lambdas leen las claves de Azure y de la IA desde AWS Secrets Manager en tiempo de ejecución (nunca en el repositorio). La Lambda /api/nubes sondea ACS y Maps con operaciones reales.</text>
-<text x="34" y="733" font-size="11" font-weight="500" fill="#374151" text-anchor="start">Cumple: 2 nubes reales (AWS + Azure; Gemini no cuenta) · persistencia y alta disponibilidad (DynamoDB multi-AZ + PITR, SQS + DLQ) · 3 Step Functions · IA con procedencia honesta · costo por uso.</text>
+<rect x="20" y="708" width="1832" height="48" rx="9" fill="#f3f4f6"/>
+<text x="34" y="727" font-size="11" font-weight="500" fill="#374151" text-anchor="start">Secretos: las Lambdas leen las claves de Azure y de la IA desde AWS Secrets Manager en tiempo de ejecución (nunca en el repositorio). La Lambda /api/nubes sondea ACS y Maps con operaciones reales.</text>
+<text x="34" y="745" font-size="11" font-weight="500" fill="#374151" text-anchor="start">Cumple: 2 nubes reales (AWS + Azure; Gemini no cuenta) · persistencia y alta disponibilidad (DynamoDB multi-AZ + PITR, SQS + DLQ) · 3 Step Functions · IA real: modelo ML propio (local) + Gemini opcional, con procedencia honesta · costo por uso.</text>
 </svg>

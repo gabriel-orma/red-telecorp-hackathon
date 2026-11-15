@@ -18,6 +18,7 @@
 | AWS | API Gateway, Lambda, SQS, DynamoDB, Step Functions, Cognito, EventBridge, Secrets Manager/SSM, S3 | Ingesta, detección, orquestación, datos, autenticación y secretos |
 | Azure | **Communication Services** | Cada aviso del flujo (`EN_EVALUACION`, `INCIDENCIA_CONFIRMADA`, `SERVICIO_RESTABLECIDO`) sale por correo desde una Lambda de AWS, autenticado con firma HMAC-SHA256, **solo a destinatarios autorizados** (lista `destinatarios` del secreto: las cuentas se auto-verifican, así que sin lista no se envía a nadie). El historial guarda el id de operación de ACS y se puede consultar su entrega (`Succeeded`) |
 | Azure | **Maps** | El análisis del incidente incluye el clima actual del centro de la zona (lluvia, viento, temperatura): una causa plausible de caída que el operador necesita ver |
+| **ML local** | Clasificador de reportes (TF-IDF + regresión logística) | Un reporte `OTRO` lo clasifica un modelo **entrenado por nosotros** que corre dentro de la Lambda de registro (sin numpy ni scikit-learn, 0,2 ms, el texto no sale de AWS). Exactitud 0,935 medida en una prueba redactada a ciegas (datos sintéticos: ver `ml/triage/README.md` para límites). Un reporte `OTRO` solo suma al conteo del colectivo si el modelo lo clasifica como falla con confianza ≥ 0,5 |
 | API externa | Gemini (opcional) | Redacta hipótesis y recomendaciones **solo sobre datos agregados** (conteos, estados de antenas, tipo de zona, clima). **El texto libre de los usuarios no se envía** (el triage por IA existe pero viene apagado: flag `triageTexto` del secreto `ia`). Si Gemini no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas (sin IA)» con el motivo, nunca «IA» |
 
 ## Por qué así (relación con la rúbrica)
@@ -87,3 +88,4 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Azure Maps (Gen2) | Azure | `tcmaps*` (ubicación `global`) | manual | Clima actual (`weather/currentConditions`) |
 | Lambda `nubes` | AWS Lambda + API Gateway | `telecorp-api-<stage>-nubes` | api | `GET /api/nubes` (solo operadores): mide en vivo AWS y Azure; sondas con cupo de 1 cada 5 min por servicio |
 | Contadores, cupos y disyuntores de las integraciones | AWS DynamoDB | `telecorp-<stage>-dedup` (`NUBE#`, `LIMITE#`, `DISYUNTOR#`) | base | Sin tablas nuevas |
+| Modelo de ML del triage | AWS Lambda (layer común) | `telecorp/ml/triage_modelo.json` (329 KB) | base | Entrenado fuera de la nube con `ml/triage/entrenar.py`; solo se ejecuta aquí |

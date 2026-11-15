@@ -230,9 +230,10 @@ def test_triage_con_salida_invalida_o_error_cae_a_reglas_y_no_cuenta(nubes, resp
     assert reglas.triage_ia_confirma_servicio(r) is False
 
 
-def test_triage_sin_configuracion_cae_a_reglas(nubes):
+def test_triage_sin_configurar_gemini_usa_el_modelo_local(nubes):
     nubes.secretos.pop("ia")
-    assert ia.triage_reporte("no tengo internet en mi casa", "OTRO")["motivo"] == "NO_CONFIGURADA" and not nubes.llamadas
+    r = ia.triage_reporte("no tengo internet en mi casa", "OTRO")
+    assert r["fuente"] == "ML" and r["proveedor"] == "modelo-local" and not nubes.llamadas
 
 
 def test_el_tope_por_minuto_protege_el_cupo_gratuito(nubes):
@@ -396,10 +397,10 @@ def test_si_el_refresco_del_analisis_falla_el_monitoreo_no_se_rompe(nubes, monke
 
 
 def test_el_texto_libre_no_sale_hacia_gemini_si_no_se_activa_el_triage(nubes):
-    """Por defecto la IA solo recibe datos AGREGADOS: sin `triageTexto: true` un reporte OTRO no se envía (R3)."""
+    """Por defecto la IA generativa solo recibe datos AGREGADOS: sin `triageTexto: true` el reporte OTRO lo clasifica el modelo local."""
     nubes.secretos["ia"].pop("triageTexto")
     r = ia.triage_reporte("no tengo internet en mi casa desde ayer, soy Luis y vivo en Av. Los Olivos 345", "OTRO")
-    assert r["fuente"] == "REGLAS" and r["motivo"] == "TRIAGE_APAGADO" and reglas.triage_ia_confirma_servicio(r) is False
+    assert r["fuente"] == "ML" and r["proveedor"] == "modelo-local"
     assert not nubes.a("generativelanguage.googleapis.com")
 
 
