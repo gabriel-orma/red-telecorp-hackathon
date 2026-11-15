@@ -31,6 +31,10 @@
 3. Al terminar (~3 min), pulsar ▶ a 10×: el mapa "repite" los 4 eventos.
 4. `pytest`: 44 pruebas.
 
+## Estado de la verificación
+- Desplegado en `dev-gabriel` (despliegue completo sin errores), pero **no se probó en el navegador**: la cuenta de AWS Academy de ese stage fue bloqueada.
+- Pendiente: desplegar en la cuenta nueva (`bash scripts/deploy.sh <stage>`) y probar la simulación acelerada y la línea de tiempo.
+
 ## Notas para los otros agentes
 - Fuera de "en vivo" la línea de tiempo NO recarga datos a propósito (si no, los clips se moverían bajo el cursor).
 - `useAlCambiar(tipos, fn, intervaloMs)` ahora es throttle: no volver a debounce (con avisos continuos no dispararía nunca).
