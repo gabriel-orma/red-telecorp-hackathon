@@ -64,20 +64,39 @@ functions:
             onFailure:
               arn: ${cf:${self:custom.base}.ColaDetectorDLQArn}
               type: sqs
-          filterPatterns:   # solo cuando la antena queda en falla (ahorra invocaciones)
-            - dynamodb: { NewImage: { estado: { S: [CAIDA, INHABILITADA] } } }
+          filterPatterns:   # solo la TRANSICIÓN a falla (H25): no una invocación por cada lectura mientras siga caída
+            - dynamodb:
+                NewImage: { estado: { S: [CAIDA, INHABILITADA] } }
+                OldImage: { estado: { S: [{ anything-but: [CAIDA, INHABILITADA] }] } }
+            - eventName: [INSERT]   # primera lectura de la antena (aún no hay OldImage)
+              dynamodb: { NewImage: { estado: { S: [CAIDA, INHABILITADA] } } }
+
+  # Barrido de reconciliación (H08): red de seguridad si un evento del stream se perdió o llegó fuera de orden.
+  # Reevalúa cada zona y arranca la Step Function de colectivos "zombi". Sin costo fijo (≈8.600 invocaciones/mes).
+  reconciliador:
+    handler: src/detector.reconciliar
+    name: ${self:custom.prefijo}-reconciliador
+    timeout: 60
+    environment:
+      MAQUINA_COLECTIVO: !Ref MaquinaIncidenteColectivo
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
 
   # Pasos de la Step Function
+  # (los timeouts de las Lambdas de lote/cierre son mayores que el estándar de 30 s: procesan cientos de usuarios)
   prepararNotificacion: { handler: src/pasos.preparar_notificacion }
-  notificarUno: { handler: src/pasos.notificar_uno }
+  notificarLote: { handler: src/pasos.notificar_lote, timeout: 120 }
   verificarInfraestructura: { handler: src/pasos.verificar_infraestructura }
   priorizar: { handler: src/pasos.priorizar }
-  resumir: { handler: src/pasos.resumir }
-  confirmar: { handler: src/pasos.confirmar }
+  resumir: { handler: src/pasos.resumir, timeout: 45 }   # IA (Gemini ≤ 8 s) + clima (Azure Maps ≤ 5 s); el estado de la máquina permite 60 s
+  confirmar: { handler: src/pasos.confirmar, timeout: 300 }
   reverificar: { handler: src/pasos.reverificar }
   restablecer: { handler: src/pasos.restablecer }
-  cerrar: { handler: src/pasos.cerrar }
+  cerrar: { handler: src/pasos.cerrar, timeout: 300 }
   sinResolver: { handler: src/pasos.sin_resolver }
+  manejarFallo: { handler: src/pasos.manejar_fallo }
 
   # Escenarios de demo (E5)
   escenarioPreparar: { handler: src/escenario.preparar }
@@ -99,6 +118,14 @@ stepFunctions:
       id: MaquinaIncidenteColectivo
       name: ${self:custom.prefijo}-incidente-colectivo
       role: arn:aws:iam::${aws:accountId}:role/LabRole
+      # Solo errores y sin datos de ejecución: los logs no deben contener datos personales (AGENTS.md R3).
+      # NO VERIFICADO EN AWS: LabRole debe permitir la entrega de logs (logs:CreateLogDelivery...); si el primer
+      # despliegue falla por esto, quitar loggingConfig y el LogGroup (no afecta al flujo).
+      loggingConfig:
+        level: ERROR
+        includeExecutionData: false
+        destinations:
+          - Fn::GetAtt: [LogsMaquinaIncidenteColectivo, Arn]
       definition: ${file(./statemachines/incidente-colectivo.yml)}
     escenario:
       id: MaquinaEscenario
@@ -125,5 +152,11 @@ resources:
           Arn: !Ref MaquinaRecurrencia
           RoleArn: arn:aws:iam::${aws:accountId}:role/LabRole
           Input: "{}"
+
+    LogsMaquinaIncidenteColectivo:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/vendedlogs/states/${self:custom.prefijo}-incidente-colectivo
+        RetentionInDays: 7
   Outputs:
     MaquinaIncidenteColectivoArn: { Value: !Ref MaquinaIncidenteColectivo }

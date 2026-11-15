@@ -1,0 +1,246 @@
+texto,etiqueta
+"Hola, soy estudiante, mi clase por zoom se ve y se escucha con retraso, cuando contesto ya pasó otro tema. Las páginas del campus tardan en cargar, a veces diez segundos por cada una.",INTERNET_LENTO
+"Buenas, mi celular recibe las llamadas pero no se escucha nada, ni yo a ellos ni ellos a mí, aunque la pantalla marca que estamos hablando. Pasa con cualquier número y el aparato lo revisó un técnico y está bien.",SIN_LLAMADAS
+"ayer volaba, hoy parece que me dieron 1 mega. nada abre rápido jaja",INTERNET_LENTO
+"Hola, soy yo otra vez. El celular marca 4G completo pero abrir Instagram es un suplicio, las historias no cargan y el feed se queda en blanco un rato largo. Antes volaba.",INTERNET_LENTO
+"Buenas, desde las 6 de la tarde no carga ninguna página, ni siquiera el banco. Los datos móviles tampoco, la rueda gira y gira y al final sale error de DNS. Necesito trabajar!",SIN_INTERNET
+"Oiga, es que mi celular hoy amaneció con las rayitas vacías, cero cobertura, estoy en pleno centro de Lima, no en un huecazo. Algo se cayó en la antena de mi zona, seguro.",SIN_SENAL
+"Hola, qué tal. Mi conexión es como un yo-yo: ahora sirve, ahora no, y cuando creo que ya se arregló se vuelve a ir. Se corta justo cuando entro a mis videollamadas, qué mala suerte.",INTERMITENCIA
+"Aló, buenas, mi problema es que ya no puedo mandar mensajes a nadie, el celular los intenta enviar y al rato sale error al enviar. Y me escriben y no me llega nada. Pero llamar sí puedo, entonces no es el saldo.",SIN_SMS
+"Hola, buenas, voy a viajar a España el mes que viene y quisiera activar el roaming internacional. Cuánto cuesta el paquete de datos por día y desde dónde lo activo? Gracias!",OTRO
+"Oiga, las verificaciones de mis aplicaciones nunca llegan, ya perdí la cuenta de las veces que las pido. Lo grave es que necesito entrar a mi banca por internet hoy. Ayúdeme que estoy contra el reloj!",SIN_SMS
+"Buenas, al hacer una llamada por teléfono se oye bien y de pronto el audio se corta unos segundos y regresa, y luego otra vez. Hablar así es imposible. Con wifi calling no pasa pero sin wifi sí.",INTERMITENCIA
+"Oiga, estaba bien, luego se fue, luego volvió, luego otra vez se fue. Nunca se queda estable. Los datos del celular hacen exactamente lo mismo, o sea un momento hay y otro no. Ya me cansé.",INTERMITENCIA
+"Oye, anoche me dormí con cuatro rayitas y hoy amanecí con cero, sin ningún aviso. Probé afuera, probé en el techo, nada. Me da miedo que mi mamá me necesite y yo no tenga cómo recibir su llamada.",SIN_SENAL
+"Hola, yo uso su plan de datos para mi tablet y desde ayer no abre ninguna app que necesite red, ni siquiera el mapa. Tengo cobertura completa, las barras están llenas, pero no pasa nada de datos.",SIN_INTERNET
+"Hola, mi línea es prepago y quisiera recargar con tarjeta pero la página de recargas no me acepta mi tarjeta. Por favor, díganme por otra vía cómo recargar. Gracias.",OTRO
+"Ya me cansé de pedir el código de verificación y nada, mi celular no recibe mensajes de ese tipo desde que me cambié de plan hace una semana, pero eso lo menciono solo por si sirve. Lo que quiero es que lleguen mis códigos.",SIN_SMS
+"Oiga, es que me suena ocupado todo el tiempo, o sea llamo y llamo y siempre ocupado, aunque sé que no están hablando. Y a mí tampoco me entran. Es urgente, mi abuelito está delicado.",SIN_LLAMADAS
+"Amanecí con las rayitas vacías, ni el nombre de la operadora sale. Qué pasó?",SIN_SENAL
+"No es que no haya conexión, ojo, sí hay, pero cada clic tarda como 15 segundos en responder. Estoy en clases virtuales y el profesor ya me preguntó dos veces si estoy ahí porque se me ve congelado.",INTERNET_LENTO
+"Buenas!! Mi router tiene la luz de WAN apagada, o sea no llega nada desde afuera, y aparte me prometieron revisión ayer y nadie vino. Necesito la conexión ya!",SIN_INTERNET
+"Buenas, oiga, estoy intentando sacar mi clave del banco y no me llega el código por mensaje, ya van diez veces que lo pido. Los datos y las llamadas funcionan bien, solo el mensaje no llega. Ayúdenme!",SIN_SMS
+"Hola, desde ayer ni a mi familia ni a emergencias se puede, la pantalla se queda en conectando y regresa. Mi línea es de recibos, estoy al día en pagos.",SIN_LLAMADAS
+"Mi celular dice 4G, luego sin datos, luego 4G otra vez, así todo el día. Cuando estoy viendo un video se me corta y luego sigue. Imposible hacer una gestión en el banco con esto.",INTERMITENCIA
+"las páginas cargan a medias, primero el texto, las imágenes tardan siglos, y las descargas van a 20 kilos por segundo. ya revisé mi equipo y no es. ayuda!!",INTERNET_LENTO
+"Buenas tardes. Me entran los mensajes de WhatsApp pero cuando alguien llama por teléfono normal mi celular no hace nada, ni vibra. Y cuando yo marco me dicen que el número no está disponible. Raro.",SIN_LLAMADAS
+"Buenas tardes, en la playa donde estoy de vacaciones el celular no capta nada de nada, ni una barrita, ni emergencias. Mis amigos con otra empresa sí tienen. Qué malo que no haya cobertura de ustedes aquí.",SIN_SENAL
+"Hola, el cajero de mi negocio no puede pasar tarjetas porque el POS dice sin comunicación, usamos su línea de datos. Estamos perdiendo ventas, por favor reconecten urgente!!",SIN_INTERNET
+"Mi módem lleva toda la tarde con la luz de internet en rojo fijo. No es que vaya despacio, es que no pasa nada, cero. Ni siquiera la página de ustedes abre para reclamar, por eso escribo por aquí.",SIN_INTERNET
+"Hola, escribo porque tengo cortes cortitos de la conexión, de unos 30 segundos, como cada media hora. Se nota porque se reinicia la descarga y la llamada de trabajo se corta. Después todo normal.",INTERMITENCIA
+"Qué significa la luz azul parpadeando del módem? Solo curiosidad, todo bien.",OTRO
+"Oiga, estoy con 4G en la pantalla pero no navega nada, ni YouTube ni Facebook ni nada. Solo puedo mandar SMS. Ayer sí funcionaba bien. Quiero que me digan qué pasa.",SIN_INTERNET
+"Mis mensajes de texto salen con la X roja, no se envían. Solo eso falla.",SIN_SMS
+"Buenas noches, tengo un problema con el envío de mis mensajes: cuando escribo uno y le doy a enviar, aparece un aviso de que no se pudo entregar. Pasa con todos los números, y no me llega ni uno nuevo.",SIN_SMS
+"Hola buenas, desde el corte de luz de ayer, cuando volvió, el módem prendió pero ya no navega nada. Ya intenté resetearlo con el botoncito. Sigue igual, cero páginas.",SIN_INTERNET
+"Cero barras y el celular busca red todo el día. Ya reinicié, nada.",SIN_SENAL
+"Estimados, desde la mañana mi línea no puede establecer comunicaciones de voz. Aparece no se pudo completar la llamada. El resto de servicios normal. Adjunto que mi número es de contrato. Gracias.",SIN_LLAMADAS
+"Buenas noches, le escribo desde el WhatsApp de mi trabajo porque mi teléfono no me deja hacer llamadas. Sale no se puede realizar la llamada en este momento. No me bloquearon la línea, verifiqué.",SIN_LLAMADAS
+"Buenas tardes, quería preguntar si puedo cambiar el titular de la línea a nombre de mi hermano, que es quien la usa. El servicio no tiene ninguna falla, es solo un trámite administrativo.",OTRO
+"Mi suscripción de streaming dice que no puede conectar, el juego en línea me bota al menú diciendo que no hay conexión y hasta el WhatsApp web pide reconectar. Todo muerto desde la noche.",SIN_INTERNET
+"Hola, desde hace una hora ninguna página abre, ni los datos ni el wifi, y de paso el teléfono de la casa tampoco da tono, pero lo que me urge es que vuelva a abrir una página siquiera.",SIN_INTERNET
+"Buenas tardes, oiga, el celular me marca puro sin servicio, ni 4G ni 3G ni nada, solo una rayita con una X. Desde la madrugada. Tuve que pedir prestado un teléfono para escribirles.",SIN_SENAL
+"Oiga joven, la luz del módem que dice internet está apagada, o sea no prende para nada. Mi hijo tiene clases virtuales y no puede entrar. Urgente por favor!!",SIN_INTERNET
+"No carga nada, nada de nada. Ni el correo, ni el chat, ni el mapa. Estoy en la calle con mis datos y es como si no existieran. Ayer igual.",SIN_INTERNET
+"Marco y solo suena tu-tu-tu y se corta. Con todos los números, ayúdenme.",SIN_LLAMADAS
+"Hola, hace tres días que mi línea va y viene, hoy funcionó hasta la una y luego se cortó, a las tres otra vez bien, a las seis de nuevo cortado. Ya no tengo paciencia. Por favor, solución definitiva!",INTERMITENCIA
+"Buenas, desde esta semana la tele por internet se pone negra, dice error de conexión, y como al minuto vuelve la imagen. Pasa todas las noches varias veces. Mi mamá ya no ve su novela tranquila!!",INTERMITENCIA
+"Buenas, ayer fui a la tienda, esperé tres horas y me atendieron mal, el sistema dizque estaba caído, pero mi problema es que no me aplicaron el descuento por ser cliente antiguo que me prometieron. Quiero que me lo apliquen.",OTRO
+"Oiga, para abrir el correo tengo que esperar como un minuto, y para subir un archivito de nada me pasé media hora. Funciona, pero qué tortuga! Cuándo lo arreglan?",INTERNET_LENTO
+"Hola!! Necesito el código para activar mi billetera digital y ya lo pedí como cinco veces, no llega nada a mi bandeja. Me urge para pagar el taxi. Por favor, revisen mi línea!!",SIN_SMS
+"Buenas, oiga, cuando marco cualquier número me sale llamada fallida a los dos segundos y se corta. Mi línea tiene saldo y las barras llenas. Necesito llamar al doctor, por favor!!",SIN_LLAMADAS
+"Hola, escribo por el chat porque los mensajes de mi línea no funcionan. Mi mamá en provincia no puede mandarme ni recibir de mí sus ok de siempre, todo falla. Sí podemos hablar, las llamadas van bien.",SIN_SMS
+"Hola, buenas noches. No puedo recuperar mi cuenta porque el código de recuperación no llega a mi celular. Ya esperé más de 30 minutos y varias veces lo pedí, nada. Mi línea está activa.",SIN_SMS
+"Buenos días, solicito la instalación de fibra óptica en mi domicilio nuevo. Me dijeron que enviarían un técnico y aún no tengo fecha. Quisiera agendar para el sábado. Quedo atento.",OTRO
+"Mi celular no recibe los códigos de WhatsApp por mensaje, siempre me sale que reintente en una hora. Quiero poner mi número en un celular nuevo y no puedo porque nunca llega el SMS. Por favor!!",SIN_SMS
+"Buenas, solicito me ayuden a activar el paquete de datos adicional por 15 días porque viajaré y quiero usar mucho el celular. Todo me funciona bien ahora, solo quiero comprar el paquete. Quedo atento, gracias.",OTRO
+"Oye, me tienes a punto de cambiarme: el internet se cae justo cuando más lo necesito y regresa al ratito. Hoy fueron como veinte veces, las conté. Quiero que me digan si hay una falla en mi zona.",INTERMITENCIA
+"Qué lento todo, oiga, hasta el buscador demora! Una eternidad por página.",INTERNET_LENTO
+"Mis datos móviles están prendidos, el ícono sube y baja flechita pero no pasa nada, ninguna app descarga ni actualiza. Cambié de celular para probar y lo mismo.",SIN_INTERNET
+"Hola, buenas tardes, pues mi problema es que en las noches de 8 a 11 se pone insoportable, el video baja a 144p y no hay forma. De día bien. Desde hace dos semanas.",INTERNET_LENTO
+"Pues mire, lo que pasa es que mi celular se queda con una raya, luego con cuatro, luego con ninguna, luego otra vez cuatro. Así todo el día. No se puede contar con él.",INTERMITENCIA
+"mi chip dice sin red móvil y las barras están vacías desde esta mañana. ayuda!",SIN_SENAL
+"Hola, estoy en casa de mi mamá y desde el mediodía nadie puede conectarse a nada, ni con cable ni por wifi. Hasta el chromecast dice que no encuentra la red. Hagan algo, por favor.",SIN_INTERNET
+"Estimados, el aviso de que me subieron la tarifa llegó sin previo aviso y no estoy de acuerdo. Quiero que me expliquen por qué y si puedo mantener la tarifa anterior. No es por falla, es por el precio.",OTRO
+"Buenas noches, la llamada se me cae cada vez que me muevo un poquito en la casa, y luego tengo que volver a llamar. Mi esposo dice que es mi aparato pero con otra operadora no pasa. Algo hay.",INTERMITENCIA
+"Buenas noches, oiga, desde esta mañana mi wifi dice conectado pero no abre nada, ni google ni nada. El módem tiene una lucecita roja parpadeando. Ya lo apagué y lo prendí tres veces, ayúdenme por favor!!",SIN_INTERNET
+"Buenas noches, deseo dar de baja mi servicio de internet fijo porque me mudo a otro país. Cuál es el procedimiento y si hay penalidad? Mi conexión funcionó sin problemas todo este tiempo.",OTRO
+"Hola, soy comerciante y mis clientes me dicen que me llaman y les contesta la operadora diciendo que no pueden comunicarse conmigo. Estoy perdiendo ventas, mi celular está bien prendido!!",SIN_LLAMADAS
+"Hola, de ayer a hoy la cobertura me ha estado subiendo y bajando, en la mañana full, al mediodía nada, en la tarde otra vez. Mi vecina dice igual. Alguien tiene que revisar la antena que anda como loca.",INTERMITENCIA
+"Buenos días. Cuando llamo, el otro lado contesta pero ninguno se oye con el otro, silencio total, y se corta. Probé con cinco personas distintas. Ya revisé el micrófono y está bien.",SIN_LLAMADAS
+"Aló aló, hola, escribo porque cada llamada que intento me manda directo a una grabación que dice no es posible completar su llamada y ni siquiera suena. Mis amigos me dicen lo mismo cuando me llaman.",SIN_LLAMADAS
+"Ay oiga, no sé qué pasó pero la computadora no encuentra la red por cable ni por wifi, pero el chip de mi celular sí marca. O sea solo lo de navegar murió!!",SIN_INTERNET
+"Hola buenas, desde la mañana mi celular muestra una crucecita al costado de las barras, o sea no hay red ni para llamar ni para nada. Mis vecinos dicen que les pasa igual.",SIN_SENAL
+"Aló? Mi plan de datos dice que tengo gigas pero ninguna aplicación carga. El navegador me pone «sin conexión a internet» con el dinosaurio ese. Dos días ya!",SIN_INTERNET
+"Mi mamá me llama y le sale una grabación que dice que el número no existe o está apagado, pero está prendido y con barras completas. Desde ayer. Qué es esto pues?",SIN_LLAMADAS
+"Hola, me llaman y mi celular ni suena, nada. Después los amigos me dicen que les contesta el buzón o que da ocupado. Me estoy perdiendo llamadas importantes del trabajo.",SIN_LLAMADAS
+"Hola, desde ayer solo me aparece el nombre de otra compañía en la pantalla y dice solo emergencias, la de ustedes no aparece por ningún lado. Estoy en mi domicilio de siempre. Qué pasó con mi red?",SIN_SENAL
+"Hola, compré un celular en su tienda hace dos semanas y quiero saber si la garantía cubre una pantalla rajada que se me cayó. Gracias. Estoy a la espera de su respuesta.",OTRO
+"hola buen día, no me llega el sms de confirmación de mi pedido ni el de mi cita médica, ni nada. los envían pero a mi celular no. qué raro, tengo cobertura full y el resto va bien.",SIN_SMS
+"Estimados, la línea de mi madre, que es adulta mayor, no recibe llamadas desde el sábado. La familia no logra comunicarse con ella y estamos preocupados. Por favor, revisen cuanto antes, gracias.",SIN_LLAMADAS
+"Pues acabo de llegar a mi casa y el celular se quedó mudo, no marca ni una raya, en la pantalla dice sin servicio y el modo avión está apagado. Qué pasó? Anoche funcionaba bien.",SIN_SENAL
+"Buenas. Estoy reportando que cuando recibo llamadas se escucha un pitido y se corta antes de que pueda contestar. A mi hijo le pasa igual con su línea de ustedes. En el barrio varios vecinos también.",SIN_LLAMADAS
+"Mi tele inteligente dice error de red y Netflix no abre, las cámaras de seguridad también están desconectadas, todo lo que usa internet está muerto desde anoche. Es la casa entera, no un solo aparato.",SIN_INTERNET
+"Estimados: en la zona de mi trabajo, un almacén, la cobertura de su red es nula desde el lunes. Los celulares de mis compañeros no registran ninguna red. Solicito se atienda con urgencia, estamos incomunicados.",SIN_SENAL
+"Oiga joven, perdí el chip de mi celular, necesito reponerlo y que mantenga mi número y mi saldo. Ya puse la denuncia. Cuánto cobran por el chip nuevo y dónde puedo recogerlo?",OTRO
+"Estimados, mi línea no recibe los mensajes cortos de verificación en dos pasos desde el lunes, por lo que no puedo ingresar a mi cuenta de correo ni a la de la universidad. Agradezco su pronta ayuda.",SIN_SMS
+"Hola, mi celular no me manda los mensajes de texto, sale un signo de exclamación rojo al costado y dice no enviado. Mis llamadas sí salen. Quería avisarle a mi hija y nada.",SIN_SMS
+"Buenas tardes. Desde que llega la noche todo se arrastra: Netflix se pone en baja resolución sola y los episodios cargan a pedacitos. En el día va bien. Qué raro, no?",INTERNET_LENTO
+"Aló, buenas, mi teléfono se desconecta de la red y se vuelve a conectar solito, y cuando me llaman a veces entra y a veces no, depende del momento. Desde el sábado tengo ese problema.",INTERMITENCIA
+"buenas, desde ayer el celular no me abre ninguna página con datos, solo con wifi del vecino jaja. mi línea tiene saldo y megas. que pasa???",SIN_INTERNET
+"Buenas, oiga, quería saber por qué en mi recibo de este mes me cobraron 25 soles más que el anterior. El internet me funciona de maravilla, solo que no entiendo ese cobro extra. Gracias.",OTRO
+"Hola, buenas noches, el teléfono me marca el símbolo de que no hay antena disponible y solo puedo usar wifi. Para llamar tengo que salir a buscar un lugar con cobertura, a veces ni así. Por favor revisen.",SIN_SENAL
+"Hola, mi laptop dice conectado sin acceso a internet, el triangulito amarillo, y el celular igual en el wifi de la casa. Ya reinicié todo. Qué pasa pues",SIN_INTERNET
+"Oiga, en el edificio donde trabajo mi celular no tiene cobertura, ni una raya, y mis compañeros de la misma compañía igual. Nos toca bajar a la calle para contestar. Necesitamos que pongan una antena o algo.",SIN_SENAL
+"Hola, qué tal, desde que me mudé al segundo piso ya no hay forma de que mi teléfono capte nada. En la calle sí agarra, adentro del departamento nada, cero barras. Ya van tres semanas pues.",SIN_SENAL
+"Buenas tardes, mi teletrabajo está parado, la VPN no conecta y el correo dice desconectado. El router sí tiene luz pero el indicador del internet está en rojo. Ya van seis horas!!",SIN_INTERNET
+"Oiga, es la tercera vez que escribo: en mi zona no llega la cobertura de ustedes desde hace una semana, mi celular marca cero barras en cualquier parte de la casa. Mi vecino cambió de compañía por eso. Quiero solución, no excusas.",SIN_SENAL
+"oiga ya no sé qué más hacer, desconecté el módem, esperé diez minutos, lo volví a conectar, y nada, no hay página que abra ni aplicación que funcione, solo se ve la lucecita fija. ayúdeme pues",SIN_INTERNET
+"Hola, quisiera que revisen mi número porque no puedo ni hacer ni recibir llamadas normales. WhatsApp y datos sí. Y se me acabó el saldo de minutos sin usarlos, creo. Pero lo principal es que no hay forma de hablar por teléfono.",SIN_LLAMADAS
+"Hola, mis llamadas se cortan solas a los dos minutos, como si alguien colgara. Vuelvo a marcar y otra vez igual. Con mi mamá hablo por partes, me da cólera pues.",INTERMITENCIA
+"no me entran llamadas!!! mi esposo cree que lo ignoro pero es que no suena!! llamé a mi propio número desde otro chip y dice que estoy fuera del área de servicio, pero tengo datos y todo",SIN_LLAMADAS
+"Hola, no sale ninguna llamada desde mi línea, ni a números de ustedes ni a otros. Marco y la pantalla se queda en blanco un segundo y regresa al teclado. Tengo plan con minutos de sobra!",SIN_LLAMADAS
+"Hola, me cobraron dos veces el mismo mes, o sea el recibo salió duplicado, quiero que me devuelvan uno. Es la segunda vez que me pasa y ya estoy harta de reclamar por cobros mal hechos!!",OTRO
+"Oiga, buenas noches. Estoy intentando entrar a mi clase en línea y me dice «verifique su conexión». Mi wifi aparece con candado y todo pero no hay salida a la web. Mañana tengo examen!!",SIN_INTERNET
+"Buenas, mi celular dice solo llamadas de emergencia desde ayer y las barritas están vacías. Estoy en mi casa, donde siempre he tenido de sobra. Ya apagué y prendí. Ayúdeme por favor!",SIN_SENAL
+"Hola, buenas tardes, quisiera reportar que mi cabina de internet se quedó sin ninguna conexión desde las diez, las cinco computadoras no abren páginas. Mis clientes se están yendo!!",SIN_INTERNET
+"oiga el wifi se arrastra, o sea mi mamá quiere ver su novela y se le pone el circulito cada dos por tres, y yo no puedo abrir ni la página del municipio. ya basta pues!!",INTERNET_LENTO
+"Buenas tardes, mi línea fija suena a veces y a veces no, hay días que da tono y días que no, y en el mismo día cambia. Mis clientes dicen que me llaman y a ratos no me entran. Es inconstante todo.",INTERMITENCIA
+"Joven, disculpe, es que ya no me llegan los avisos del banco por mensaje, esos que dicen cuando me depositan, y la clave dinámica tampoco. Mi celular está bien, el chip lo cambié hace poco. Resuelvan por favor.",SIN_SMS
+"uy no, otra vez lo mismo, el wifi conecta pero se queda en cargando y al final dice que no hay acceso a la red. 3 equipos probados. grrr",SIN_INTERNET
+"Hola, mi línea muestra red no disponible y el teléfono dice que está buscando todo el tiempo y la batería se me acaba muy rápido de tanto buscar. No sé qué hacer, por favor orienten.",SIN_SENAL
+"Hola buen día, hoy ni en mi casa agarra red, la pantalla pone una X sobre las barritas y dice sin red. Qué ocurre en mi zona?? Es la primera vez que me pasa en años de cliente.",SIN_SENAL
+"Buenas, mi celular ya no recibe mensajes de ningún número corto (esos de 4 o 5 dígitos), por eso no me llegan las claves de las apps. Mensajes de personas sí. Esto empezó cuando me cambié de equipo.",SIN_SMS
+"Buenas, el juego me sale con lag, los demás ven que me teletransporto. Mi conexión está ahí pero con unos tirones horribles. En el celular de mi amigo con otro operador va perfecto.",INTERNET_LENTO
+"La señal sube y baja cada cinco minutos, no se puede hablar tranquilo.",INTERMITENCIA
+"Buenas, me contestan el abonado no se encuentra disponible cuando llaman a mi número. Mi celular está encendido, con batería y todo. Llevo cuatro días perdiendo llamadas del banco y no me quiero quedar sin eso.",SIN_LLAMADAS
+"Hola, soy cliente de fibra y la luz del módem se pone roja un ratito y luego verde otra vez, y así cada rato. Cuando está roja se corta la tele y todo. Ya llevo una semana con esto.",INTERMITENCIA
+"Hola, qué tal, quería registrarme en una app y me piden un código de seis números que nunca llega. Probé con otra línea de otra compañía y sí llegó al toque, entonces es la mía. Qué raro!",SIN_SMS
+"Oiga, una descarga de 100 mb me dice faltan 3 horas. Antes eran minutos. Y las actualizaciones del celular ni te cuento. Ayúdeme, quedo muy agradecido.",INTERNET_LENTO
+"Se cayó todo el wifi de la oficina desde las ocho, equipos sin acceso a nada. Urgente.",SIN_INTERNET
+"Hola hola, pues mi celular tiene los datos activados pero WhatsApp solo me muestra el relojcito y no manda ni un audio. Todas las páginas dicen que no se puede acceder al sitio. Desde ayer en la tarde así.",SIN_INTERNET
+"Mi pareja me dice que me manda mensajes de texto y yo no los veo, y los que yo mando le salen como no entregados. Con WhatsApp nos escribimos normal. Es solo la mensajería común, ayuda.",SIN_SMS
+"uy no, otra vez, se fue... ya volvió... ya se fue... así toda la tarde. mi teléfono de la casa y el internet a la vez. no puedo ni terminar un correo. ya no puedo más!!",INTERMITENCIA
+"Pues hola, la app del celular dice router desconectado de la nube y no carga ninguna web. Cuatro horas esperando y nada, ni el decodificador funciona.",SIN_INTERNET
+"Buenas, quisiera cambiar la contraseña del wifi y el nombre de la red de mi módem, no sé cómo entrar al panel. No hay ningún problema con el servicio, solo quiero actualizarlas por seguridad.",OTRO
+"Estimados, vengo notando una degradación importante de la velocidad en horas pico. Las descargas que antes tomaban dos minutos ahora toman veinte. Quedo atento a su pronta respuesta. Saludos.",INTERNET_LENTO
+"Hola, buenas noches, mi línea de voz está caída, cada vez que alguien llama a mi número les sale que el número no existe. Soy taxista y vivo de las llamadas de mis clientes. Por favor, urgente!",SIN_LLAMADAS
+"Buenas, reporto que la navegación está muy pesada desde el jueves, las páginas con muchas imágenes se quedan a la mitad. Hice la prueba con cable y sí, da una velocidad bajísima. Atentamente.",INTERNET_LENTO
+"Mi chip no recibe el mensaje con la clave de mi cuenta de ahorros, y yo necesito transferir hoy. Los datos normal, las llamadas normal, solo ese mensaje que no aparece nunca, aunque lo pida mil veces.",SIN_SMS
+"Mi celular dice no registrado en la red y las barras están en blanco. Pasa en la casa, en el trabajo y en la calle. Ya lo reinicié y le cambié el chip. Por favor, es urgente que me atiendan!!",SIN_SENAL
+"Buenas, mi pregunta es técnica: mi router tiene banda de 2.4 y 5 GHz, cuál me conviene usar para la computadora que está lejos? Mi conexión sirve bien, quisiera optimizar nomás. Saludos.",OTRO
+"Me llamaron diciendo ser de ustedes para un plan más barato. Es verdad o estafa?",OTRO
+"Me tiene harto, o sea harto, subir una foto al Facebook demora una vida, la llamada de video del trabajo se traba y se oye con eco, la nube no sincroniza. Todo lentísimo. Reclamo!!",INTERNET_LENTO
+"oiga ya pues, cada vez que intento llamar me sale un mensajito de error de red de voz y no se establece nada. mensajes sí salen. quiero hablar con mis papás, llevo dos días así.",SIN_LLAMADAS
+"Buenas tardes, mi línea fija con su servicio no tiene tono para marcar, levanto el auricular y está mudo, ni entran llamadas. El internet de ese mismo servicio sí funciona. Por favor revisar.",SIN_LLAMADAS
+"Ya pues, la app del banco no abre, me sale que no hay conexión con el servidor, y mis datos están prendidos! Intenté en dos celulares distintos. Todo cortado, oiga.",SIN_INTERNET
+"Hola buenas, mi tele se queda cargando en las películas y la barra gris avanza mucho más lento que el video. Mi plan es de 300 megas según el contrato. Algo no cuadra pues.",INTERNET_LENTO
+"Buenas tardes, me robaron el celular ayer en el micro y quisiera bloquear mi línea y el equipo cuanto antes, y que me den un chip nuevo con el mismo número. Qué tengo que presentar? Gracias.",OTRO
+"Estimados, solicito revisión de la cobertura en mi sector, mi equipo no registra ninguna red de ustedes desde las 5 a.m., solo muestra redes de otros operadores para llamadas de emergencia. Quedo atento a su respuesta.",SIN_SENAL
+"Hola, soy yo, disculpen, mi cel está como muerto para la red, o sea prende y todo pero no engancha ninguna antena. En la oficina del frente con otra compañía sí hay. Revisen mi zona porfa.",SIN_SENAL
+"Buenas noches, escribo porque los datos de mi celular van extremadamente despacio desde la mañana, las notificaciones llegan tarde y los mensajes con foto no se descargan. Ya reinicié el equipo. Muchas gracias.",INTERNET_LENTO
+"Hola, el router se queda parpadeando la luz del internet, se va y vuelve, y los equipos conectados salen y entran de la red todo el tiempo. Mi mamá no puede ni ver su video completo.",INTERMITENCIA
+"Hola, de verdad es urgente, la app del banco me pide un número que mandan por mensaje a mi celular y no me llega. Me va a bloquear la cuenta por intentos. Reenvíen por favor o arreglen lo que sea!!",SIN_SMS
+"Buenas, oiga, el wifi se me va y regresa solo cada diez minutos, más o menos. Estoy trabajando y se me cae la reunión y luego vuelve como si nada. Ya me tiene harto!!",INTERMITENCIA
+"Buenas, subir mis fotos a la nube me toma toda la tarde, y mi trabajo es diseño. Por favor, el servicio sigue pero está arrastrándose, necesito que revisen mi línea.",INTERNET_LENTO
+"Buenas, mi módem se reinicia solo varias veces al día, se apagan las luces y a los dos minutos vuelve todo. Eso hace que se corte lo que esté haciendo. Qué le pasa a mi equipo o a la línea?",INTERMITENCIA
+"Disculpe, buenas, quería saber qué le pasa a mi línea, la bandeja de mensajes está congelada, no entran mensajes nuevos de nadie y mis respuestas no se mandan. Ya reinicié el celular varias veces. Gracias.",SIN_SMS
+"Hola, mi mamá habla conmigo y la llamada se corta, la vuelvo a llamar y se corta otra vez, a veces se escucha a pedazos como con interferencia, y luego desaparece la voz un rato. Revisen nomás por favor!",INTERMITENCIA
+"Hola, vi en el recibo un cargo por reposición de equipo y no entiendo qué es. Yo no devolví ni cambié nada. Podrían explicarme o corregirlo? El internet va muy bien eso sí. Mil gracias.",OTRO
+"Se me hace imposible hablar por teléfono desde el lunes: ni salen ni entran. Con datos todo bien. Mi esposa me escribe por WhatsApp para decirme que no puede marcarme. Resuelvan por favor.",SIN_LLAMADAS
+"Estimados, quisiera saber cuántos gigas me quedan en mi plan este mes y cuándo se renueva el ciclo. No he tenido problemas con la velocidad, solo curiosidad por no pasarme. Muchas gracias.",OTRO
+"Pues sí, oiga, es que no hay manera de mandar un mensajito de texto, ni a números de ustedes ni de otros. Me sale error al enviar. Y no es por saldo porque acabo de recargar.",SIN_SMS
+"Buenas tardes, mi clave de acceso para la app de mi trabajo se manda por mensaje y no me llega. Sistemas dice que ya la enviaron. Ya apagué y prendí, modo avión, todo. Sigue sin llegar nada. Me quedo sin acceso!!",SIN_SMS
+"Uy, qué pésimo está el servicio ahora, cuando uso el celular para compartir datos a la laptop casi no se mueve nada, parece de los tiempos del dial-up jaja. Por favor mejoren",INTERNET_LENTO
+"oiga mi whatsapp se desconecta y se conecta, sale conectando arriba, luego sí, luego otra vez conectando. los audios a veces llegan y a veces no. qué es eso?",INTERMITENCIA
+"Mi teléfono marca y marca pero la llamada nunca entra, siempre cae al buzón de voz. Y yo tampoco recibo nada, mis contactos me dicen que los mando al buzón. Ya perdí clientes por esto. A ver si ustedes me ayudan.",SIN_LLAMADAS
+"Hola, perdón la molestia, no sé si es mi equipo o la línea, pero marco a cualquier número y se oye un tono raro y luego silencio. Nadie me contesta del otro lado nunca. Ya cambié el chip a otro celular.",SIN_LLAMADAS
+"Hola, quiero agregar una segunda línea a mi plan familiar para mi hijo, cuánto sería el costo adicional por mes? Mi línea y el internet funcionan perfecto, solo quiero ampliar. Gracias de antemano!",OTRO
+"Perdón, no sé a quién reclamarle: mi teléfono no encuentra la red de la empresa y vive con la antenita vacía. En el mismo lugar el de mi hermano, que es de otra empresa, agarra normal. Ya pues, resuelvan.",SIN_SENAL
+"Buenas, ya probé todo, modo avión, reinicio, reinsertar el chip y sigue mostrando sin cobertura en rojo. Antes de ayer estaba perfecto. Quiero saber si hay trabajos en la antena de mi barrio.",SIN_SENAL
+"Pues resulta que desde que cambié de chip, hace tres días, nadie me puede llamar ni yo a ellos, solo me sale un mensaje de que la llamada no se pudo conectar. Mi chip nuevo ya lo activé. Qué falta?",SIN_LLAMADAS
+"Necesito una constancia de cliente para mi banco. Cómo la pido? Gracias.",OTRO
+"Se va, vuelve, se va, vuelve. Todo el día así, por favor revisen!",INTERMITENCIA
+"Hola, buenas, me gustaría saber si tienen promociones para clientes de fibra con más de tres años. Mi servicio funciona perfecto pero escuché que hay descuentos y no me han avisado nada. Gracias!!",OTRO
+"Hola, desde el sábado mi celular no recibe mensajitos de texto, ni de mi mamá ni del trabajo. Pensé que era mi aparato, pero puse el chip en otro y lo mismo. Gracias por revisar.",SIN_SMS
+"oigan, desde ayer ni me llegan ni mando SMS, mi bandeja está vacía y yo espero un código de verificación de una app de delivery. el resto de mi línea va bien. qué pasa?",SIN_SMS
+"Hola, oiga, una pregunta pero con problema: desde que me cambiaron el chip por uno nuevo, mi celular no engancha red por ningún lado, la barra está vacía. Ya pasaron dos días. Por favor!",SIN_SENAL
+"Hola, soy yo otra vez!! Sigue lo mismo, el wifi aparece pero no sale a ninguna página, mi hija llora porque no puede subir su tarea a la plataforma del colegio. Por favor, es urgente.",SIN_INTERNET
+"Estoy jugando en línea y cada cierto rato me bota del servidor y luego puedo volver a entrar. Mi conexión se va por unos segundos y regresa. Desde el viernes. Ya cambié el cable y todo.",INTERMITENCIA
+"Oiga, para cargar la plataforma del trabajo espero casi dos minutos y a veces me bota por tiempo. En el celular de mi vecina que tiene otra compañía abre al toque. Qué pasa con la mía?",INTERNET_LENTO
+"Mi hijo juega en línea y le sale el ping altísimo, en rojo, se queda pegado y lo matan. Antes jugaba bien. Hace una semana que está así, por favor revisen.",INTERNET_LENTO
+"Hola, la verdad ya no aguanto, abro una página y me da tiempo de ir a servirme un café. Funcionar funciona, sí, pero no se puede trabajar así. Mi correo también se demora en enviar.",INTERNET_LENTO
+"oye, le marco a mi jefe y sale como que el número está fuera de servicio, pero lo llamo desde el celular de otro y le suena normal. O sea el problema es mi línea. ayúdame.",SIN_LLAMADAS
+"Hola, me gustaría cambiarme del plan de 100 megas al de 300 porque mis hijos ya están usando muchos aparatos. Qué requisitos hay y desde cuándo se aplicaría? Gracias de antemano.",OTRO
+"Estimados, reporto que mi servicio se interrumpe de forma recurrente, unas diez veces al día, por periodos de uno a dos minutos, y luego se restablece solo. Ya probé con otro router. Agradeceré su revisión.",INTERMITENCIA
+"Oiga, yo marco y marco y se queda en llamando sin que suene nada al otro lado, luego aparece que la llamada terminó. Pasa con todos los números, fijo o celular. Mi hijo ya me regañó por no contestar.",SIN_LLAMADAS
+"Buenas, el técnico vino a instalar mi servicio pero se olvidó de dejarme el decodificador adicional que contraté. Quiero programar otra visita para que me lo traigan. El internet ya está funcionando bien.",OTRO
+"Buenas, oiga, los videos se me quedan congelados cada dos segundos, aparece la ruedita y vuelve, y la calidad baja a una cosa pixelada horrible. Pago por fibra pues, no es normal!!",INTERNET_LENTO
+"Hola, desde que cortaron la luz en la zona ayer, mi celular no vuelve a agarrar red, pasa buscando y buscando, y el de mi vecino igual. Será que la antena sigue apagada? Avísenme cuando regrese, gracias.",SIN_SENAL
+"Nadie me puede llamar, les sale que el número no existe. Urgente!",SIN_LLAMADAS
+"Se cae la conexión cada media hora y vuelve sola. Ya reinicié el módem mil veces.",INTERMITENCIA
+"Me caen las llamadas siempre en el mismo punto, justo a los 3 o 4 minutos, y tengo que volver a marcar. A mi hermana le pasa lo mismo con su línea de ustedes. Es muy molesto!!",INTERMITENCIA
+"Oye, me avisan que la verificación de seguridad de mi cuenta está pendiente porque no ingreso el número que llega al celular, pero a mi celular no llega ninguno, ni hoy ni ayer. Ya van como 12 intentos.",SIN_SMS
+"Hola buenas, ni puedo contestar ni puedo marcar con mi línea de voz desde hoy temprano, el resto del celular normal: datos, mensajes, todo. Solo la parte de hablar está muerta.",SIN_LLAMADAS
+"Hola. Tiene como 12 horas que no sale ni una página, me aparece el mensaje de que no se puede establecer conexión segura y luego tiempo de espera agotado. Mi línea tiene datos.",SIN_INTERNET
+"Hola, mi plan de datos se supone que es ilimitado pero después de abrir dos páginas ya va rarísimo, como si me hubieran frenado. Abrir mapas toma un montón.",INTERNET_LENTO
+"Hola, oiga, quisiera saber cómo configuro el APN en mi celular nuevo, que acabo de comprar. Ya navega bien con la configuración automática, pero quiero tener el dato por si acaso. No es un problema, solo una consulta.",OTRO
+"Buenas. El módem muestra LOS en rojo, eso me dijo mi cuñado que es que no llega la fibra. Ya van dos días sin poder abrir nada. Cuándo mandan al técnico?",SIN_INTERNET
+"Estoy en una reunión importante y de pronto mi celular se quedó sin barras, y así sigue desde hace horas, ya no sé cómo contactar a mi familia. La tienda me dice que revise con ustedes. Por favor!",SIN_SENAL
+"Hola, una foto de WhatsApp se demora como cinco minutos en descargarse, y un audio igual. Todo funciona, o sea sí abre, pero con una paciencia que no te puedo explicar.",INTERNET_LENTO
+"Hola, solo quería avisar que en mi calle el celular no agarra ninguna antena desde las tres de la tarde, eso significa que no sirvo para nada, ni llamadas ni datos. Si alguien sabe cuándo regresa, avísenme.",SIN_SENAL
+"Estimados, desde la mañana los equipos de toda mi familia aparecen sin barras y con el símbolo de no hay red. Somos cinco con su línea. Ya probamos cambiar de lugar dentro de la casa. Nada.",SIN_SENAL
+"Buenas, solicito el duplicado de mi recibo de mayo porque no lo recibí por correo. Estoy al día en mis pagos y no tengo ninguna falla del servicio, solo necesito el documento para mi trámite.",OTRO
+"Hola, el celular de mi abuela, que tiene su chip con ustedes, dice sin servicio desde ayer, pero el chip está puesto y limpio. No hay forma de comunicarnos con ella. Ayuda!",SIN_SENAL
+"Estoy esperando una confirmación por mensaje de la clínica y nunca llega. Yo ni siquiera puedo mandar mensajes a mis contactos, me da error de envío. Todo lo demás en mi línea está normal, o sea las llamadas salen.",SIN_SMS
+"Pues sí, oiga, funciona, funciona, pero a paso de tortuga!! Mis hijos pelean porque el video se queda cargando y cargando, y yo no puedo ni mandar un pdf. Quiero un descuento o que arreglen!!",INTERNET_LENTO
+"Buenos días, se me complica porque necesito hacer llamadas para mi negocio y todas fallan, aparece error de llamada. Para los mensajes de WhatsApp sí tengo. Me urge que me atiendan.",SIN_LLAMADAS
+"Estimados, escribo por la inestabilidad de mi conexión: la sesión de mi trabajo se cierra cada rato porque pierdo la red unos segundos, y al reconectar tengo que iniciar de nuevo. Pasa en horarios distintos. Gracias.",INTERMITENCIA
+"Buenas noches, en el cuarto del fondo el wifi llega pero súper débil, la velocidad es una vergüenza, y en la sala igual desde hace días. Con cable sí va normal. Algo pasa con el router?",INTERNET_LENTO
+"Buenas! Desde que hubo la lluvia fuerte mi celular no vuelve a conectarse a la red de ustedes, la pantalla dice sin servicio y las barras en gris. Ya se secó todo y sigue igual.",SIN_SENAL
+"Buenos días, mi consulta es urgente: no puedo abrir el portal para enviar mis documentos porque todo mi internet está caído, sale error de conexión en todo. Soy independiente y esto me para el día entero.",SIN_INTERNET
+"Hola oiga, las videollamadas se congelan por un segundo y luego siguen, y de pronto se cae del todo y se reconecta. Una y otra vez. No es lentitud, es que se corta y regresa.",INTERMITENCIA
+"Buenas, la cobertura de mi celular parpadea todo el día, aparecen y desaparecen las barras. Cuando se van no puedo ni mandar mensajes, luego vuelven. Ya van cuatro días, me estoy volviendo loco.",INTERMITENCIA
+"Hola buenas, mi celular no recibe llamadas pero las notificaciones y WhatsApp sí funcionan perfecto. Ayer perdí una llamada de una entrevista de trabajo y estoy desesperado!",SIN_LLAMADAS
+"Oiga, hace rato me mandaron un link por mensaje diciendo que gané un premio y que ingrese mis datos de la tarjeta. Es de ustedes o es una estafa? Quiero denunciarlo, mi línea está normal.",OTRO
+"oiga me llegó un mensaje que dice que mi línea se va a suspender por deuda pero yo ya pagué!!! tengo el voucher del banco. quiero que corrijan esto y me confirmen que ya está regularizado pues.",OTRO
+"Todo carga a paso de tortuga desde el lunes. Arreglen pues, gracias.",INTERNET_LENTO
+"Oiga, mi línea solo comunica con WhatsApp, las llamadas normales ya no pasan, ni entrantes ni salientes. Me sale un pitido de ocupado inmediatamente. Cambié de teléfono y sigue igual.",SIN_LLAMADAS
+"Hola, desde que cambiaron algo en mi zona, las páginas pesadas no cargan, las ligeras sí. WhatsApp manda texto rápido pero los videos se quedan eternos. Algo está estrangulando mi línea.",INTERNET_LENTO
+"Hola, estoy de viaje en provincia por trabajo y llevo dos días donde no entra ni una raya de cobertura en mi celular, ni arriba del cerro. Mi compañero con otra empresa sí tiene. Quisiera una explicación.",SIN_SENAL
+"Buenas, antes mandaba mensajes de texto sin problemas, ahora cada vez que mando uno se queda en enviando y a las horas dice fallido. Mi línea tiene saldo y llamo y navego sin problema.",SIN_SMS
+"Hola, quería confirmar si hay cobertura 5G en mi zona antes de comprarme un celular nuevo. Mi servicio actual está bien, solo es para decidir si me conviene el equipo. Podrían decirme?",OTRO
+"Hice la prueba de velocidad y me sale 2 megas, y yo contraté 200!! No es que se vaya, está ahí pero arrastrándose. Quiero una explicación pues",INTERNET_LENTO
+"No llega el código del banco, lo pedí diez veces. Urgente por favor!!",SIN_SMS
+"Hola hola, buenas, mi celular me indica que tengo la llamada en espera activada y no sé desactivarla, tampoco entiendo bien cómo funciona el desvío de llamadas. Es solo una duda de configuración, no una falla.",OTRO
+"Hola hola, buenas, les cuento que mi velocidad bajó muchísimo desde el lunes, la prueba me da 5 megas de bajada y 0.3 de subida. Mi contrato dice 100. Agradeceré que lo revisen.",INTERNET_LENTO
+"Hola, cada vez que quiero abrir TikTok los videos se ponen a cargar de a poquito y se ven en mala calidad, parece un borrón. Con wifi del trabajo sí va bien, entonces es mi línea.",INTERNET_LENTO
+"El internet funciona a ratos nomás, oiga. Una hora todo bien, la otra nada, y luego regresa solito. Mi hijo en clases se desconecta y entra, se desconecta y entra. Revisen pues.",INTERMITENCIA
+"Por favor, es una emergencia familiar, tengo que hacer llamadas y no hay manera, cada intento termina con un tono de error. Estoy usando el celular de un vecino para escribirles. Gracias de verdad.",SIN_LLAMADAS
+"Hola hola, quería que me ayuden: la gente me dice que cuando me llaman, suena y suena y nadie contesta, pero mi teléfono está en mi mano y no registra ninguna llamada entrante. Esto ya lleva una semana.",SIN_LLAMADAS
+"El código de verificación nunca llega a mi celular, ayúdenme.",SIN_SMS
+"Estimados, solicito atención técnica, el servicio presenta microcortes frecuentes que afectan las reuniones virtuales. Los cortes duran segundos pero ocurren decenas de veces al día. Gracias.",INTERMITENCIA
+"buenas, el cel me dice que busque redes manualmente y la lista sale vacía, ninguna red disponible. ya intenté reiniciar, ya intenté el modo avión, ya intenté sin la funda jaja. nada.",SIN_SENAL
+"oigan, en toda mi cuadra no hay red, la antena del parque debe estar caída. nadie con su compañía tiene ni una raya. llevamos desde el domingo. alguien tiene que hacer algo.",SIN_SENAL
+"Hola, quiero portar mi número a su compañía, estoy con otra empresa ahora. Me pueden decir cuántos días demora y qué documentos necesito? No tengo ningún problema de señal, solo quiero cambiar.",OTRO
+"Pues no me llega el token para pagar con la tarjeta, la página me dice que lo enviaron pero mi celular no recibe nada. Lo pedí en tres ocasiones. Necesito pagar hoy, por favor!!",SIN_SMS
+"Hola, me llegó un mensaje diciendo que mi plan tiene un cargo de 9.90 por un servicio de música que yo nunca activé. Quiero que lo den de baja y me devuelvan lo cobrado. Gracias!",OTRO
+"Hola, buen día, estoy escribiendo porque en el contrato dice una velocidad máxima y quiero saber la velocidad mínima garantizada, es para un informe de mi empresa. Mi conexión anda bien, es solo una consulta.",OTRO
+"Estoy en una videollamada con mi jefe y se me ve pixelado y la voz sale con retraso, como robótica. Y las páginas tardan una eternidad en abrir. Ya me da vergüenza.",INTERNET_LENTO
+"Mi conexión de datos se cae cuando camino a la oficina y regresa recién cuando llego. Eso en el bus, todos los días. Con otra línea, mi compañero no tiene el problema. Revisen la ruta pues.",INTERMITENCIA
+"Hola, buenas tardes, desde hace días no me llegan los mensajes de texto normales, los de la bandeja de siempre, y me enteré porque me llamaron. Los de WhatsApp sí. Revisé el espacio y tengo de sobra.",SIN_SMS
+"Mi tablet no descarga ni una app, la barra se queda en 3% por una hora. El wifi tiene las rayitas llenas pero sigue demorando eternamente.",INTERNET_LENTO
+"Estimados, el asesor que me atendió en la tienda ayer fue muy grosero y no me resolvió nada. Quiero poner un reclamo formal por el trato, no por el servicio, que funciona bien. Atentamente.",OTRO
+"Hola buenas, sucede que a las horas de la noche mi conexión se cae unos minutos y vuelve, lo hace unas cinco veces hasta la madrugada. Me despierta la alarma de mi cámara que se desconecta y reconecta.",INTERMITENCIA
+"Buenas, mi bandeja de mensajes no ha recibido nada desde el miércoles, ni promociones de ustedes ni nada. Y cuando intento mandar uno se queda con la ruedita y luego marca fallido.",SIN_SMS
+"Mi wifi aparece conectado pero ninguna página abre, ayúdenme!!",SIN_INTERNET
+"Buenas! Quiero ver si me pueden ayudar, mi código de la tarjeta no llega por mensaje y la tienda me dice que lo reenvía pero nada. Mi línea funciona bien para todo lo demás. Es en lo único que falla.",SIN_SMS
+"Estimado equipo, reporto caída total del servicio de datos en mi oficina, ningún equipo logra salida a la web desde las 8 a.m. Adjunto que el enlace dedicado muestra luz roja. Agradezco atención prioritaria.",SIN_INTERNET
+"Hola, hoy el wifi estuvo yendo y viniendo toda la mañana. Me salía el candadito y luego desaparecía. En mi celular el icono se ponía gris y luego azul de nuevo. Qué es esto pues, estoy teletrabajando!!",INTERMITENCIA
+"Hola, necesito que me ayuden, ya van tres días que no recibo ningún mensaje de texto, ni siquiera los de prueba que me mandé desde otro chip. Al enviarlos desde mi línea salen con la X roja.",SIN_SMS
+"Estimados, solicito revisar mi línea porque no recibo mensajes de autenticación (SMS) desde hace 48 horas. Esto me impide acceder a servicios financieros. Ya validé que el equipo no tiene bloqueado ningún remitente. Saludos.",SIN_SMS
+"Disculpe, mi hijo se compró un celular de segunda y quiere saber si funciona con su chip, es un equipo liberado, dice. Cómo puedo saber si es compatible con su red 4G? No es que falle, aún no lo estrena.",OTRO
+"Hola. Mi esposo y yo tenemos línea con ustedes, y los dos celulares aparecen con el ícono de antena tachado desde esta tarde. O sea no es mi aparato, es de ustedes. Qué pasó en la zona?",SIN_SENAL
+"Oiga, mi teléfono pasa buscando red todo el día, aparece buscando servicio y no se engancha a nada. Quité el chip y lo puse otra vez. Nada de nada. Es mi herramienta de trabajo!",SIN_SENAL
+"Perdón que insista, pero el streaming se ve borroso y se queda cargando cada minuto. Mi vecino con la misma compañía dice lo mismo, así que no es mi router, es algo de ustedes. Gracias.",INTERNET_LENTO
+"Oiga, mi celular dice LTE arriba pero ni un mensaje de WhatsApp sale, todos con el relojito. Probé quitar y poner el chip y nada, me dice que no hay red de datos.",SIN_INTERNET

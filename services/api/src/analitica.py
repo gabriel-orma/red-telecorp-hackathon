@@ -5,6 +5,7 @@ POST /api/recurrencia        → ejecuta ahora la Step Function de recurrencia (
 """
 import json
 import os
+import sys as _sys
 import statistics
 import time
 
@@ -12,6 +13,9 @@ import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
 from telecorp import config, db, estadisticas as est, http, reglas, util, zonas
+
+_sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
+import acceso  # noqa: E402
 
 _sfn = boto3.client("stepfunctions")
 _cache: dict = {}
@@ -115,6 +119,7 @@ def analitica(event, context):
     return http.ok(_cache[dias][1])
 
 
+@acceso.solo_operadores
 def ejecutar_recurrencia(event, context):
     r = _sfn.start_execution(stateMachineArn=os.environ["MAQUINA_RECURRENCIA"], input=json.dumps({"origen": "manual"}))
     _cache.clear()

@@ -164,6 +164,7 @@ export function Analitica() {
           </div>
         </Tarjeta>
       </>)}
+
     </main>
   );
 }

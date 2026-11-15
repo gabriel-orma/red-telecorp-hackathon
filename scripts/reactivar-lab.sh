@@ -15,7 +15,15 @@ done
 echo "✔ Conexiones de colas activas en $STAGE"
 
 # Las Step Functions que estaban monitoreando un incidente fallan al apagarse el lab: reanudarlas.
-URL=$(aws cloudformation describe-stacks --stack-name "telecorp-api-$STAGE" --query "Stacks[0].Outputs[?OutputKey=='Url'].OutputValue" --output text 2>/dev/null || true)
-if [ -n "$URL" ] && [ "$URL" != "None" ]; then
-  echo "  Incidentes reanudados: $(curl -s -X POST "$URL/api/colectivos/reanudar")"
+# `POST /api/colectivos/reanudar` exige sesión de operador (Cognito). Este script ya trabaja con credenciales de AWS,
+# así que invoca la Lambda directamente (solo un principal de IAM puede hacerlo; los visitantes HTTP no).
+SALIDA=$(mktemp)
+command -v cygpath >/dev/null 2>&1 && SALIDA=$(cygpath -m "$SALIDA")   # Git Bash en Windows: el AWS CLI necesita ruta de Windows
+if aws lambda invoke --function-name "telecorp-api-$STAGE-reanudarColectivos" --cli-binary-format raw-in-base64-out \
+    --payload '{"requestContext":{"authorizer":{"jwt":{"claims":{"sub":"sistema-reactivar-lab","cognito:groups":"[operadores]"}}}}}' \
+    "$SALIDA" >/dev/null 2>&1; then
+  echo "  Incidentes reanudados: $(cat "$SALIDA")"
+else
+  echo "  (no se pudo reanudar incidentes: ¿está desplegado telecorp-api-$STAGE?)"
 fi
+rm -f "$SALIDA"

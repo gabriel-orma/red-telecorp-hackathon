@@ -12,12 +12,18 @@ export function FlujoColectivo({ colectivo }: { colectivo: Colectivo }) {
   const actual = PASOS_FLUJO.findIndex((p) => p.paso === colectivo.pasoActual);
   const terminado = colectivo.pasoActual === "CERRADO";
   const critico = colectivo.prioridad === "CRITICA";
+  // Tras la verificación corre UNA de las dos ramas de aviso: «identificamos una incidencia» (hay falla de red) o
+  // «seguimos evaluando» (no la hay). La otra no se ejecutó y no debe figurar como completada.
+  const hayFallaDeRed = colectivo.estado === "INCIDENCIA_CONFIRMADA" || colectivo.antenasEnFalla.length > 0 || colectivo.origen !== "REPORTES_USUARIOS";
 
   return (
     <ol className="relative space-y-1">
       {PASOS_FLUJO.map((p, i) => {
         // La alerta al NOC solo ocurre si el Choice decide "crítico".
-        const omitido = p.paso === "ALERTAR_OPERADOR" && !critico && i < actual;
+        const omitido = i < actual && (
+          (p.paso === "ALERTAR_OPERADOR" && !critico)
+          || (p.paso === "NOTIFICAR_SIN_FALLA" && hayFallaDeRed)
+          || (p.paso === "NOTIFICAR_CONFIRMADA" && !hayFallaDeRed));
         const hecho = (i < actual || terminado) && !omitido;
         const enCurso = i === actual && !terminado;
         const Icono = p.icono;
@@ -53,7 +59,7 @@ export function FlujoColectivo({ colectivo }: { colectivo: Colectivo }) {
                     {p.tipo === "map" ? "Map" : p.tipo === "choice" ? "Choice" : "Wait"}
                   </span>
                 )}
-                {omitido && <span className="text-[10px] text-tenue">(no crítico)</span>}
+                {omitido && <span className="text-[10px] text-tenue">({p.paso === "ALERTAR_OPERADOR" ? "no crítico" : "no aplicó"})</span>}
               </div>
               <div className="truncate text-[10px] text-tenue">{p.detalle}</div>
             </div>

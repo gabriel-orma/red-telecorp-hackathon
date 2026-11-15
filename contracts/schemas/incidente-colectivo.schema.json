@@ -44,9 +44,10 @@
         "EN_EVALUACION",
         "INCIDENCIA_CONFIRMADA",
         "SERVICIO_RESTABLECIDO",
-        "CERRADO"
+        "CERRADO",
+        "REQUIERE_ATENCION"
       ],
-      "description": "Cada estado dispara su notificación a los afectados"
+      "description": "Cada estado dispara su notificación a los afectados. REQUIERE_ATENCION: el monitoreo se agotó o el flujo falló; lo gestiona una persona (la zona queda libre para nuevas detecciones)"
     },
     "usuariosAfectados": {
       "type": "array",
@@ -101,10 +102,6 @@
       "type": "string",
       "description": "Explicación breve de por qué se detectó (ej. '12 usuarios en 24 h', 'ANT-008 INHABILITADA')"
     },
-    "taskToken": {
-      "type": "string",
-      "description": "INTERNO: token de Step Functions de la espera de resolución. El API no lo expone."
-    },
     "pasoActual": {
       "type": "string",
       "enum": [
@@ -115,11 +112,13 @@
         "RESUMIR",
         "CONFIRMAR",
         "NOTIFICAR_CONFIRMADA",
+        "NOTIFICAR_SIN_FALLA",
         "ALERTAR_OPERADOR",
         "MONITOREAR",
         "RESTABLECER",
         "NOTIFICAR_RESTABLECIDO",
-        "CERRADO"
+        "CERRADO",
+        "ATENCION_MANUAL"
       ],
       "description": "Paso actual del flujo de Step Functions (para el diagrama)"
     },
@@ -155,6 +154,126 @@
         "null"
       ],
       "description": "Solo en el API: minutos entre la primera falla de antena y el primer reporte de usuario. Positivo = la red lo detectó antes"
+    },
+    "analisisIA": {
+      "type": "object",
+      "description": "Análisis del incidente para el operador. fuente=IA (Gemini sobre datos agregados, sin datos personales) o REGLAS (plantilla determinista si la IA no está disponible). La IA NO decide umbrales ni prioridad.",
+      "required": [
+        "fuente",
+        "proveedor",
+        "generadoEn",
+        "resumen",
+        "hipotesisCausa",
+        "recomendaciones",
+        "confianza"
+      ],
+      "properties": {
+        "fuente": {
+          "enum": [
+            "IA",
+            "REGLAS"
+          ]
+        },
+        "proveedor": {
+          "enum": [
+            "gemini",
+            "reglas"
+          ]
+        },
+        "modelo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generadoEn": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "motivoFallback": {
+          "type": "string",
+          "description": "Solo con fuente=REGLAS: por qué no respondió la IA."
+        },
+        "basadoEn": {
+          "type": "object",
+          "description": "Datos con los que se generó el análisis; si cambian, el monitoreo lo regenera.",
+          "properties": {
+            "afectados": {"type": "integer", "minimum": 0},
+            "antenasEnFalla": {"type": "integer", "minimum": 0}
+          }
+        },
+        "resumen": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "hipotesisCausa": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": [
+              "causa",
+              "probabilidad",
+              "evidencia"
+            ],
+            "properties": {
+              "causa": {
+                "type": "string"
+              },
+              "probabilidad": {
+                "enum": [
+                  "ALTA",
+                  "MEDIA",
+                  "BAJA"
+                ]
+              },
+              "evidencia": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "recomendaciones": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string"
+          }
+        },
+        "confianza": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "motivoFallback": {
+          "type": "string",
+          "description": "Solo si fuente=REGLAS por fallo de la IA (LIMITE, DISYUNTOR, HTTP_429, SALIDA_INVALIDA…)"
+        },
+        "clima": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Clima de la zona al generar el análisis (Azure Maps); null si no estuvo disponible",
+          "properties": {
+            "fuente": {
+              "const": "AzureMaps"
+            },
+            "frase": {
+              "type": "string"
+            },
+            "temperaturaC": {
+              "type": "number"
+            },
+            "precipitacion": {
+              "type": "boolean"
+            },
+            "vientoKmH": {
+              "type": "number"
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -8,10 +8,11 @@ El navegador calcula el estado de la red en cualquier instante t con búsqueda b
 repite consultas por cada movimiento del cabezal.
 
 Costo: 12 consultas (una por zona, GSI zona-fecha) + 36 (historial de cada antena) + una por colectivo
-de la ventana, en paralelo. Con caché de 2 s para que varios paneles en vivo no multipliquen lecturas.
+de la ventana, en paralelo. Solo operadores (JWT + grupo). Con caché de 2 s para que varios paneles en vivo no multipliquen lecturas.
 """
 import os
 import re
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
@@ -20,6 +21,9 @@ import boto3
 from boto3.dynamodb.types import TypeDeserializer
 
 from telecorp import http, util, zonas
+
+sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
+import acceso  # noqa: E402
 
 _cliente = boto3.client("dynamodb")  # los clientes de boto3 sí se pueden usar desde varios hilos
 _des = TypeDeserializer()
@@ -133,6 +137,7 @@ def armar(horas: float) -> dict:
             "reportes": reportes, "antenas": pistas_antenas, "colectivos": pistas_col}
 
 
+@acceso.solo_operadores  # incluye el punto GPS de cada reporte: solo operadores
 def linea_tiempo(event, context):
     q = event.get("queryStringParameters") or {}
     try:

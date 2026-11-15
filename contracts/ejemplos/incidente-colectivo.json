@@ -10,5 +10,30 @@
   "antenasEnFalla": [{ "antenaId": "ANT-013", "estado": "INHABILITADA" }],
   "prioridad": "CRITICA",
   "puntajePrioridad": 92,
-  "resumenIA": "10 usuarios sin Internet en la zona del Hospital Rebagliati desde las 22:44 UTC; la antena ANT-013 está inhabilitada (0 GB/min)."
+  "resumenIA": "10 usuarios sin Internet en la zona del Hospital Rebagliati desde las 22:44 UTC; la antena ANT-013 está inhabilitada (0 GB/min).",
+  "analisisIA": {
+    "fuente": "IA",
+    "proveedor": "gemini",
+    "modelo": "gemini-2.5-flash-lite",
+    "generadoEn": "2026-11-14T22:50:12.000Z",
+    "resumen": "10 usuarios sin Internet en la zona del Hospital Rebagliati; la antena ANT-013 está inhabilitada (0 GB/min).",
+    "hipotesisCausa": [
+      {
+        "causa": "Falla de infraestructura en la antena ANT-013",
+        "probabilidad": "ALTA",
+        "evidencia": "1 antena de la zona en estado INHABILITADA y 10 usuarios afectados"
+      }
+    ],
+    "recomendaciones": [
+      "Despachar al equipo de campo a ANT-013 y verificar alimentación eléctrica y enlace."
+    ],
+    "confianza": 0.82,
+    "clima": {
+      "fuente": "AzureMaps",
+      "frase": "Mostly sunny",
+      "temperaturaC": 27.8,
+      "precipitacion": false,
+      "vientoKmH": 16.7
+    }
+  }
 }

@@ -71,12 +71,12 @@ functions:
       PROGRAMACION_SIMULADOR: ${cf:${self:custom.antenas}.ProgramacionSimuladorNombre}
       FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
     events:
-      - httpApi: GET /api/simulador
+      - httpApi: { method: GET, path: /api/simulador, authorizer: { name: cognito } }   # solo operadores (grupo, ver acceso.py)
   simuladorActualizar:
     handler: src/simulador.actualizar
     environment: *simulador
     events:
-      - httpApi: PUT /api/simulador
+      - httpApi: { method: PUT, path: /api/simulador, authorizer: { name: cognito } }   # solo operadores
   # ---------- Incidencias (E2) ----------
   crearReporte:
     handler: src/incidencias.crear_reporte
@@ -116,10 +116,19 @@ functions:
     handler: src/incidencias.obtener
     events:
       - httpApi: GET /api/incidencias/{incidenciaId}
+  # ---------- Rutas de OPERADOR: autorizador JWT + grupo `operadores` comprobado en el handler (src/acceso.py) ----------
+  listarIncidenciasOperador:
+    handler: src/incidencias.listar_operador
+    events:
+      - httpApi: { method: GET, path: /api/operador/incidencias, authorizer: { name: cognito } }
+  obtenerIncidenciaOperador:
+    handler: src/incidencias.obtener_operador
+    events:
+      - httpApi: { method: GET, path: "/api/operador/incidencias/{incidenciaId}", authorizer: { name: cognito } }
   cambiarEstadoIncidencia:
     handler: src/incidencias.cambiar_estado
     events:
-      - httpApi: PATCH /api/incidencias/{incidenciaId}/estado
+      - httpApi: { method: PATCH, path: "/api/incidencias/{incidenciaId}/estado", authorizer: { name: cognito } }
   # ---------- Incidentes colectivos (E3) ----------
   listarColectivos:
     handler: src/colectivos.listar
@@ -128,18 +137,18 @@ functions:
   obtenerColectivo:
     handler: src/colectivos.obtener
     events:
-      - httpApi: GET /api/colectivos/{colectivoId}
+      - httpApi: { method: GET, path: "/api/colectivos/{colectivoId}", authorizer: { name: cognito } }
   reanudarColectivos:
     handler: src/colectivos.reanudar
     timeout: 30
     environment:
       MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
     events:
-      - httpApi: POST /api/colectivos/reanudar
+      - httpApi: { method: POST, path: "/api/colectivos/reanudar", authorizer: { name: cognito } }
   restablecerColectivo:
     handler: src/colectivos.restablecer
     events:
-      - httpApi: POST /api/colectivos/{colectivoId}/restablecer
+      - httpApi: { method: POST, path: "/api/colectivos/{colectivoId}/restablecer", authorizer: { name: cognito } }
   # ---------- Tiempo real (E7): WebSocket + difusor ----------
   wsConectar:
     handler: src/tiempo_real.conectar
@@ -174,14 +183,22 @@ functions:
     environment:
       MAQUINA_RECURRENCIA: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-recurrencia
     events:
-      - httpApi: POST /api/recurrencia
+      - httpApi: { method: POST, path: "/api/recurrencia", authorizer: { name: cognito } }
+  # ---------- Nubes conectadas (2.ª nube: Azure) ----------
+  nubes:
+    handler: src/nubes.obtener
+    timeout: 20
+    environment:
+      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
+    events:
+      - httpApi: { method: GET, path: "/api/nubes", authorizer: { name: cognito } }   # solo operadores (grupo, ver acceso.py)
   # ---------- Línea de tiempo estilo editor de video ----------
   lineaTiempo:
     handler: src/linea_tiempo.linea_tiempo
     memorySize: 512
     timeout: 20
     events:
-      - httpApi: GET /api/linea-tiempo
+      - httpApi: { method: GET, path: /api/linea-tiempo, authorizer: { name: cognito } }   # solo operadores
   # ---------- Escenarios de demo (E5) ----------
   escenarioObtener:
     handler: src/escenarios.obtener
@@ -193,7 +210,7 @@ functions:
       # Nombre determinista: el stack workflows se despliega después del api.
       MAQUINA_ESCENARIO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-escenario
     events:
-      - httpApi: POST /api/escenarios
+      - httpApi: { method: POST, path: "/api/escenarios", authorizer: { name: cognito } }
   escenarioReiniciar:
     handler: src/escenarios.reiniciar
     timeout: 30
@@ -201,7 +218,8 @@ functions:
       FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
       MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
     events:
-      - httpApi: POST /api/escenarios/reiniciar
+      - httpApi: { method: POST, path: "/api/escenarios/reiniciar", authorizer: { name: cognito } }
+
   web:
     handler: src/web.handler
     memorySize: 512

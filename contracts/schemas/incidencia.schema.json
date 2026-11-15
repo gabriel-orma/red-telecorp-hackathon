@@ -61,6 +61,44 @@
         "$ref": "#/$defs/EstadoIncidencia"
       },
       "description": "Solo en respuestas del API: estados a los que puede pasar ahora"
+    },
+    "iaTriage": {
+      "type": "object",
+      "description": "Solo para reportes de tipo OTRO. Un modelo clasifica si trata del servicio: ML local (TF-IDF + regresión logística, el texto no sale de AWS) o, si se activa expresamente, Gemini (texto enmascarado). El detector lo cuenta SOLO si fuente es IA o ML (nunca REGLAS), relacionado=true, la confianza supera el umbral de esa fuente (0.8 para IA; el del modelo para ML) y tipoSugerido es distinto de OTRO ('el modelo solo suma'). La escribe únicamente el worker de ingesta; la vista pública no la expone.",
+      "properties": {
+        "relacionado": {
+          "type": "boolean"
+        },
+        "tipoSugerido": {
+          "type": "string"
+        },
+        "urgencia": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "confianza": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fuente": {
+          "enum": [
+            "IA",
+            "ML",
+            "REGLAS"
+          ]
+        },
+        "modelo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "motivo": {
+          "type": "string"
+        }
+      }
     }
   },
   "$defs": {

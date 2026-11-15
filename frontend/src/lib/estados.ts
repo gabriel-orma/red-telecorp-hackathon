@@ -76,6 +76,7 @@ export const ESTADO_COLECTIVO: Record<EstadoColectivo, { etiqueta: string; color
   INCIDENCIA_CONFIRMADA: { etiqueta: "Incidencia confirmada", color: "#f0506e" },
   SERVICIO_RESTABLECIDO: { etiqueta: "Servicio restablecido", color: "#2dd4bf" },
   CERRADO: { etiqueta: "Cerrado", color: "#9a9aa6" },
+  REQUIERE_ATENCION: { etiqueta: "Requiere atención", color: "#f97316" },
 };
 
 export const PRIORIDAD: Record<Prioridad, { etiqueta: string; color: string }> = {
@@ -94,6 +95,7 @@ export const PASOS_FLUJO: { paso: PasoColectivo; etiqueta: string; detalle: stri
   { paso: "RESUMIR", etiqueta: "Resumen para el operador", detalle: "IA de la 2.ª nube (E4)", icono: Brain },
   { paso: "CONFIRMAR", etiqueta: "Confirmar incidencia", detalle: "Incidencias → siendo atendidas", icono: Flag },
   { paso: "NOTIFICAR_CONFIRMADA", etiqueta: "Aviso: incidencia en la zona", detalle: "Map → un aviso por afectado", icono: BellRing, tipo: "map" },
+  { paso: "NOTIFICAR_SIN_FALLA", etiqueta: "Aviso: seguimos evaluando", detalle: "Sin falla de red confirmada (alternativa al aviso anterior)", icono: BellRing, tipo: "map" },
   { paso: "ALERTAR_OPERADOR", etiqueta: "¿Crítico? Alerta al NOC", detalle: "Choice + SNS directo", icono: Siren, tipo: "choice" },
   { paso: "MONITOREAR", etiqueta: "Monitoreo", detalle: "Wait + re-verificación periódica", icono: RefreshCw, tipo: "loop" },
   { paso: "RESTABLECER", etiqueta: "Servicio restablecido", detalle: "Automático (antenas OK) o por operador", icono: Sparkles },
