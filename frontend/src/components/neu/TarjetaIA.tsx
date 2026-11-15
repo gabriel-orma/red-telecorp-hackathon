@@ -21,7 +21,9 @@ const NOMBRE_PROVEEDOR: Record<string, string> = { gemini: "Gemini" };
 const MOTIVO: Record<string, string> = {
   NO_CONFIGURADA: "la IA no está configurada en este entorno", LIMITE: "se alcanzó el cupo gratuito de la IA", DISYUNTOR: "la IA falló varias veces seguidas y se pausó",
   HTTP_429: "la IA rechazó la petición por exceso de uso", SALIDA_INVALIDA: "la respuesta de la IA no cumplió el formato esperado", RESPUESTA_INVALIDA: "la respuesta de la IA no cumplió el formato esperado",
-  RED: "no hubo conexión con la IA",
+  RED: "no hubo conexión con la IA", SIMULACION: "es una simulación: no se gasta la cuota gratuita de la IA",
+  DESACTIVADA: "la IA está desactivada en la configuración", MODELO_NO_PERMITIDO: "el modelo configurado no está en la lista de modelos gratuitos",
+  ENTRADA_LARGA: "el análisis superaba el tamaño permitido para la IA",
 };
 const motivoLegible = (m?: string) => (m ? MOTIVO[m] ?? (m.startsWith("HTTP_") ? "la IA devolvió un error" : "la IA no respondió") : "la IA no respondió");
 // Variante oscura del degradado del tema: texto blanco con contraste AA (el original da 3,4:1 en el extremo rosa).
