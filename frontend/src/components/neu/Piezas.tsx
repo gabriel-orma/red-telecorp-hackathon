@@ -1,6 +1,6 @@
 import NumberFlow from "@number-flow/react";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, FlaskConical } from "lucide-react";
 import type { Colectivo } from "../../lib/api";
 import { cn } from "../../lib/utils";
 import { ETAPAS, etapaDe } from "./paleta";
@@ -10,6 +10,16 @@ export function Cifra({ valor, decimales = 0, className }: { valor: number; deci
   return (
     <NumberFlow value={valor} className={cn("cifra", className)} locales="es-PE"
       format={{ minimumFractionDigits: decimales, maximumFractionDigits: decimales }} />
+  );
+}
+
+/** Etiqueta de dato simulado: icono + texto (no depende del color). Lo simulado nunca se confunde con lo operativo. */
+export function ChipSimulado({ className }: { className?: string }) {
+  return (
+    <span title="Nace de una simulación (escenario de demo, falla forzada o vecinos ficticios). No cuenta como dato operativo."
+      className={cn("inline-flex shrink-0 items-center gap-1 rounded-full bg-acento/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-acento ring-1 ring-acento/40", className)}>
+      <FlaskConical className="size-3" aria-hidden="true" /> Simulado
+    </span>
   );
 }
 

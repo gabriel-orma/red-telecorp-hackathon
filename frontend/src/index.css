@@ -98,7 +98,7 @@ body {
   --neu-sombra: 6px 6px 16px #0a0a0c, -5px -5px 12px #25252b;
   --neu-sombra-chica: 3px 3px 8px #0a0a0c, -3px -3px 7px #25252b;
   --neu-hundido: inset 4px 4px 9px #0d0d10, inset -3px -3px 8px #26262c;
-  --degradado: linear-gradient(120deg, #7c5cff, #e05ab0);
+  --degradado: linear-gradient(120deg, #6d4aff, #c4439a);   /* texto blanco encima: contraste ≥ 4,5:1 */
   font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
   background: var(--color-fondo);
   color: var(--color-texto);

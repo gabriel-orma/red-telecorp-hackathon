@@ -92,6 +92,9 @@ interface Props {
   puntosCalor?: PuntoCalor[];
 }
 
+/** Los nombres de zona vienen del catálogo, pero se escapan igual: la etiqueta se arma con innerHTML. */
+const escaparHtml = (t: string) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
 export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSeleccionar, enfocarZona, paleta = PALETA_BASE, modo3d = false, puntosCalor }: Props) {
   const colorPorEstado = exprEstados(paleta);
   const colorZona = exprZonas(paleta);
@@ -299,7 +302,7 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
       const el = document.createElement("div");
       el.className = "pointer-events-none select-none text-center";
       el.innerHTML = `<div style="transition:opacity 250ms ease;opacity:0">
-        <div style="font:600 11px var(--font-sans);color:#cbd5e1;text-shadow:0 1px 6px #000,0 0 2px #000;letter-spacing:.02em">${z.nombre}</div>
+        <div style="font:600 11px var(--font-sans);color:#cbd5e1;text-shadow:0 1px 6px #000,0 0 2px #000;letter-spacing:.02em">${escaparHtml(z.nombre)}</div>
         <div style="font:500 9px var(--font-mono);color:#64748b;text-transform:uppercase;letter-spacing:.08em">${TIPO_ZONA[z.tipo].etiqueta}</div>
       </div>`;
       const lat = z.centro.lat - (z.radioM * 0.75) / 111320;

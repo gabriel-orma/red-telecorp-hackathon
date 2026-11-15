@@ -62,7 +62,7 @@ export function Reportar() {
       <motion.form onSubmit={enviar} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-md space-y-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">¿Qué está fallando?</h1>
-          <p className="mt-1 text-sm text-tenue">Hola {perfil.nombre.split(" ")[0]}: tus datos y tu ubicación se completan solos.</p>
+          <p className="mt-1 text-sm text-tenue">Hola {(perfil.nombre || perfil.email || "").split(" ")[0]}: tus datos y tu ubicación se completan solos.</p>
         </div>
 
         {/* Ubicación automática */}

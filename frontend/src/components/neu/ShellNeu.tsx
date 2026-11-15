@@ -31,13 +31,15 @@ export function ShellNeu({ titulo, enVivo, colectivosActivos, onBuscar, acciones
   const [sala, setSala] = usePreferencia("modo-sala");
   const [contraste, setContraste] = usePreferencia("alto-contraste");
   const [ahora, setAhora] = useState(() => new Date());
+  // Título de pestaña por sección (lectores de pantalla y pestañas múltiples): «Sección · Red TeleCorp».
+  useEffect(() => { document.title = `${titulo} · Red TeleCorp`; }, [titulo]);
   useEffect(() => {
     const t = setInterval(() => setAhora(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
   const nav = SECCIONES.map(({ ruta: r, etiqueta, icono: Icono }) => (
-    <a key={r} {...enlace(r)} title={etiqueta} aria-label={etiqueta} data-activo={ruta === r}
+    <a key={r} {...enlace(r)} title={etiqueta} aria-label={etiqueta} aria-current={ruta === r ? "page" : undefined} data-activo={ruta === r}
       className={cn("boton-neu relative grid size-11 place-items-center text-tenue", ruta === r && "text-acento")}>
       <Icono className="size-[18px]" />
       {r === "/colectivos" && colectivosActivos > 0 && (

@@ -13,7 +13,9 @@ export interface Antena {
   gbPorMinuto: number | null;
   actualizadoEn: string | null;
   estadoDesde: string | null;
-  estructural?: { desde: string; fallas: number; ventanaDias: number } | null;
+  estructural?: { desde: string; fallas: number; ventanaDias: number; simulado?: boolean } | null;
+  /** La lectura actual viene de una falla forzada (simulación), no de la operación normal. */
+  simulada?: boolean;
 }
 
 export interface Zona {
@@ -188,6 +190,8 @@ export interface Colectivo {
   ejecucionArn?: string;
   duracionMinutos?: number;
   deteccionAnticipadaMin?: number | null;
+  /** Nació de una simulación (escenario de demo, falla forzada o vecinos ficticios): no cuenta como dato operativo. */
+  simulado?: boolean;
 }
 
 export interface DetalleColectivo {
@@ -199,7 +203,7 @@ export interface DetalleColectivo {
 export const apiColectivos = {
   listar: (todos = false) => pedir<{ colectivos: Colectivo[] }>(`/colectivos${todos ? "?todos=1" : ""}`),
   obtener: (id: string) => pedir<DetalleColectivo>(`/colectivos/${id}`),
-  restablecer: (id: string) => pedir<{ mensaje: string }>(`/colectivos/${id}/restablecer`, { method: "POST" }),
+  restablecer: (id: string) => pedir<{ mensaje: string; retomado?: boolean }>(`/colectivos/${id}/restablecer`, { method: "POST" }),
 };
 
 // ---------------- Portal público y cuenta (E3.5) ----------------
@@ -216,6 +220,8 @@ export interface EstadoRed {
            total24h: number; ultimaHora: number; baseHora: number; nivel: NivelRed }[];
   colectivos: { incidenteColectivoId: string; zonaId: string; nombre: string; estado: EstadoColectivo; prioridad: Prioridad;
                 afectados: number; detectadoEn: string; antenasEnFalla: number }[];
+  /** Incidentes de simulación abiertos: NO cuentan en este panel (que solo refleja reportes e incidentes reales). */
+  simulacion?: { colectivosAbiertos: number };
 }
 
 export interface MiReporte {
@@ -251,7 +257,9 @@ export const apiEscenarios = {
 // ---------------- Analítica operativa (E6) ----------------
 export interface Analitica {
   dias: number; generadoEn: string;
-  kpis: { incidentes: number; abiertos: number; duracionPromedioMin: number | null; afectadosTotales: number;
+  /** Universo de datos: operativos (por defecto) o solo simulados. Nunca se mezclan. */
+  datos?: "OPERATIVOS" | "SIMULADOS";
+  kpis: { incidentes: number; abiertos: number; requierenAtencion?: number; duracionPromedioMin: number | null; afectadosTotales: number;
           deteccionAnticipadaPromedioMin: number | null; detectadosPrimeroPorLaRed: number; reportes: number };
   zonas: { zonaId: string; nombre: string; tipo: TipoZona; incidentes: number; reportes: number; afectados: number }[];
   antenas: { antenaId: string; zonaId: string; zona: string; fallas: number; estructural: boolean }[];
@@ -262,8 +270,9 @@ export interface Analitica {
   recurrencia: { umbralFallas: number; ventanaDias: number; ultimaEjecucion: string | null; estructurales: number };
 }
 export const apiAnalitica = {
-  obtener: (dias: number) => pedir<Analitica>(`/analitica?dias=${dias}`),
-  recurrencia: () => pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST" }),
+  obtener: (dias: number, simulados = false) => pedir<Analitica>(`/analitica?dias=${dias}${simulados ? "&datos=simulados" : ""}`),
+  recurrencia: (simulados = false) =>
+    pedir<{ ejecucionArn: string }>("/recurrencia", { method: "POST", body: JSON.stringify({ simulados }) }),
 };
 
 // ---------------- Línea de tiempo (editor de video) ----------------

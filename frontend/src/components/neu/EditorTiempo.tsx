@@ -106,6 +106,7 @@ export function EditorTiempo(p: Props) {
   };
 
   const teclado = (e: React.KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;   // Espacio/flechas en un botón hijo activan ese botón, no el atajo de la línea de tiempo
     const paso = span / 200;
     if (e.key === " ") { e.preventDefault(); p.onReproducir(!p.reproduciendo); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); p.onReproducir(false); p.onT(Math.max(desde, t - paso * (e.shiftKey ? 10 : 1))); }
