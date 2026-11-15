@@ -5,6 +5,7 @@ que Azure ni Google respondan (eso se prueba contra la nube real). Cada prueba a
 """
 import json
 import sys
+import time
 
 import pytest
 
@@ -37,7 +38,8 @@ class Nubes:
         self.secretos = {
             "azure": {"acsEndpoint": ACS_HOST, "acsKey": CLAVE_B64, "acsSender": "DoNotReply@d.azurecomm.net", "mapsKey": "clave-maps",
                       "destinatarios": ["@correo.pe", "aviso@utec.edu.pe"]},
-            "ia": {"geminiApiKey": "clave-gemini", "modelo": "gemini-prueba", "triageTexto": True}}
+            "ia": {"geminiApiKey": "clave-gemini", "modelo": "gemini-3.5-flash-lite", "habilitada": True, "triageTexto": True,
+                   "limiteMinuto": 1000, "limiteHora": 1000, "limiteDia": 1000}}
         self.llamadas = []                                    # (metodo, url, cabeceras, cuerpo_bytes)
         self.gemini = lambda: gemini(TRIAGE_SI)
         self.acs = lambda: (202, {"operation-id": "op-1"}, b"")
@@ -63,6 +65,7 @@ def nubes(aws, monkeypatch):
     monkeypatch.setattr(secretos, "leer", lambda nombre, usar_cache=True: n.secretos.get(nombre))
     monkeypatch.setattr(http_cliente, "transporte", n.transporte)
     azure_maps._cache.clear()
+    monkeypatch.setattr(ia, "LIMITES_TOPE", {"limiteMinuto": 10 ** 6, "limiteHora": 10 ** 6, "limiteDia": 10 ** 6})   # estas pruebas no miden cuotas
     return n
 
 
@@ -206,9 +209,9 @@ def test_maps_devuelve_none_ante_http_error_respuesta_rara_o_sin_clave(nubes):
 # ================================================================ IA (Gemini)
 def test_triage_otro_consulta_a_gemini_con_texto_enmascarado_y_delimitado(nubes):
     r = ia.triage_reporte("Soy Juan Pérez, mi dni 70123456, llámame al 987654321: no tengo internet desde ayer", "OTRO")
-    assert r["fuente"] == "IA" and r["relacionado"] is True and r["tipoSugerido"] == "SIN_INTERNET" and r["modelo"] == "gemini-prueba"
+    assert r["fuente"] == "IA" and r["relacionado"] is True and r["tipoSugerido"] == "SIN_INTERNET" and r["modelo"] == "gemini-3.5-flash-lite"
     metodo, url, cab, cuerpo = nubes.a("generativelanguage.googleapis.com")[0]
-    assert url.endswith("/models/gemini-prueba:generateContent") and cab["x-goog-api-key"] == "clave-gemini" and "key=" not in url
+    assert url.endswith("/models/gemini-3.5-flash-lite:generateContent") and cab["x-goog-api-key"] == "clave-gemini" and "key=" not in url
     enviado = cuerpo.decode()
     for prohibido in ("Juan", "70123456", "987654321"):
         assert prohibido not in enviado                               # PII fuera del prompt (R3)
@@ -253,7 +256,7 @@ def test_analizar_colectivo_ok_devuelve_el_esquema_del_contrato(nubes):
     ctx = {"zonaId": "ZONA-05", "zona": {"nombre": "San Isidro", "tipo": "COMERCIAL", "criticidad": 2}, "afectados": 10,
            "tiposReporte": {"SIN_INTERNET": 10}, "antenasEnFalla": [{"antenaId": "ANT-013", "estado": "CAIDA"}], "clima": None}
     a = ia.analizar_colectivo(ctx)
-    assert a["fuente"] == "IA" and a["proveedor"] == "gemini" and a["modelo"] == "gemini-prueba" and a["confianza"] == 0.8
+    assert a["fuente"] == "IA" and a["proveedor"] == "gemini" and a["modelo"] == "gemini-3.5-flash-lite" and a["confianza"] == 0.8
     assert a["hipotesisCausa"][0]["probabilidad"] == "ALTA" and a["clima"] is None and a["generadoEn"].endswith("Z")
     enviado = nubes.a("generativelanguage.googleapis.com")[0][3].decode()
     assert "ANT-013" in enviado and "usuariosAfectados" in enviado
@@ -424,6 +427,142 @@ def test_una_regeneracion_que_cae_a_reglas_no_pisa_un_analisis_de_ia_valido(nube
     assert pasos._refrescar_analisis(cc.obtener(cid)) is True
     a = cc.obtener(cid)["analisisIA"]
     assert a["fuente"] == "IA" and a["basadoEn"]["antenasEnFalla"] == 0       # se conserva la IA y se reintentará después
+
+
+# ================================================================ Protecciones económicas de Gemini
+@pytest.fixture()
+def topes_reales(monkeypatch):
+    """Restaura los topes de producción (el fixture `nubes` los sube para no estorbar a las demás pruebas)."""
+    monkeypatch.setattr(ia, "LIMITES_TOPE", {"limiteMinuto": 5, "limiteHora": 30, "limiteDia": 50})
+
+
+def test_los_limites_por_defecto_son_2_por_minuto_y_10_al_dia(topes_reales):
+    assert ia.limites_efectivos({}) == {"limiteMinuto": 2, "limiteHora": 10, "limiteDia": 10}
+
+
+def test_un_valor_absurdo_en_la_configuracion_no_supera_los_topes(topes_reales):
+    assert ia.limites_efectivos({"limiteMinuto": 10 ** 6, "limiteHora": 10 ** 6, "limiteDia": 10 ** 6}) == {"limiteMinuto": 5, "limiteHora": 30, "limiteDia": 50}
+    assert ia.limites_efectivos({"limiteDia": "mucho", "limiteMinuto": None}) == {"limiteMinuto": 2, "limiteHora": 10, "limiteDia": 10}
+    assert ia.limites_efectivos({"limiteDia": -5})["limiteDia"] == 0          # nunca negativo
+
+
+def test_el_tope_diario_corta_aunque_el_minuto_lo_permita(nubes, topes_reales):
+    nubes.secretos["ia"].update(limiteMinuto=5, limiteHora=30, limiteDia=3)
+    motivos = [ia.triage_reporte(f"no tengo internet en mi casa {i}", "OTRO").get("motivo") for i in range(5)]
+    assert motivos == [None, None, None, "LIMITE", "LIMITE"] and len(nubes.a("generativelanguage.googleapis.com")) == 3
+
+
+def test_por_defecto_solo_2_llamadas_por_minuto(nubes, topes_reales):
+    for k in ("limiteMinuto", "limiteHora", "limiteDia"):
+        nubes.secretos["ia"].pop(k)
+    motivos = [ia.triage_reporte(f"no tengo internet en mi casa {i}", "OTRO").get("motivo") for i in range(4)]
+    assert motivos == [None, None, "LIMITE", "LIMITE"]
+
+
+def test_sin_habilitar_no_se_llama_aunque_exista_la_clave(nubes):
+    nubes.secretos["ia"].pop("habilitada")
+    assert ia.triage_reporte("no tengo internet en mi casa", "OTRO")["fuente"] == "ML"       # el triage no depende de Gemini
+    r = ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}})
+    assert r["fuente"] == "REGLAS" and r["motivoFallback"] == "DESACTIVADA" and not nubes.a("generativelanguage.googleapis.com")
+
+
+def test_el_interruptor_de_emergencia_surte_efecto_en_la_siguiente_llamada(nubes, monkeypatch):
+    nubes.gemini = lambda: gemini(ANALISIS)
+    ctx = {"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}}
+    assert ia.analizar_colectivo(ctx)["fuente"] == "IA"
+    nubes.secretos["ia"]["habilitada"] = False                                   # se apaga desde la configuración, sin desplegar
+    assert ia.analizar_colectivo(ctx)["motivoFallback"] == "DESACTIVADA" and len(nubes.a("generativelanguage.googleapis.com")) == 1
+
+
+def test_el_interruptor_se_lee_sin_cache(monkeypatch, nubes):
+    """Con caché de 5 min, apagar Gemini tardaría hasta 5 min en notarse: la lectura previa a cada llamada debe ser fresca."""
+    usos = []
+    monkeypatch.setattr(secretos, "leer", lambda nombre, usar_cache=True: usos.append(usar_cache) or nubes.secretos.get(nombre))
+    nubes.gemini = lambda: gemini(ANALISIS)
+    ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}})
+    assert False in usos
+
+
+@pytest.mark.parametrize("modelo", ["gemini-2.5-pro", "gemini-3.1-pro-preview", "otro-modelo", ""])
+def test_solo_se_usan_modelos_de_la_lista_gratuita(nubes, modelo):
+    nubes.secretos["ia"]["modelo"] = modelo or "x"
+    r = ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}})
+    assert r["motivoFallback"] == "MODELO_NO_PERMITIDO" and not nubes.a("generativelanguage.googleapis.com")
+
+
+def test_los_modelos_permitidos_son_los_verificados_como_gratuitos():
+    assert set(ia.MODELOS_GRATUITOS) == {"gemini-3.5-flash-lite", "gemini-3.1-flash-lite"} and ia.MODELO_DEFECTO in ia.MODELOS_GRATUITOS
+
+
+def test_una_entrada_demasiado_grande_no_sale(nubes):
+    datos, motivo = ia.consultar_modelo("sistema", "x" * (ia.MAX_ENTRADA_CARACTERES + 1), ia.ESQUEMA_PING, 5.0, 100)
+    assert datos is None and motivo == "ENTRADA_LARGA" and not nubes.a("generativelanguage.googleapis.com")
+
+
+def test_la_peticion_limita_los_tokens_de_salida_y_pide_un_solo_candidato(nubes):
+    nubes.gemini = lambda: gemini(ANALISIS)
+    ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}})
+    cfg = json.loads(nubes.a("generativelanguage.googleapis.com")[0][3])["generationConfig"]
+    assert cfg["maxOutputTokens"] <= 600 and cfg["candidateCount"] == 1
+
+
+def test_un_429_nunca_se_reintenta_y_pausa_una_hora(nubes):
+    nubes.gemini = lambda: (429, {}, json.dumps({"error": {"status": "RESOURCE_EXHAUSTED"}}).encode())
+    ctx = {"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}}
+    primero = ia.analizar_colectivo(ctx)
+    segundo = ia.analizar_colectivo(ctx)
+    assert primero["motivoFallback"] == "HTTP_429" and segundo["motivoFallback"] == "DISYUNTOR"
+    assert len(nubes.a("generativelanguage.googleapis.com")) == 1                     # una sola petición, ningún reintento
+    abierto_hasta = int(tabla("dedup").get_item(Key={"clave": "DISYUNTOR#gcp-gemini"})["Item"]["abiertoHasta"])
+    assert 3500 < abierto_hasta - time.time() <= 3600
+
+
+def test_en_simulacion_no_se_gasta_la_cuota_gratuita(nubes):
+    ctx = {"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}, "simulacion": True}
+    r = ia.analizar_colectivo(ctx)
+    assert r["fuente"] == "REGLAS" and r["motivoFallback"] == "SIMULACION" and not nubes.a("generativelanguage.googleapis.com")
+    nubes.secretos["ia"]["permitirEnSimulacion"] = True                               # para grabar la demo con IA real
+    nubes.gemini = lambda: gemini(ANALISIS)
+    assert ia.analizar_colectivo(ctx)["fuente"] == "IA"
+
+
+def test_un_escenario_de_demo_activo_hace_que_resumir_no_llame_a_gemini(nubes):
+    import pasos
+    from telecorp import config
+    config.escribir("escenario", {"activo": True, "tipo": "TORMENTA"})
+    nubes.gemini = lambda: gemini(ANALISIS)
+    cid = _colectivo_con_10()
+    r = pasos.resumir({"colectivoId": cid}, None)
+    assert r["fuente"] == "REGLAS" and not nubes.a("generativelanguage.googleapis.com")
+    from comun_colectivos import obtener
+    assert obtener(cid)["analisisIA"]["motivoFallback"] == "SIMULACION"
+    config.escribir("escenario", {"activo": False})
+
+
+def test_con_fallas_forzadas_en_el_simulador_tampoco_se_llama(nubes):
+    import pasos
+    from telecorp import config
+    config.escribir("simulador", {"fallas": {"ANT-013": 0.0}})
+    cid = _colectivo_con_10()
+    assert pasos.resumir({"colectivoId": cid}, None)["fuente"] == "REGLAS" and not nubes.a("generativelanguage.googleapis.com")
+    config.escribir("simulador", {"fallas": {}})
+
+
+def test_el_contador_del_tablero_cuenta_solo_llamadas_reales(aws):
+    estado.anotar("gcp-gemini", False, estado="NO_CONFIGURADA")                                   # no se llamó a nadie
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 0
+    estado.anotar("gcp-gemini", True, 120)                                                         # una llamada real
+    estado.anotar("gcp-gemini", False, error="SALIDA_INVALIDA", cuenta=False)                      # la misma llamada, segunda anotación
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 1
+    estado.anotar("gcp-gemini", False, 80, error="HTTP_429")                                       # otra llamada (fallida): sí cuenta
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 2
+
+
+def test_una_respuesta_invalida_de_gemini_cuenta_como_una_sola_llamada(nubes):
+    nubes.gemini = lambda: gemini({"respuesta": "sin el formato esperado"})
+    r = ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {}})
+    assert r["fuente"] == "REGLAS" and r["motivoFallback"] == "SALIDA_INVALIDA"
+    assert estado.leer_tablero()["gcp-gemini"]["contador"] == 1 and len(nubes.a("generativelanguage.googleapis.com")) == 1
 
 
 # ================================================================ Notificador: canal Azure

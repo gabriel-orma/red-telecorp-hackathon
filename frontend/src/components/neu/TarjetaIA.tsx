@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Brain, CloudRain, CloudSun, ListChecks, Loader2, Sparkles, Wind } from "lucide-react";
-import type { AnalisisIA, Colectivo, PasoColectivo, ProbabilidadCausa } from "../../lib/api";
+import { Brain, CloudRain, CloudSun, Cpu, ListChecks, Loader2, Sparkles, Wind } from "lucide-react";
+import type { AnalisisIA, Colectivo, Incidencia, PasoColectivo, ProbabilidadCausa } from "../../lib/api";
 import { cn, haceCuanto } from "../../lib/utils";
 
 // Pasos del flujo que ocurren ANTES de que se genere el análisis (paso RESUMIR): mientras tanto se muestra «analizando».
@@ -21,7 +21,9 @@ const NOMBRE_PROVEEDOR: Record<string, string> = { gemini: "Gemini" };
 const MOTIVO: Record<string, string> = {
   NO_CONFIGURADA: "la IA no está configurada en este entorno", LIMITE: "se alcanzó el cupo gratuito de la IA", DISYUNTOR: "la IA falló varias veces seguidas y se pausó",
   HTTP_429: "la IA rechazó la petición por exceso de uso", SALIDA_INVALIDA: "la respuesta de la IA no cumplió el formato esperado", RESPUESTA_INVALIDA: "la respuesta de la IA no cumplió el formato esperado",
-  RED: "no hubo conexión con la IA",
+  RED: "no hubo conexión con la IA", SIMULACION: "es una simulación: no se gasta la cuota gratuita de la IA",
+  DESACTIVADA: "la IA está desactivada en la configuración", MODELO_NO_PERMITIDO: "el modelo configurado no está en la lista de modelos gratuitos",
+  ENTRADA_LARGA: "el análisis superaba el tamaño permitido para la IA",
 };
 const motivoLegible = (m?: string) => (m ? MOTIVO[m] ?? (m.startsWith("HTTP_") ? "la IA devolvió un error" : "la IA no respondió") : "la IA no respondió");
 // Variante oscura del degradado del tema: texto blanco con contraste AA (el original da 3,4:1 en el extremo rosa).
@@ -65,6 +67,44 @@ export function TarjetaIA({ colectivo }: { colectivo: Colectivo }) {
 
       {analisis && <Cuerpo a={analisis} />}
     </motion.section>
+  );
+}
+
+const TIPO_LEGIBLE: Record<string, string> = {
+  SIN_INTERNET: "sin internet", INTERNET_LENTO: "internet lento", SIN_LLAMADAS: "sin llamadas", SIN_SMS: "sin SMS",
+  SIN_SENAL: "sin señal", INTERMITENCIA: "intermitencia", OTRO: "no es una falla del servicio",
+};
+
+/** Quién clasificó el texto de un reporte OTRO: el modelo de ML propio (local), Gemini o las reglas. Tres insignias distintas (icono + texto). */
+export function ChipTriage({ triage }: { triage: NonNullable<Incidencia["iaTriage"]> }) {
+  const tipo = TIPO_LEGIBLE[triage.tipoSugerido] ?? triage.tipoSugerido;
+  const pct = Math.round((triage.confianza ?? 0) * 100);
+  if (triage.fuente === "ML") {
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-tenue" role="note">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-fondo/70 px-2.5 py-1 font-semibold text-texto ring-1 ring-acento/50"
+          title="Modelo de machine learning entrenado por el equipo (TF-IDF + regresión logística). Corre dentro de AWS: el texto no sale a ninguna API externa.">
+          <Cpu className="size-3.5 text-acento" aria-hidden />ML local{triage.modelo ? ` · ${triage.modelo}` : ""}
+        </span>
+        <span>clasificó este reporte como <b className="text-texto">{tipo}</b> con confianza <b className="cifra text-texto">{pct}%</b></span>
+      </div>
+    );
+  }
+  if (triage.fuente === "IA") {
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-tenue" role="note">
+        <span style={DEGRADADO_TEXTO} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold text-white"
+          title="Generado por un modelo de lenguaje (texto enmascarado enviado a la API)"><Sparkles className="size-3.5" aria-hidden />IA generativa{triage.modelo ? ` · ${triage.modelo}` : ""}</span>
+        <span>clasificó este reporte como <b className="text-texto">{tipo}</b> con confianza <b className="cifra text-texto">{pct}%</b></span>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-tenue" role="note">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-inhabilitada/20 px-2.5 py-1 font-semibold text-texto ring-1 ring-inhabilitada/40"
+        title="Ningún modelo clasificó este texto; se usó el tipo que eligió la persona."><ListChecks className="size-3.5" aria-hidden />Reglas (sin IA)</span>
+      <span>no hay clasificación automática{triage.motivo ? ` (${triage.motivo.toLowerCase().replace(/_/g, " ")})` : ""}</span>
+    </div>
   );
 }
 

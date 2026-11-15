@@ -92,7 +92,7 @@ export const PASOS_FLUJO: { paso: PasoColectivo; etiqueta: string; detalle: stri
   { paso: "NOTIFICAR_EVALUACION", etiqueta: "Aviso: en evaluación", detalle: "Map → un aviso por afectado", icono: Megaphone, tipo: "map" },
   { paso: "VERIFICAR_INFRAESTRUCTURA", etiqueta: "Verificar infraestructura", detalle: "Correlación con antenas de la zona", icono: RadioTower },
   { paso: "PRIORIZAR", etiqueta: "Priorizar", detalle: "Afectados × criticidad de zona", icono: GaugeIcon },
-  { paso: "RESUMIR", etiqueta: "Resumen para el operador", detalle: "IA de la 2.ª nube (E4)", icono: Brain },
+  { paso: "RESUMIR", etiqueta: "Resumen para el operador", detalle: "ML local, IA generativa o reglas (se indica cuál)", icono: Brain },
   { paso: "CONFIRMAR", etiqueta: "Confirmar incidencia", detalle: "Incidencias → siendo atendidas", icono: Flag },
   { paso: "NOTIFICAR_CONFIRMADA", etiqueta: "Aviso: incidencia en la zona", detalle: "Map → un aviso por afectado", icono: BellRing, tipo: "map" },
   { paso: "NOTIFICAR_SIN_FALLA", etiqueta: "Aviso: seguimos evaluando", detalle: "Sin falla de red confirmada (alternativa al aviso anterior)", icono: BellRing, tipo: "map" },
