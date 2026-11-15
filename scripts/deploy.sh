@@ -17,6 +17,15 @@ paso() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 quiere() { [[ " $COMPONENTES " == *" $1 "* ]]; }
 salida() { aws cloudformation describe-stacks --stack-name "$1" --query "Stacks[0].Outputs[?OutputKey=='$2'].OutputValue" --output text; }
 
+paso "Verificando el presupuesto de concurrencia (D14: AWS Academy bloquea la cuenta con más de 10 Lambdas a la vez)"
+PYT=python3; "$PYT" -c "import pytest, yaml" 2>/dev/null || PYT=python
+if "$PYT" -c "import pytest, yaml" 2>/dev/null; then
+  "$PYT" -m pytest -o addopts="" -p no:cacheprovider -q services/api/tests/test_presupuesto_concurrencia.py \
+    || { echo "✗ El código supera el presupuesto de concurrencia. NO se despliega (ver docs/decisiones/2026-11-15-presupuesto-concurrencia.md)."; exit 1; }
+else
+  echo "✗ Falta pytest/pyyaml para verificar el presupuesto: pip install pytest pyyaml"; exit 1
+fi
+
 paso "Verificando credenciales AWS"
 aws sts get-caller-identity --query Arn --output text || { echo "✗ Credenciales inválidas o expiradas (Learner Lab → AWS Details)"; exit 1; }
 

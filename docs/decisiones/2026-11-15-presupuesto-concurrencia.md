@@ -32,6 +32,20 @@ Cambios que acompañan los topes (para que "ocupado" signifique **esperar**, nun
 ## Garantía
 `services/api/tests/test_presupuesto_concurrencia.py` falla si una función no tiene tope, si la suma pasa de 7, si una Step Function llama a otra Lambda o si un reintento no espera al motor. **Antes de agregar una función, hay que quitarle cupo a otra.**
 
+## Reglas de uso para no bloquear la cuenta
+Los topes protegen lo que se despliega **desde este código**. El riesgo que queda está fuera de él:
+
+1. **Despliega solo con `bash scripts/deploy.sh`**, desde una rama que incluya D14. Antes de desplegar, el script corre las pruebas del presupuesto y **se detiene si fallan**. Una versión vieja (54 Lambdas sin topes) desplegada en la cuenta vuelve a exponerla al bloqueo.
+2. **No crees Lambdas a mano** en la consola y no pruebes otros proyectos en la misma cuenta: todas comparten el límite de 10.
+3. **Nueva función = quitar cupo a otra.** Si agregas una función, ponle `reservedConcurrency` y baja el de otra para que la suma siga siendo ≤ 7 (la prueba lo exige).
+4. **Nada de `maximumConcurrency` en SQS mayor que el tope de la función** (AWS rechaza el despliegue).
+5. **Step Functions**: toda tarea nueva llama al motor `detector` con una `"accion"` registrada en `workflows/src/motor.py` (`PASOS`), con el reintento de `Lambda.TooManyRequestsException` primero y `Map` con `MaxConcurrency: 1`.
+6. **Prueba de carga** (`scripts/demo/carga.py`): solo con valores bajos. No supera el tope, pero la cola tardaría mucho en vaciarse.
+7. **Apaga el simulador** cuando no lo uses (desde el panel; tras cada despliegue queda apagado por defecto).
+8. **Verifica** después de una demo: CloudWatch → `AWS/Lambda` → `ConcurrentExecutions` (máximo, periodo 1 min) debe quedar ≤ 7. En la verificación del 2026-11-15 el máximo fue 6.
+
+Los errores 503 que aparecen en la consola del navegador durante un pico son rechazos por "ocupado" que `lib/limitador.ts` reintenta solo: son esperados.
+
 ## Costo de la decisión
 - Picos más lentos (los reportes y pasos esperan su turno), sin pérdida de datos.
 - Si dos operadores cargan muchas pantallas a la vez, alguna respuesta tarda 1–2 s más (reintento del navegador).
