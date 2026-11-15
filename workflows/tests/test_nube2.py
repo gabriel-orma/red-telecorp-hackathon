@@ -35,8 +35,9 @@ class Nubes:
 
     def __init__(self):
         self.secretos = {
-            "azure": {"acsEndpoint": ACS_HOST, "acsKey": CLAVE_B64, "acsSender": "DoNotReply@d.azurecomm.net", "mapsKey": "clave-maps"},
-            "ia": {"geminiApiKey": "clave-gemini", "modelo": "gemini-prueba"}}
+            "azure": {"acsEndpoint": ACS_HOST, "acsKey": CLAVE_B64, "acsSender": "DoNotReply@d.azurecomm.net", "mapsKey": "clave-maps",
+                      "destinatarios": ["@correo.pe", "aviso@utec.edu.pe"]},
+            "ia": {"geminiApiKey": "clave-gemini", "modelo": "gemini-prueba", "triageTexto": True}}
         self.llamadas = []                                    # (metodo, url, cabeceras, cuerpo_bytes)
         self.gemini = lambda: gemini(TRIAGE_SI)
         self.acs = lambda: (202, {"operation-id": "op-1"}, b"")
@@ -129,6 +130,27 @@ def test_enviar_correo_nunca_lanza_si_falta_configuracion_o_la_clave_es_mala(nub
     preparar(nubes)
     r = azure_acs.enviar_correo("ana@correo.pe", "a", "b")
     assert r["enviado"] is False and r["motivo"] == motivo and not nubes.a("communication.azure.com")
+
+
+def test_solo_se_envia_a_destinatarios_autorizados(nubes):
+    """Las cuentas se auto-verifican: sin lista, cualquiera podría hacer que el remitente escriba a un tercero."""
+    assert azure_acs.enviar_correo("tercero@gmail.com", "a", "b") == {"enviado": False, "motivo": "NO_AUTORIZADO"}
+    assert azure_acs.enviar_correo("AVISO@utec.edu.pe", "a", "b")["enviado"] is True            # exacto, sin distinguir mayúsculas
+    assert azure_acs.enviar_correo("otro@correo.pe", "a", "b")["enviado"] is True               # dominio completo
+    assert len(nubes.a("communication.azure.com")) == 2                                         # al no autorizado ni se le llamó
+
+
+def test_sin_lista_de_destinatarios_no_se_envia_nada(nubes):
+    nubes.secretos["azure"].pop("destinatarios")
+    assert azure_acs.enviar_correo("ana@correo.pe", "a", "b") == {"enviado": False, "motivo": "NO_AUTORIZADO"}
+    nubes.secretos["azure"]["destinatarios"] = []
+    assert azure_acs.enviar_correo("ana@correo.pe", "a", "b")["motivo"] == "NO_AUTORIZADO" and not nubes.a("communication.azure.com")
+
+
+def test_una_rafaga_rechazada_por_minuto_no_gasta_el_cupo_de_la_hora(nubes):
+    r = [azure_acs.enviar_correo("ana@correo.pe", "a", "b")["enviado"] for _ in range(20)]
+    assert r.count(True) == 5                                                  # 5 por minuto
+    assert [estado.reservar_cupo("acs-hora", 8, 3600) for _ in range(4)] == [True, True, True, False]   # la hora solo gastó 5 de 8
 
 
 def test_destinatarios_invalidos_o_reservados_no_gastan_cupo_ni_llaman(nubes):
@@ -371,6 +393,36 @@ def test_si_el_refresco_del_analisis_falla_el_monitoreo_no_se_rompe(nubes, monke
     cid = _colectivo_con_10()
     monkeypatch.setattr(pasos, "_generar_analisis", lambda col: (_ for _ in ()).throw(RuntimeError("boom")))
     assert pasos._refrescar_analisis(cc.obtener(cid)) is False
+
+
+def test_el_texto_libre_no_sale_hacia_gemini_si_no_se_activa_el_triage(nubes):
+    """Por defecto la IA solo recibe datos AGREGADOS: sin `triageTexto: true` un reporte OTRO no se envía (R3)."""
+    nubes.secretos["ia"].pop("triageTexto")
+    r = ia.triage_reporte("no tengo internet en mi casa desde ayer, soy Luis y vivo en Av. Los Olivos 345", "OTRO")
+    assert r["fuente"] == "REGLAS" and r["motivo"] == "TRIAGE_APAGADO" and reglas.triage_ia_confirma_servicio(r) is False
+    assert not nubes.a("generativelanguage.googleapis.com")
+
+
+def test_el_analisis_de_colectivos_sigue_funcionando_con_el_triage_apagado(nubes):
+    nubes.secretos["ia"].pop("triageTexto")
+    nubes.gemini = lambda: gemini(ANALISIS)
+    r = ia.analizar_colectivo({"zonaId": "ZONA-05", "afectados": 10, "antenasEnFalla": [], "tiposReporte": {"SIN_INTERNET": 10}})
+    assert r["fuente"] == "IA" and nubes.a("generativelanguage.googleapis.com")
+
+
+def test_una_regeneracion_que_cae_a_reglas_no_pisa_un_analisis_de_ia_valido(nubes):
+    import comun_colectivos as cc
+    import pasos
+    nubes.gemini = lambda: gemini(ANALISIS)
+    cid = _colectivo_con_10()
+    pasos.resumir({"colectivoId": cid}, None)
+    assert cc.obtener(cid)["analisisIA"]["fuente"] == "IA"
+    nubes.gemini = lambda: (429, {}, json.dumps({"error": {"status": "RESOURCE_EXHAUSTED"}}).encode())   # cupo agotado
+    col = cc.obtener(cid)
+    cc.agregar_antenas(col, [{"antenaId": "ANT-013", "estado": "CAIDA", "desde": "2026-11-14T22:00:00.000Z"}])
+    assert pasos._refrescar_analisis(cc.obtener(cid)) is True
+    a = cc.obtener(cid)["analisisIA"]
+    assert a["fuente"] == "IA" and a["basadoEn"]["antenasEnFalla"] == 0       # se conserva la IA y se reintentará después
 
 
 # ================================================================ Notificador: canal Azure

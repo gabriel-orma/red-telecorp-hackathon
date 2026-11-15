@@ -79,7 +79,7 @@ Para una demo en vivo baja `esperaVerificacionSegundos` a 10–15 y `cierreSinRe
 - Máquina `recurrencia-diaria` (EventBridge Scheduler → Lambda → [`src/recurrencia.py`](src/recurrencia.py), regla ya probada) y
   decidir dónde se marca `ESTRUCTURAL`.
 - Cierre/confirmación por lotes (hoy `_mover_incidencias` recorre todas las incidencias en una Lambda de 300 s).
-- Los hooks de la 2.ª nube (`resumir`, `replicarNube2`) siguen sin implementar.
+- La 2.ª nube (Azure) ya está integrada: `resumir` añade el clima de Azure Maps y los avisos salen por Azure Communication Services. La réplica a un histórico en otra nube (`replicarNube2`) se descartó: el hook vacío se eliminó.
 - `loggingConfig` de la máquina sin verificar en AWS (¿permite `LabRole` la entrega de logs?).
 
 ## Probar

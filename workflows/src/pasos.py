@@ -135,6 +135,11 @@ def _generar_analisis(col: dict) -> dict:
     except Exception as e:  # noqa: BLE001 - nunca debe romper el flujo
         print(f"resumir: análisis no disponible ({type(e).__name__})")
         analisis = ia.analisis_reglas(_contexto_analisis(col, con_clima=False))
+    previo = col.get("analisisIA") or {}
+    if analisis.get("fuente") != "IA" and previo.get("fuente") == "IA":
+        # Una regeneración que cae a reglas (cupo agotado, modelo caído) NO pisa un análisis de IA válido: se conserva y se
+        # reintentará en la próxima vuelta (no se actualiza `basadoEn`).
+        return {**previo, "resumen": (previo.get("resumen") or "")[:400]}
     analisis["basadoEn"] = {"afectados": len(col.get("usuariosAfectados", [])), "antenasEnFalla": len(col.get("antenasEnFalla", []))}
     resumen = (analisis.get("resumen") or _texto_resumen(col))[:400]
     cc.actualizar(cid, resumenIA=resumen, analisisIA=analisis)
@@ -330,12 +335,6 @@ def manejar_fallo(event, context):
     _atencion_manual(event["colectivoId"], f"El flujo automático falló ({err.get('Error', 'error')}); requiere atención manual",
                      causa=str(err.get("Cause", ""))[:300])
     return {}
-
-
-def replicar_nube2(event, context):
-    """HOOK(D2): replica el colectivo cerrado al histórico de la 2.ª nube. Opcional: si falla o no está configurado,
-    el flujo NO se bloquea (Catch en la máquina). Hoy no hay destino configurado, así que no hace nada."""
-    return {"replicado": False, "motivo": "NUBE2_NO_CONFIGURADA"}
 
 
 def _atencion_manual(cid: str, detalle: str, causa: str = "") -> None:

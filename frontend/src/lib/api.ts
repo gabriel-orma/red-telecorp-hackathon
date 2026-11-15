@@ -275,10 +275,14 @@ export interface AnalisisIA {
   hipotesisCausa: { causa: string; probabilidad: ProbabilidadCausa; evidencia: string }[];
   recomendaciones: string[];
   confianza: number;
+  /** Solo en el respaldo `REGLAS`: por qué no respondió la IA (NO_CONFIGURADA, LIMITE, DISYUNTOR, HTTP_429…). */
+  motivoFallback?: string;
+  /** Datos con los que se generó (se regenera si cambian los afectados o las antenas en falla). */
+  basadoEn?: { afectados: number; antenasEnFalla: number };
   clima: { fuente: "AzureMaps"; frase: string; temperaturaC: number; precipitacion: boolean; vientoKmH: number } | null;
 }
 
-export type EstadoNube = "OK" | "ERROR" | "SIN_CONFIGURAR";
+export type EstadoNube = "OK" | "ERROR" | "SIN_CONFIGURAR" | "SIN_DATOS";
 export interface ServicioNube { estado: EstadoNube; ultimaLlamada?: string | null; contador?: number; detalle?: string }
 export interface Nubes {
   aws?: Record<string, ServicioNube>;

@@ -32,27 +32,6 @@ def parsear_clima(datos) -> dict | None:
         return None
 
 
-def parsear_direccion(datos) -> dict | None:
-    try:
-        direccion = datos["features"][0]["properties"]["address"]["formattedAddress"]
-        return {"fuente": "AzureMaps", "direccion": str(direccion)[:200]}
-    except (KeyError, IndexError, TypeError):
-        return None
-
-
-def parsear_alertas(datos) -> list | None:
-    try:
-        salida = []
-        for a in datos.get("results", [])[:5]:
-            descripcion = a.get("description") or {}
-            salida.append({"descripcion": str(descripcion.get("localized") or descripcion.get("english") or "")[:160],
-                           "categoria": str(a.get("category") or "")[:40], "prioridad": a.get("priority"),
-                           "fuente": "AzureMaps"})
-        return salida
-    except (AttributeError, TypeError):
-        return None
-
-
 # ---------------------------------------------------------------- Llamadas
 def _clave() -> str | None:
     s = secretos.leer("azure")
@@ -102,14 +81,3 @@ def clima_actual(lat: float, lon: float, idioma: str | None = None) -> dict | No
         p["language"] = idioma
     return _get(("clima", round(lat, 2), round(lon, 2), idioma), "/weather/currentConditions/json", p, parsear_clima)
 
-
-def geocodificar_inverso(lat: float, lon: float) -> dict | None:
-    """{fuente, direccion} o None."""
-    p = {"api-version": "2023-06-01", "coordinates": f"{float(lon):.5f},{float(lat):.5f}"}
-    return _get(("geo", round(lat, 3), round(lon, 3)), "/reverseGeocode", p, parsear_direccion)
-
-
-def alertas_severas(lat: float, lon: float) -> list | None:
-    """Lista (posiblemente vacía) de alertas meteorológicas severas vigentes, o None si no se pudo consultar."""
-    p = {"api-version": "1.1", "query": f"{float(lat):.4f},{float(lon):.4f}"}
-    return _get(("alertas", round(lat, 2), round(lon, 2)), "/weather/severe/alerts/json", p, parsear_alertas)

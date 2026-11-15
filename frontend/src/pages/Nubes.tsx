@@ -4,7 +4,7 @@ import {
   AlertTriangle, CheckCircle2, CircleDashed, Cloud, CloudOff, Database, HelpCircle, Inbox, Loader2, Mail,
   MapPinned, Sparkles, Workflow, Zap, type LucideIcon,
 } from "lucide-react";
-import { api, apiColectivos, apiNubes, type EstadoNube, type Nubes as DatosNubes, type ServicioNube } from "../lib/api";
+import { apiNubes, type EstadoNube, type Nubes as DatosNubes, type ServicioNube } from "../lib/api";
 import { usePolling } from "../hooks/usePolling";
 import { cn, haceCuanto } from "../lib/utils";
 import { Cifra } from "../components/neu/Piezas";
@@ -54,24 +54,13 @@ function resumenProveedor(filas: Fila[]): EstadoVista {
 export function Nubes() {
   const reducir = useReducedMotion();
   const nubes = usePolling<DatosNubes>(useCallback(() => apiNubes.obtener(), []), 15_000);
-  // Lo que el panel ya puede medir de AWS por sí mismo (si el backend no informa la fila, se rotula como «medido desde el panel»).
-  const medido = usePolling(useCallback(async () => {
-    const [a, c] = await Promise.all([api.antenas(), apiColectivos.listar(true)]);
-    const ejecuciones = c.colectivos.filter((x) => x.ejecucionArn);
-    return {
-      dynamodb: { estado: "OK", ultimaLlamada: a.generadoEn, contador: a.antenas.length, detalle: "antenas leídas" } as ServicioNube,
-      // Sin ejecuciones registradas no se afirma nada: la fila queda en «Sin datos».
-      stepFunctions: ejecuciones.length > 0 ? ({ estado: "OK", contador: ejecuciones.length, detalle: "ejecuciones en 7 días",
-        ultimaLlamada: ejecuciones.map((x) => x.actualizadoEn).sort().at(-1) ?? null } as ServicioNube) : undefined,
-    };
-  }, []), 15_000);
 
   const aws = (clave: string): { fila: Fila; derivada: boolean } => {
-    const informada = nubes.datos?.aws?.[clave] ?? nubes.datos?.aws?.[clave.toLowerCase()];
+    const informada = nubes.datos?.aws?.[clave];
     if (informada) return { fila: informada, derivada: false };
+    // API Gateway + Lambda: si /api/nubes respondió, es que ambos funcionan (la propia respuesta lo prueba).
     if (clave === "apiGateway" && nubes.datos) return { fila: { estado: "OK", ultimaLlamada: new Date(nubes.ultimaCarga ?? Date.now()).toISOString() }, derivada: true };
-    const m = medido.datos?.[clave as "dynamodb" | "stepFunctions"];
-    return { fila: m, derivada: !!m };
+    return { fila: undefined, derivada: false };
   };
   const fila = (p: Proveedor["id"], clave: string): { fila: Fila; derivada: boolean } => {
     if (p === "aws") return aws(clave);
@@ -114,7 +103,7 @@ export function Nubes() {
         {nubes.error && !nubes.datos && (
           <p role="status" className="mt-4 flex items-center gap-2 rounded-2xl bg-fondo/60 px-4 py-3 text-xs text-tenue">
             <CloudOff className="size-4 shrink-0" aria-hidden />
-            Sin datos de las integraciones: el endpoint <code className="cifra text-texto">/api/nubes</code> no respondió. Se muestra solo lo que el panel puede medir de AWS.
+            Sin datos de las integraciones: el endpoint <code className="cifra text-texto">/api/nubes</code> no respondió. Sin ese dato no se afirma nada de las demás nubes.
           </p>
         )}
       </section>
@@ -176,7 +165,7 @@ function FilaServicio({ s, f, derivada }: { s: Servicio; f: Fila; derivada: bool
         {f?.contador !== undefined && <span><b className="cifra font-medium text-texto"><Cifra valor={f.contador} /></b> {f.detalle && derivada ? f.detalle : "llamadas"}</span>}
         {derivada && <span title="El backend aún no informa esta fila; se mide desde lo que el panel puede leer">medido desde el panel</span>}
       </div>
-      {estado === "ERROR" && f?.detalle && <div className="mt-1 truncate pl-7 text-[11px] text-tenue" title={f.detalle}>{f.detalle}</div>}
+      {f?.detalle && !derivada && <div className="mt-1 truncate pl-7 text-[11px] text-tenue" title={f.detalle}>{f.detalle}</div>}
     </li>
   );
 }

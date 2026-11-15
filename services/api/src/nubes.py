@@ -100,6 +100,17 @@ def _servicio(clave_tablero: str, configurado: bool, sonda) -> dict:
     return _desde_tablero(fila, ignorar_vigencia=True) or {"estado": "ERROR", "detalle": "sin respuesta de la nube"}
 
 
+def _gemini(modelo: str | None, fila: dict | None) -> dict:
+    """Gemini NO se sondea desde aquí (cada llamada gasta cupo gratuito): se informa su último uso REAL. Si nunca se usó o no hay
+    datos, se dice «sin datos»: no se afirma que funcione sin haberlo llamado."""
+    if not modelo:
+        return {"estado": "SIN_CONFIGURAR"}
+    ultimo = _desde_tablero(fila, ignorar_vigencia=True)
+    if ultimo:
+        return {**ultimo, "detalle": ultimo.get("detalle") or f"modelo {modelo}"}
+    return {"estado": "SIN_DATOS", "detalle": f"configurada ({modelo}); aún sin llamadas"}
+
+
 @acceso.solo_operadores
 def obtener(event, context):
     azure = secretos.leer("azure") or {}
@@ -111,7 +122,6 @@ def obtener(event, context):
         "aws": _aws(),
         "azure": {"acsEmail": _servicio("azure-acs", acs_ok, _sonda_acs),
                   "maps": _servicio("azure-maps", maps_ok, _sonda_maps)},
-        "ia": {"gemini": ({"estado": "SIN_CONFIGURAR"} if not modelo else
-                          (_desde_tablero(gemini) or {"estado": "OK", "detalle": f"configurada ({modelo}); sin uso reciente"}))},
+        "ia": {"gemini": _gemini(modelo, gemini)},
         "generadoEn": util.ahora_iso(),
     })

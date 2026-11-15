@@ -13,6 +13,8 @@ class ErrorNube(Exception):
 
 
 def _transporte_real(metodo: str, url: str, cabeceras: dict, cuerpo: bytes | None, timeout: float):
+    if not url.startswith("https://"):
+        raise ErrorNube("URL_NO_HTTPS")   # nunca se envían claves por un canal sin cifrar ni a esquemas raros (file:, ftp:)
     req = urllib.request.Request(url, data=cuerpo, headers=cabeceras, method=metodo)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - URLs https fijas de cada proveedor

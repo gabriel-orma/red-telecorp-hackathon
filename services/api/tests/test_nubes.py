@@ -90,3 +90,12 @@ def test_obtener_no_filtra_secretos_y_sobrevive_a_una_nube_caida(monkeypatch):
     assert cuerpo["azure"]["acsEmail"]["estado"] == "OK" and cuerpo["azure"]["maps"]["estado"] == "ERROR"
     assert cuerpo["ia"]["gemini"] == {"estado": "SIN_CONFIGURAR"}
     assert "CLAVE-SECRETA" not in r["body"] and "azurecomm" not in r["body"]
+
+
+def test_gemini_configurada_pero_sin_llamadas_no_se_marca_operativa(monkeypatch):
+    assert nubes._gemini(None, None) == {"estado": "SIN_CONFIGURAR"}
+    r = nubes._gemini("gemini-x", None)
+    assert r["estado"] == "SIN_DATOS" and "sin llamadas" in r["detalle"]            # honesto: no se afirma «OK» sin haberlo llamado
+    assert nubes._gemini("gemini-x", fila())["estado"] == "OK"                      # solo tras una llamada real exitosa
+    err = nubes._gemini("gemini-x", fila("ERROR", hace_s=99999, ultimoError="HTTP_429"))
+    assert err["estado"] == "ERROR" and err["detalle"] == "HTTP_429"

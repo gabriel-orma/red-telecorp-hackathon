@@ -17,6 +17,13 @@ const PROBABILIDAD: Record<ProbabilidadCausa, { etiqueta: string; color: string;
 export const esAnalisisDeIA = (a: AnalisisIA) => a.fuente === "IA" && a.proveedor !== "reglas";
 
 const NOMBRE_PROVEEDOR: Record<string, string> = { gemini: "Gemini" };
+// Por qué el análisis lo hizo el respaldo y no un modelo (lenguaje llano; el código técnico queda en el `title`).
+const MOTIVO: Record<string, string> = {
+  NO_CONFIGURADA: "la IA no está configurada en este entorno", LIMITE: "se alcanzó el cupo gratuito de la IA", DISYUNTOR: "la IA falló varias veces seguidas y se pausó",
+  HTTP_429: "la IA rechazó la petición por exceso de uso", SALIDA_INVALIDA: "la respuesta de la IA no cumplió el formato esperado", RESPUESTA_INVALIDA: "la respuesta de la IA no cumplió el formato esperado",
+  RED: "no hubo conexión con la IA",
+};
+const motivoLegible = (m?: string) => (m ? MOTIVO[m] ?? (m.startsWith("HTTP_") ? "la IA devolvió un error" : "la IA no respondió") : "la IA no respondió");
 // Variante oscura del degradado del tema: texto blanco con contraste AA (el original da 3,4:1 en el extremo rosa).
 export const DEGRADADO_TEXTO = { backgroundImage: "linear-gradient(120deg, #5b3fd9, #a1307a)" };
 
@@ -84,6 +91,12 @@ function Procedencia({ a }: { a: AnalisisIA }) {
       <span className="cifra" title={new Date(a.generadoEn).toLocaleString("es-PE", { timeZone: "America/Lima" })}>
         {haceCuanto(a.generadoEn)}
       </span>
+      {!ia && <span className="basis-full text-right" title={a.motivoFallback}>Motivo: {motivoLegible(a.motivoFallback)}</span>}
+      {a.basadoEn && (
+        <span className="basis-full text-right">
+          basado en <b className="cifra text-texto">{a.basadoEn.afectados}</b> afectados y <b className="cifra text-texto">{a.basadoEn.antenasEnFalla}</b> antenas en falla
+        </span>
+      )}
     </div>
   );
 }

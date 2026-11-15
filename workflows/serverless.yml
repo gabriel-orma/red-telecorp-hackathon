@@ -97,7 +97,6 @@ functions:
   cerrar: { handler: src/pasos.cerrar, timeout: 300 }
   sinResolver: { handler: src/pasos.sin_resolver }
   manejarFallo: { handler: src/pasos.manejar_fallo }
-  replicarNube2: { handler: src/pasos.replicar_nube2 }  # HOOK 2.ª nube (réplica al histórico)
 
   # Escenarios de demo (E5)
   escenarioPreparar: { handler: src/escenario.preparar }

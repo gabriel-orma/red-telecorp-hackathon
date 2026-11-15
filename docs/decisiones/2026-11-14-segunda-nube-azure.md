@@ -22,6 +22,8 @@ La segunda nube es **Azure**, con dos servicios que cumplen una función de nego
 **Gemini no cuenta como nube**: es una API de IA. Si no hay clave, el análisis lo produce una plantilla determinista y la interfaz lo etiqueta «Reglas».
 
 ## Consecuencias
+- **Privacidad:** a Gemini solo se envían datos agregados; el texto libre de los usuarios no sale (triage apagado por defecto). El nivel gratuito de Gemini puede usar el contenido para mejorar productos de Google, otra razón para no enviar texto de personas.
+- **Correo:** solo a destinatarios de una lista autorizada del secreto; en producción haría falta verificar el correo en Cognito (hoy se auto-verifica, decisión D9).
 - Las claves de Azure viven en AWS Secrets Manager (`telecorp/<stage>/azure`); nunca en el repo.
 - Costo: dentro de la cuota gratuita / crédito de estudiante; el código limita 5 correos/min y 8/h y cachea el clima 10 min por zona.
 - Riesgo asumido: el dominio de correo administrado de Azure puede mandar a spam; el límite horario es bajo (suficiente para la demo).

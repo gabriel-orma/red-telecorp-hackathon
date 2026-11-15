@@ -9,7 +9,7 @@ Autenticación: HMAC-SHA256 con la clave de acceso del recurso (firmas de ACS):
 
 Límite del dominio administrado por Azure: 5/min y 10/hora. Se respeta con contadores atómicos propios (`estado.reservar_cupo`);
 si se agota, `enviar_correo` devuelve `{"enviado": False, "motivo": "LIMITE"}` y el notificador usa SNS / la app.
-Secreto `telecorp/<stage>/azure`: {acsEndpoint, acsKey, acsSender, mapsKey, limiteHora?}.
+Secreto `telecorp/<stage>/azure`: {acsEndpoint, acsKey, acsSender, mapsKey, destinatarios, limiteHora?}.
 """
 import base64
 import hashlib
@@ -70,6 +70,17 @@ def destinatario_valido(email: str | None) -> bool:
     return dominio not in _DOMINIOS_RESERVADOS and not dominio.endswith(_SUFIJOS_RESERVADOS)
 
 
+def destinatario_autorizado(email: str, cfg: dict) -> bool:
+    """Lista de destinatarios autorizados del secreto (`destinatarios`: correos exactos o dominios `@dominio`). SIN lista no se
+    envía: las cuentas se auto-verifican en Cognito (D9), así que sin esta barrera cualquiera podría hacer que el remitente
+    escriba a un tercero. En producción se exigiría verificar el correo."""
+    lista = cfg.get("destinatarios")
+    if not isinstance(lista, list) or not lista:
+        return False
+    e = str(email).strip().lower()
+    return any(e == str(x).strip().lower() or (str(x).startswith("@") and e.endswith(str(x).strip().lower())) for x in lista)
+
+
 # ---------------------------------------------------------------- Operaciones
 def _config() -> dict | None:
     s = secretos.leer("azure")
@@ -90,7 +101,7 @@ def _llamar(cfg: dict, metodo: str, ruta: str, cuerpo=None, timeout: float = 8.0
 def enviar_correo(destinatario: str, asunto: str, texto: str, html: str | None = None) -> dict:
     """Envía un correo. NUNCA lanza: devuelve {enviado, motivo, operationId, estado, latenciaMs}.
 
-    motivo ∈ {None, "NO_CONFIGURADA", "DESTINATARIO_INVALIDO", "DISYUNTOR", "LIMITE", "CLAVE_INVALIDA", "RED", "HTTP_<n>"}.
+    motivo ∈ {None, "NO_CONFIGURADA", "DESTINATARIO_INVALIDO", "NO_AUTORIZADO", "DISYUNTOR", "LIMITE", "CLAVE_INVALIDA", "RED", "HTTP_<n>"}.
     """
     inicio = time.time()
     try:
@@ -100,10 +111,13 @@ def enviar_correo(destinatario: str, asunto: str, texto: str, html: str | None =
             return {"enviado": False, "motivo": "NO_CONFIGURADA"}
         if not destinatario_valido(destinatario):
             return {"enviado": False, "motivo": "DESTINATARIO_INVALIDO"}
+        if not destinatario_autorizado(destinatario, cfg):
+            return {"enviado": False, "motivo": "NO_AUTORIZADO"}
         if estado.disyuntor_abierto(SERVICIO):
             return {"enviado": False, "motivo": "DISYUNTOR"}
         limite_hora = int(cfg.get("limiteHora", LIMITE_HORA_DEFECTO))
-        if not (estado.reservar_cupo("acs-hora", limite_hora, 3600) and estado.reservar_cupo("acs-min", LIMITE_MINUTO, 60)):
+        # Primero el cupo corto: una ráfaga rechazada por minuto no debe gastar el cupo de la hora.
+        if not (estado.reservar_cupo("acs-min", LIMITE_MINUTO, 60) and estado.reservar_cupo("acs-hora", limite_hora, 3600)):
             return {"enviado": False, "motivo": "LIMITE"}
         try:
             base64.b64decode(cfg["acsKey"], validate=True)

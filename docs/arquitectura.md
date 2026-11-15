@@ -66,9 +66,9 @@ flowchart LR
 | Nube | Servicio | Qué ocurre de verdad |
 |---|---|---|
 | AWS | API Gateway, Lambda, SQS, DynamoDB, Step Functions, Cognito, EventBridge, Secrets Manager/SSM, S3 | Ingesta, detección, orquestación, datos, autenticación y secretos |
-| Azure | **Communication Services** | Cada aviso del flujo (`EN_EVALUACION`, `INCIDENCIA_CONFIRMADA`, `SERVICIO_RESTABLECIDO`) sale por correo desde una Lambda de AWS, autenticado con firma HMAC-SHA256. El historial guarda el id de operación de ACS y se puede consultar su entrega (`Succeeded`) |
+| Azure | **Communication Services** | Cada aviso del flujo (`EN_EVALUACION`, `INCIDENCIA_CONFIRMADA`, `SERVICIO_RESTABLECIDO`) sale por correo desde una Lambda de AWS, autenticado con firma HMAC-SHA256, **solo a destinatarios autorizados** (lista `destinatarios` del secreto: las cuentas se auto-verifican, así que sin lista no se envía a nadie). El historial guarda el id de operación de ACS y se puede consultar su entrega (`Succeeded`) |
 | Azure | **Maps** | El análisis del incidente incluye el clima actual del centro de la zona (lluvia, viento, temperatura): una causa plausible de caída que el operador necesita ver |
-| API externa | Gemini (opcional) | Redacta hipótesis y recomendaciones sobre datos **agregados** (sin datos personales). Si no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas», nunca «IA» |
+| API externa | Gemini (opcional) | Redacta hipótesis y recomendaciones **solo sobre datos agregados** (conteos, estados de antenas, tipo de zona, clima). **El texto libre de los usuarios no se envía** (el triage por IA existe pero viene apagado: flag `triageTexto` del secreto `ia`). Si Gemini no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas (sin IA)» con el motivo, nunca «IA» |
 
 ## Por qué así (relación con la rúbrica)
 

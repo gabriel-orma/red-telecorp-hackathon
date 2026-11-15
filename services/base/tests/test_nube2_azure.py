@@ -88,11 +88,3 @@ def test_parsear_clima_con_la_forma_real_de_azure_maps():
 def test_parsear_clima_ante_respuestas_inesperadas_devuelve_none(malo):
     assert azure_maps.parsear_clima(malo) is None
 
-
-def test_parsear_direccion_y_alertas():
-    assert azure_maps.parsear_direccion(GEO_REAL) == {"fuente": "AzureMaps", "direccion": "Alfonso Ugarte Avenue, Lima, Province of Lima, Peru"}
-    assert azure_maps.parsear_direccion({"features": []}) is None
-    assert azure_maps.parsear_alertas({"results": []}) == []                    # sin alertas ≠ error
-    a = azure_maps.parsear_alertas({"results": [{"description": {"localized": "Lluvia intensa"}, "category": "Rain", "priority": 2}]})
-    assert a == [{"descripcion": "Lluvia intensa", "categoria": "Rain", "prioridad": 2, "fuente": "AzureMaps"}]
-    assert azure_maps.parsear_alertas(None) is None

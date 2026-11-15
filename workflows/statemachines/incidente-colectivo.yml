@@ -7,7 +7,7 @@
 #     sí → Confirmar → avisar "incidencia identificada" ─┐
 #     no → avisar "seguimos evaluando" (NUNCA "falla confirmada") ─┤→ EsCritico? → [AlertarOperador] → Monitorear
 #   Monitorear (Wait) → Reverificar → EstaRestablecido?
-#     restablecido → Restablecer → avisar → Cerrar → ReplicarNube2 (hook 2.ª nube) → fin
+#     restablecido → Restablecer → avisar → Cerrar → fin
 #     agotado      → SinResolver (atención manual, libera la zona) → Fail MonitoreoAgotado
 #     escalar      → EscalarConfirmar → avisar → Monitorear   (la falla apareció DESPUÉS de verificar)
 #   Cualquier error irrecuperable de un paso crítico → ManejarFallo (atención manual, libera la zona) → Fail
@@ -361,20 +361,6 @@ States:
     TimeoutSeconds: 330
     Retry: *reintentos
     Catch: *fatal
-    Next: ReplicarNube2
-  # HOOK 2.ª NUBE: replica el colectivo cerrado al histórico/analítica. Opcional: no bloquea el cierre si falla.
-  ReplicarNube2:
-    Type: Task
-    Resource: { "Fn::GetAtt": [replicarNube2, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
-    ResultPath: $.replica
-    TimeoutSeconds: 60
-    Retry: *reintentos
-    Catch:
-      - { ErrorEquals: [States.ALL], ResultPath: $.errorReplica, Next: ReplicaOmitida }
-    End: true
-  ReplicaOmitida:
-    Type: Pass
     End: true
 
   # Fin controlado ante un error irrecuperable: deja el colectivo en REQUIERE_ATENCION, libera la zona y falla

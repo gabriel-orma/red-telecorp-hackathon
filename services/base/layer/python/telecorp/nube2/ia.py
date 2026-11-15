@@ -256,6 +256,14 @@ def triage_reporte(texto, tipo_declarado: str, plazo_s: float = 4.0) -> dict:
         return {**base, "motivo": "TEXTO_VACIO"}
     if parece_inyeccion(str(texto)) or parece_inyeccion(limpio):
         return {**base, "motivo": "SOSPECHA_INYECCION"}          # ni se llama al modelo
+    # El texto libre de una persona NO sale hacia Gemini salvo que se active expresamente (`triageTexto: true` en el secreto
+    # `ia`): por defecto la IA solo recibe datos agregados (análisis de colectivos). Las máscaras de PII reducen el riesgo pero
+    # no lo eliminan (nombres sin disparador, direcciones, cifras en letras), así que no se confía en ellas como única defensa.
+    cfg = _config()
+    if not cfg:
+        return {**base, "motivo": "NO_CONFIGURADA"}
+    if cfg.get("triageTexto") is not True:
+        return {**base, "motivo": "TRIAGE_APAGADO"}
     prompt = f"<reporte_usuario>\n{limpio}\n</reporte_usuario>\nTipo declarado por el usuario: {tipo_declarado}"
     datos, motivo = consultar_modelo(SISTEMA_TRIAGE, prompt, ESQUEMA_TRIAGE, plazo_s, 300)
     if datos is None:
@@ -321,7 +329,6 @@ def analisis_reglas(ctx: dict) -> dict:
     if tipo_top:
         partes.append(f"Reportes: {tipo_top} predomina ({round(100 * n_top / total)} %)")
     partes.append(f"Antenas en falla: {ids(caidas)}" if caidas else "Sin antenas en falla confirmadas")
-    partes.append(f"Prioridad {ctx.get('prioridad', '—')}")
     resumen = ". ".join(partes) + "."
     return {"fuente": "REGLAS", "proveedor": "reglas", "modelo": None, "generadoEn": util.ahora_iso(), "resumen": resumen[:600],
             "hipotesisCausa": causas[:4], "recomendaciones": recs[:5], "confianza": 0.6 if caidas or saturadas else 0.4,
@@ -354,8 +361,3 @@ def analizar_colectivo(ctx: dict, plazo_s: float = 8.0) -> dict:
     return {"fuente": "IA", "proveedor": "gemini", "modelo": modelo_configurado(), "generadoEn": util.ahora_iso(), **v,
             "clima": ctx.get("clima") or None}
 
-
-def sondear() -> dict:
-    """Prueba mínima de extremo a extremo con Gemini (pocos tokens): para el panel de salud de las nubes."""
-    datos, motivo = consultar_modelo("Responde solo el JSON del esquema.", "Devuelve ok=true.", ESQUEMA_PING, 6.0, 40)
-    return {"ok": bool(datos and datos.get("ok") is True), "motivo": motivo, "modelo": modelo_configurado()}
