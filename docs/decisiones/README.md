@@ -16,7 +16,7 @@ Un archivo por decisión: `AAAA-MM-DD-<slug>.md`, con este formato:
 | # | Tema | Estado | Decisión |
 |---|---|---|---|
 | D1 | Cuentas AWS | ✅ aceptada | AWS Academy Learner Lab → [2026-11-13-aws-academy-us-east-1](2026-11-13-aws-academy-us-east-1.md) |
-| D2 | Segunda nube | ⏳ abierta | Por definir. Propuesta inicial: GCP (Gemini + BigQuery + Looker Studio). Alternativa: Azure. |
+| D2 | Segunda nube | ✅ aceptada (pendiente de OK del equipo) | **Azure** (Communication Services + Maps); GCP descartado → [2026-11-14-segunda-nube-azure](2026-11-14-segunda-nube-azure.md) |
 | D3 | IaC | ✅ aceptada | Serverless Framework → [2026-11-13-serverless-framework](2026-11-13-serverless-framework.md) |
 | D4 | Runtime de las Lambdas | ✅ aceptada | Python → [2026-11-13-python-lambdas](2026-11-13-python-lambdas.md) |
 | D5 | Frontend | ✅ aceptada | React + Vite + Tailwind + shadcn/ui + MapLibre, en S3 + CloudFront → [2026-11-14-frontend](2026-11-14-frontend.md) |
