@@ -44,16 +44,16 @@ def caja(x, y, w, h, texto, relleno, borde, fuente=11, color_txt="#232F3E", negr
                         f"align={alinear};verticalAlign=top;spacingLeft=8;spacingTop=4;fontStyle={negrita};fontColor={color_txt};", x, y, w, h)
 
 
-def externo(x, y, texto, relleno="#0078D4", borde="#005A9E"):
+def externo(x, y, texto, relleno="#0078D4", borde="#005A9E", alto=50):
     return celda(texto, f"rounded=1;whiteSpace=wrap;html=1;fillColor={relleno};strokeColor={borde};fontColor=#FFFFFF;fontSize=10;fontStyle=1;",
-                 x, y, 150, 50)
+                 x, y, 150, alto)
 
 
-def flecha(a, b, texto="", guion=False):
+def flecha(a, b, texto="", guion=False, extra=""):
     i = f"n{next(_id)}"
     celdas.append(f'<mxCell id="{i}" value="{esc(texto)}" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;'
                   f'strokeWidth=1.3;strokeColor=#545B64;fontSize=9;fontColor=#545B64;labelBackgroundColor=#ffffff;'
-                  f'{"dashed=1;" if guion else ""}" edge="1" parent="1" source="{a}" target="{b}"><mxGeometry relative="1" as="geometry"/></mxCell>')
+                  f'{"dashed=1;" if guion else ""}{extra}" edge="1" parent="1" source="{a}" target="{b}"><mxGeometry relative="1" as="geometry"/></mxCell>')
 
 
 # ---------------- Marco ----------------
@@ -62,7 +62,7 @@ caja(20, 20, ANCHO - 40, 56, "Red TeleCorp · Arquitectura serverless en AWS Aca
      "presupuesto de concurrencia: 7 de 10 Lambdas", "#232F3E", "#232F3E", 16, "#FFFFFF", alinear="center")
 celda("Despliegue: Serverless Framework v3 (IaC) · 4 stacks: base, antenas, api, workflows · scripts/deploy.sh · Rol: LabRole · "
       "5 Lambdas con tope (reservedConcurrency) · 3 Step Functions · 8 tablas DynamoDB · 2 colas SQS (+ DLQ) · Cognito · S3 · "
-      "SNS · SSM · Secrets Manager · 2.ª nube: Azure · 3.ª nube: Cloudflare (Workers + KV)",
+      "SNS · SSM · Secrets Manager · otras nubes (D16): Cloudflare Workers + KV y Google Cloud Gemini (activas) · Azure (opcional, no desplegada en la demo)",
       "text;html=1;align=center;fontSize=11;fontColor=#545B64;", 20, 78, ANCHO - 40, 22)
 
 cols = [(150, 230, "Entrada"), (390, 520, "Procesamiento (Lambda / SQS)"), (920, 250, "Datos"),
@@ -132,17 +132,18 @@ mot = lam_tope(1200, 790, "λ detector · motor único\nstreams + barrido 5 min\
 sfc = icono(1400, 790, "step_functions", C["integ"], "SFN incidente-colectivo\nMap ×1 · reintento si\nel motor está ocupado")
 ml = icono(960, 790, "lambda", C["lambda"], "Capa: modelo ML\npropio (0,3 MB)")
 sns = icono(1720, 745, "sns", C["integ"], "SNS avisos +\nalertas NOC")
-acs = externo(1720, 805, "Azure Communication\nServices (correo)")
-maps = externo(1720, 862, "Azure Maps (clima)")
-gem = externo(1720, 917, "Gemini API (opcional,\napagado)", "#5F6368", "#3C4043")
+acs = externo(1720, 822, "Azure Communication\nServices · opcional", alto=40)
+maps = externo(1720, 868, "Azure Maps · opcional", alto=40)
+gem = externo(1720, 914, "Google Cloud\nGemini API", "#4285F4", "#1A5DC8", alto=40)
 flecha(tinc, mot, "stream INSERT")
 flecha(tant, mot, "stream: transición a falla")
 flecha(mot, sfc, "StartExecution")
 flecha(sfc, mot, "cada paso: {accion}", guion=True)
 flecha(mot, sns)
-flecha(mot, acs)
-flecha(mot, maps)
-flecha(mot, gem, guion=True)
+LADO = "entryX=0;entryY=0.5;entryDx=0;entryDy=0;"   # entran por la izquierda: las flechas no cruzan las cajas
+flecha(mot, acs, guion=True, extra=LADO)   # D16: Azure no está desplegada en la cuenta de la demo
+flecha(mot, maps, guion=True, extra=LADO)
+flecha(mot, gem, extra=LADO)
 flecha(seg, ml, "triage de «OTRO»", guion=True)
 nota4 = ("<b>Tope 2.</b> Detector, barrido y los 17 pasos de las 3 Step Functions son UNA función. Cada tarea reintenta "
          "<i>Lambda.TooManyRequestsException</i> (hasta 40 veces con espera creciente) antes que cualquier otro error: "
@@ -164,7 +165,7 @@ sfe = icono(1200, 1205, "step_functions", C["integ"], "SFN escenario\nMap ×1 + 
 sfr = icono(1400, 1205, "step_functions", C["integ"], "SFN recurrencia\nMap ×1 (cron 06:00)")
 mot2 = lam_tope(1580, 1205, "λ detector (misma)\nescenario · recurrencia\n+ barrido 5 min", 2, repetida=True)
 ssm = icono(960, 1205, "systems_manager", C["mgmt"], "SSM Parameter Store\nreglas · simulador · escenario")
-secm = icono(1060, 1205, "secrets_manager", C["sec"], "Secrets Manager\nAzure · IA · Cloudflare")
+secm = icono(1100, 1205, "secrets_manager", C["sec"], "Secrets Manager\nCloudflare · Gemini · Azure")
 flecha(sfe, mot2)
 flecha(sfr, mot2)
 flecha(mot2, sqsr, "reportes simulados", guion=True)

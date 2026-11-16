@@ -2,6 +2,7 @@
 
 - **Fecha:** 2026-11-14 · **Estado:** propuesta verificada, pendiente de OK del equipo (issue `decision`)
 - **Sustituye a:** la propuesta inicial de GCP (BigQuery + Gemini).
+- **Actualizada por:** [D16](2026-11-15-cuatro-nubes.md) (15-nov). Azure queda opcional, porque no se pudo desplegar en la cuenta de la demo, y Gemini pasa a contarse como Google Cloud.
 
 ## Contexto
 La rúbrica pide **2 nubes o más**. Se probó, con comandos reales, qué permite cada una:
