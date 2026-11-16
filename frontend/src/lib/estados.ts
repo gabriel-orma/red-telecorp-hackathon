@@ -15,7 +15,7 @@ export const ESTADO: Record<EstadoAntena, { etiqueta: string; color: string; ran
   SATURADA: { etiqueta: "Saturada", color: "#f5a524", rango: "> 129 GB/min" },
   CAIDA: { etiqueta: "Caída", color: "#f0506e", rango: "< 60 GB/min" },
   INHABILITADA: { etiqueta: "Inhabilitada", color: "#9a9aa6", rango: "0 GB/min" },
-  SIN_DATOS: { etiqueta: "Sin datos", color: "#4a4a55", rango: "sin lecturas" },
+  SIN_DATOS: { etiqueta: "Sin datos", color: "#7a7a88", rango: "sin lecturas" },
 };
 
 export const ORDEN_ESTADOS: EstadoAntena[] = ["NORMAL", "SATURADA", "CAIDA", "INHABILITADA"];
@@ -92,7 +92,7 @@ export const PASOS_FLUJO: { paso: PasoColectivo; etiqueta: string; detalle: stri
   { paso: "NOTIFICAR_EVALUACION", etiqueta: "Aviso: en evaluación", detalle: "Map → un aviso por afectado", icono: Megaphone, tipo: "map" },
   { paso: "VERIFICAR_INFRAESTRUCTURA", etiqueta: "Verificar infraestructura", detalle: "Correlación con antenas de la zona", icono: RadioTower },
   { paso: "PRIORIZAR", etiqueta: "Priorizar", detalle: "Afectados × criticidad de zona", icono: GaugeIcon },
-  { paso: "RESUMIR", etiqueta: "Resumen para el operador", detalle: "IA de la 2.ª nube (E4)", icono: Brain },
+  { paso: "RESUMIR", etiqueta: "Resumen para el operador", detalle: "ML local, IA generativa o reglas (se indica cuál)", icono: Brain },
   { paso: "CONFIRMAR", etiqueta: "Confirmar incidencia", detalle: "Incidencias → siendo atendidas", icono: Flag },
   { paso: "NOTIFICAR_CONFIRMADA", etiqueta: "Aviso: incidencia en la zona", detalle: "Map → un aviso por afectado", icono: BellRing, tipo: "map" },
   { paso: "NOTIFICAR_SIN_FALLA", etiqueta: "Aviso: seguimos evaluando", detalle: "Sin falla de red confirmada (alternativa al aviso anterior)", icono: BellRing, tipo: "map" },

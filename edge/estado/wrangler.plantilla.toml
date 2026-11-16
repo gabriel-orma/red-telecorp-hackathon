@@ -1,0 +1,11 @@
+# Plantilla: scripts/cloudflare.sh genera wrangler.<stage>.toml (ignorado por git) con el id del KV de cada cuenta.
+name = "telecorp-estado-__STAGE__"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "ESTADO"
+id = "__KV_ID__"
+
+# Secreto (no va aquí): TOKEN_PUBLICACION, cargado con `wrangler secret put` por scripts/cloudflare.sh.

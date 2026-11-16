@@ -11,6 +11,7 @@ import { Reportar } from "./pages/Reportar";
 import { Seguimiento } from "./pages/Seguimiento";
 import { Colectivos } from "./pages/Colectivos";
 import { MapaNeu } from "./pages/MapaNeu";
+import { Inicio } from "./pages/Inicio";
 import { LineaTiempoNeu } from "./pages/LineaTiempoNeu";
 import { Analitica } from "./pages/Analitica";
 import { Nubes } from "./pages/Nubes";
@@ -66,15 +67,18 @@ function Operador({ ruta }: { ruta: string }) {
       {ruta in TITULOS ? (
         <ShellNeu titulo={TITULOS[ruta]} enVivo={enVivo} colectivosActivos={activos} onBuscar={() => setBuscar(true)}>
           <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
-            onZona={(z) => navegar(`/?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/?antena=${a.antenaId}`)} />
+            onZona={(z) => navegar(`/mapa?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/mapa?antena=${a.antenaId}`)} />
           {ruta === "/incidencias" ? <PanelIncidencias zonas={zonas} />
             : ruta === "/analitica" ? <Analitica />
             : ruta === "/nubes" ? <Nubes /> : <Colectivos abiertos={colectivos.datos} />}
         </ShellNeu>
       ) : ruta === "/linea-tiempo" ? (
         <LineaTiempoNeu antenas={antenas} zonas={zonas} colectivosActivos={activos} enVivo={enVivo} refrescarRed={red.refrescar} />
-      ) : (
+      ) : ruta === "/mapa" ? (
         <MapaNeu antenas={antenas} zonas={zonas} colectivos={lista} enVivo={enVivo} refrescarRed={red.refrescar} />
+      ) : (
+        // Inicio (dashboard): la pantalla principal; cualquier ruta desconocida también llega aquí
+        <Inicio antenas={antenas} zonas={zonas} colectivos={lista} enVivo={enVivo} />
       )}
     </div>
   );

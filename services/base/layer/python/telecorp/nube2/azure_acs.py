@@ -122,7 +122,7 @@ def enviar_correo(destinatario: str, asunto: str, texto: str, html: str | None =
         try:
             base64.b64decode(cfg["acsKey"], validate=True)
         except Exception:  # noqa: BLE001
-            estado.anotar(SERVICIO, False, error="CLAVE_INVALIDA")
+            estado.anotar(SERVICIO, False, error="CLAVE_INVALIDA", cuenta=False)   # no se llegó a llamar a Azure
             return {"enviado": False, "motivo": "CLAVE_INVALIDA"}
         cuerpo = cuerpo_correo(cfg["acsSender"], destinatario, asunto, texto, html)
         st, cab, datos = _llamar(cfg, "POST", f"/emails:send?api-version={API_VERSION}", cuerpo)

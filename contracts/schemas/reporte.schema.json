@@ -65,6 +65,10 @@
       "type": "boolean",
       "description": "Opt-in: recibir avisos por correo (SNS email; requiere confirmar la suscripción)"
     },
+    "simulado": {
+      "type": "boolean",
+      "description": "Solo lo escriben los escenarios de demo (servidor): vecinos ficticios. El portal NO lo admite: un cliente no puede declarar simulado su propio reporte"
+    },
     "ubicacionFuente": {
       "type": "string",
       "enum": [

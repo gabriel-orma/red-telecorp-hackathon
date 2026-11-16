@@ -23,6 +23,7 @@ functions:
   preRegistro:
     handler: src/pre_registro.handler
     name: ${self:custom.prefijo}-pre-registro
+    reservedConcurrency: 1   # presupuesto de concurrencia (D14): solo corre al registrarse alguien
     layers:
       - !Ref ComunLambdaLayer
 
@@ -200,8 +201,11 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:custom.prefijo}-reportes
-        VisibilityTimeout: 180
-        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 5 }  # AWS recomienda ≥5 con Lambda (H27)
+        # D14: el consumidor tiene tope de concurrencia 1. Si está ocupado, el mensaje vuelve a la cola: visibilidad
+        # corta (2 × timeout de 30 s) para reintentar pronto y más recepciones antes de la DLQ (los rechazos por
+        # "ocupado" también cuentan como recepción).
+        VisibilityTimeout: 60
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaReportesDLQ.Arn, maxReceiveCount: 20 }
     # Eventos del detector (DynamoDB Streams) que fallaron tras los reintentos: no se pierden.
     ColaDetectorDLQ:
       Type: AWS::SQS::Queue
@@ -213,8 +217,8 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:custom.prefijo}-metricas
-        VisibilityTimeout: 180
-        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 5 }
+        VisibilityTimeout: 60   # D14: ver ColaReportes
+        RedrivePolicy: { deadLetterTargetArn: !GetAtt ColaMetricasDLQ.Arn, maxReceiveCount: 20 }
 
     # Alarmas: cualquier mensaje en una DLQ es un registro que NO se procesó (H27). Aviso por el tópico del operador.
     # Reproceso manual: aws sqs start-message-move-task --source-arn <arn de la DLQ>. Las 3 entran en la capa gratuita (10).

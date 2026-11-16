@@ -3,7 +3,8 @@
 GET  /api/escenarios          → estado del escenario en curso (o el último)
 POST /api/escenarios          → {tipo: TORMENTA | CORTE_ENERGIA, zonaId} lanza la Step Function `escenario`
 POST /api/escenarios/reiniciar → "Reiniciar demo": detiene el escenario, quita las fallas forzadas y
-                                 marca como restablecidos los incidentes abiertos (la SFN de cada uno los cierra).
+                                 marca como restablecidos SOLO los incidentes SIMULADOS abiertos (la SFN de cada uno los
+                                 cierra). Los incidentes operativos (reportes reales) no se tocan nunca.
 """
 import json
 import os
@@ -16,6 +17,7 @@ from telecorp import config, db, escenarios, historial, http, reglas, util, zona
 
 _sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 import acceso  # noqa: E402
+import incidentes_reales  # noqa: E402
 
 _sfn = boto3.client("stepfunctions")
 _lambda = boto3.client("lambda")
@@ -38,6 +40,11 @@ def lanzar(event, context):
         return http.error(400, f"Zona desconocida: {zona_id}")
     if config.leer("escenario", usar_cache=False).get("activo"):
         return http.error(409, "Ya hay un escenario en curso; espera a que termine o reinicia la demo")
+    # Protección de lo operativo: el escenario fuerza antenas de su zona y sus vecinas (la ACELERADA, de zonas al azar: cualquiera).
+    en_juego = None if tipo == "ACELERADA" else {z["zonaId"] for z in escenarios.zonas_afectadas(tipo, zona_id, zonas.zonas())}
+    reales = incidentes_reales.abiertos_en(en_juego)
+    if reales:
+        return http.error(409, incidentes_reales.mensaje(reales))
     ejecucion = _sfn.start_execution(stateMachineArn=os.environ["MAQUINA_ESCENARIO"],
                                      input=json.dumps({"tipo": tipo, "zonaId": zona_id}))
     return http.respuesta(202, {"ejecucionArn": ejecucion["executionArn"], "tipo": tipo, "zonaId": zona_id})
@@ -59,7 +66,9 @@ def reiniciar(event, context):
     _lambda.invoke(FunctionName=os.environ["FUNCION_SIMULADOR"], InvocationType="Event",
                    Payload=json.dumps({"unaVez": True}).encode())
 
-    abiertos = db.scan_todo(db.tabla("colectivos"), FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+    abiertos = [c for c in db.scan_todo(db.tabla("colectivos"),
+                                        FilterExpression=Attr("estado").is_in(list(reglas.ESTADOS_COLECTIVO_ABIERTOS)))
+                if reglas.es_simulado(c)]   # «Reiniciar demo» jamás cierra incidentes de usuarios reales
     actor = f"operador:{acceso.identidad(event)}"   # quién reinició la demo (contrato evento-historial: operador:<sub>)
     for c in abiertos:
         db.tabla("colectivos").update_item(Key={"incidenteColectivoId": c["incidenteColectivoId"]},

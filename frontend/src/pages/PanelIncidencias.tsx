@@ -6,6 +6,7 @@ import { ESTADO, ESTADO_INCIDENCIA, ORDEN_INCIDENCIA, TIPO_PROBLEMA, TIPO_ZONA }
 import { usePolling } from "../hooks/usePolling";
 import { useAlCambiar, useConexionTiempoReal } from "../lib/tiempoReal";
 import { ChipEstado, Historial, Progreso } from "../components/LineaTiempo";
+import { ChipTriage } from "../components/neu/TarjetaIA";
 import { cn, haceCuanto } from "../lib/utils";
 
 export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
@@ -42,7 +43,7 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
         <div className="flex flex-wrap items-center gap-2 border-b border-borde p-3">
           <h1 className="mr-2 text-sm font-semibold">Incidencias <span className="text-tenue">· últimos 7 días</span></h1>
           <select
-            value={zonaId}
+            value={zonaId} aria-label="Filtrar por zona"
             onChange={(e) => setZonaId(e.target.value)}
             className="rounded-lg border border-borde bg-fondo px-2 py-1.5 text-xs outline-none focus:border-acento"
           >
@@ -78,7 +79,8 @@ export function PanelIncidencias({ zonas }: { zonas: Zona[] }) {
       </section>
 
       <AnimatePresence>
-        {seleccion && <Detalle key={seleccion} id={seleccion} onCerrar={() => setSeleccion(null)} onCambio={lista.refrescar} />}
+        {seleccion && <Detalle key={seleccion} id={seleccion} onCambio={lista.refrescar}
+          onCerrar={() => { const id = seleccion; setSeleccion(null); requestAnimationFrame(() => document.getElementById(`fila-${id}`)?.focus()); }} />}
       </AnimatePresence>
     </main>
   );
@@ -88,7 +90,7 @@ const MAX_FILAS = 250;
 
 function BotonFiltro({ activo, onClick, etiqueta, n, color }: { activo: boolean; onClick: () => void; etiqueta: string; n: number; color?: string }) {
   return (
-    <button onClick={onClick}
+    <button onClick={onClick} aria-pressed={activo}
       className={cn("flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] ring-1 transition", activo ? "bg-panel-2 text-texto ring-acento/50" : "text-tenue ring-borde hover:text-texto")}>
       {color && <span className="size-1.5 rounded-full" style={{ background: color }} />}
       {etiqueta} <span className="cifra opacity-70">{n}</span>
@@ -100,7 +102,8 @@ function FilaIncidencia({ i, zona, activa, nueva, onClick }: { i: Incidencia; zo
   const Icono = TIPO_PROBLEMA[i.tipo]?.icono ?? TIPO_PROBLEMA.OTRO.icono;
   return (
     <li className={nueva ? "fila-destello" : undefined}>
-      <button onClick={onClick} className={cn("flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-panel-2/60", activa && "bg-panel-2")}>
+      <button id={`fila-${i.incidenciaId}`} onClick={onClick} aria-current={activa ? "true" : undefined}
+        className={cn("flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-panel-2/60", activa && "bg-panel-2")}>
         <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-acento/10 text-acento"><Icono className="size-4" /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -123,6 +126,9 @@ function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void;
   const [enviando, setEnviando] = useState<EstadoIncidencia | null>(null);
   const [error, setError] = useState<string | null>(null);
   const d = det.datos;
+  // Teclado: al abrir el detalle el foco pasa a él (sin tener que recorrer hasta 250 filas) y Esc lo cierra devolviendo el foco a la fila.
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => { panel.current?.focus(); }, []);
 
   const cambiar = async (estado: EstadoIncidencia) => {
     setEnviando(estado); setError(null);
@@ -135,8 +141,10 @@ function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void;
   };
 
   return (
-    <motion.aside initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
-      className="panel scroll-fino fixed inset-x-3 bottom-3 top-16 z-20 flex flex-col gap-4 overflow-y-auto p-4 md:static md:w-[400px] md:shrink-0">
+    <motion.aside ref={panel} tabIndex={-1} aria-label={`Detalle de la incidencia ${id}`}
+      onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onCerrar(); } }}
+      initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}
+      className="panel scroll-fino fixed inset-x-3 bottom-[5.5rem] top-16 z-20 flex flex-col gap-4 overflow-y-auto p-4 outline-none md:static md:w-[400px] md:shrink-0">
       <div className="flex items-start justify-between">
         <div>
           <div className="cifra text-sm font-semibold">{id}</div>
@@ -150,6 +158,7 @@ function Detalle({ id, onCerrar, onCambio }: { id: string; onCerrar: () => void;
 
         <div className="rounded-xl bg-fondo/60 p-3 text-sm">
           <p className="whitespace-pre-wrap">{d.incidencia.reporte.descripcion}</p>
+          {d.incidencia.iaTriage && <ChipTriage triage={d.incidencia.iaTriage} />}
           <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-tenue">
             <dt>Usuario</dt><dd className="cifra text-texto">{d.incidencia.reporte.usuarioId}</dd>
             <dt>Servicio</dt><dd className="cifra text-texto">{d.incidencia.reporte.numeroServicio}</dd>

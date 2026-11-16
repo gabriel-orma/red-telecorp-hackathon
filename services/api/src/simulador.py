@@ -21,6 +21,7 @@ import boto3
 
 from telecorp import config, http, zonas
 import acceso  # noqa: E402
+import incidentes_reales  # noqa: E402
 
 _scheduler = boto3.client("scheduler")
 _lambda = boto3.client("lambda")
@@ -85,6 +86,12 @@ def actualizar(event, context):
     fallas, error = _validar(cuerpo)  # se valida TODO antes de tocar SSM o el scheduler
     if error:
         return http.error(400, error)
+    # Forzar una falla cambia el estado compartido de la antena: no se permite sobre una zona con un incidente real abierto.
+    forzadas = [a for a, v in fallas.items() if v is not None]
+    if forzadas:
+        reales = incidentes_reales.abiertos_en(incidentes_reales.zonas_de_antenas(forzadas))
+        if reales:
+            return http.error(409, incidentes_reales.mensaje(reales))
 
     cfg = config.leer("simulador", usar_cache=False)
     cambios = False

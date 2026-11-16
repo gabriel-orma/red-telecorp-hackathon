@@ -147,7 +147,8 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
               <div className="flex items-center gap-2"><Users className="size-3.5" style={{ color: enRiesgo ? COLOR_NEU.CAIDA : undefined }} />
                 <span className="text-tenue">Clientes en zonas con falla</span><Cifra valor={enRiesgo} className="ml-auto font-semibold" /></div>
               <div className="flex items-center gap-2"><Flame className="size-3.5 text-[#e05ab0]" />
-                <span className="text-tenue">Reportes de usuarios (24 h)</span><Cifra valor={reportes.datos?.length ?? 0} className="ml-auto font-semibold" /></div>
+                <span className="text-tenue">Reportes de usuarios (24 h)</span>
+                {reportes.datos ? <Cifra valor={reportes.datos.length} className="ml-auto font-semibold" /> : <span className="ml-auto font-semibold text-tenue" aria-label="sin datos">—</span>}</div>
             </div>
           </section>
 
@@ -209,7 +210,7 @@ export function MapaNeu({ antenas, zonas, colectivos, enVivo, refrescarRed }: Pr
             <div className="relative h-full min-h-[55vh] overflow-hidden rounded-[13px]">
               <MapaRed antenas={antenas} zonas={zonas} colectivos={colectivos} reportes={verCalor ? reportes.datos ?? [] : []}
                 seleccion={seleccion} onSeleccionar={setSeleccion} enfocarZona={zonaFoco} paleta={PALETA_MAPA_NEU} modo3d={modo3d} />
-              <DetalleAntenaNeu antena={antenaSel} zona={zonas.find((z) => z.zonaId === antenaSel?.zonaId)}
+              <DetalleAntenaNeu esOperador={esOperador} antena={antenaSel} zona={zonas.find((z) => z.zonaId === antenaSel?.zonaId)}
                 forzada={antenaSel ? sim.datos?.fallas[antenaSel.antenaId] : undefined}
                 onCerrar={() => setSeleccion(null)} onForzar={(id, v) => cambiarSimulador({ fallas: { [id]: v } })} />
               <div className="neu-chico absolute bottom-4 left-4 right-16 z-10 flex flex-wrap lg:right-auto items-center gap-x-4 gap-y-1 px-4 py-2 text-[11px]">

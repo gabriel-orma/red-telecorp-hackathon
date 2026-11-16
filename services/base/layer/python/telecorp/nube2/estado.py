@@ -16,7 +16,7 @@ from botocore.exceptions import ClientError
 from telecorp import db, util
 
 TTL_TABLERO_DIAS = 30
-SERVICIOS = ("azure-acs", "azure-maps", "gcp-bigquery", "gcp-gemini")
+SERVICIOS = ("azure-acs", "azure-maps", "gcp-bigquery", "gcp-gemini", "cloudflare-workers")
 
 
 def _t():
@@ -74,8 +74,13 @@ def registrar_exito(nombre: str) -> None:
 
 
 # ---------------------------------------------------------------- Tablero de salud
-def anotar(servicio: str, ok: bool, latencia_ms: int | None = None, error: str | None = None, estado: str | None = None) -> None:
-    """Mejor esfuerzo. `estado` explícito (p. ej. "NO_CONFIGURADA"); si no, OK/ERROR según `ok`."""
+def anotar(servicio: str, ok: bool, latencia_ms: int | None = None, error: str | None = None, estado: str | None = None,
+           cuenta: bool | None = None) -> None:
+    """Mejor esfuerzo. `estado` explícito (p. ej. "NO_CONFIGURADA"); si no, OK/ERROR según `ok`.
+
+    `contador` cuenta LLAMADAS REALES a la nube. Por eso una anotación con `estado` explícito (no se llamó a nadie) no suma, y quien
+    anota por segunda vez una misma llamada (p. ej. la respuesta llegó pero era inválida) pasa `cuenta=False`."""
+    suma = (estado is None) if cuenta is None else cuenta
     try:
         ahora = util.ahora_iso()
         sets = {"estado": estado or ("OK" if ok else "ERROR"), "ultimaLlamada": ahora,
@@ -91,8 +96,9 @@ def anotar(servicio: str, ok: bool, latencia_ms: int | None = None, error: str |
         expr = "SET " + ", ".join(f"#{i} = :{i}" for i in range(len(sets)))
         if ok and "ultimoError" not in sets:
             expr += " REMOVE ultimoError"
-        expr += " ADD contador :uno"
-        valores[":uno"] = 1
+        if suma:
+            expr += " ADD contador :uno"
+            valores[":uno"] = 1
         _t().update_item(Key={"clave": f"NUBE#{servicio}"}, UpdateExpression=expr,
                          ExpressionAttributeNames=nombres, ExpressionAttributeValues=valores)
     except Exception as e:  # noqa: BLE001

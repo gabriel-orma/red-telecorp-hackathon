@@ -27,6 +27,7 @@ provider:
     TABLA_ANTENAS: ${cf:${self:custom.base}.TablaAntenasNombre}
     TABLA_COLECTIVOS: ${cf:${self:custom.base}.TablaColectivosNombre}
     TABLA_DEDUP: ${cf:${self:custom.base}.TablaDedupNombre}
+    TABLA_ESTADISTICAS: ${cf:${self:custom.base}.TablaEstadisticasNombre}   # estado público → espejo en Cloudflare (D15)
     TOPICO_AVISOS: ${cf:${self:custom.base}.TopicoAvisosArn}
     TOPICO_ALERTAS: ${cf:${self:custom.base}.TopicoAlertasOperadorArn}
 
@@ -34,18 +35,27 @@ package:
   patterns: ["!**", "src/**"]
 
 functions:
+  # MOTOR ÚNICO (presupuesto de concurrencia, decisión D14): streams del detector, barrido cada 5 min y los pasos de las
+  # 3 Step Functions en UNA función con tope 2 (src/motor.py). Antes eran 19 Lambdas que podían correr a la vez.
+  # Conserva el nombre `-detector`. Si está ocupado: Step Functions reintenta (Lambda.TooManyRequestsException) y los
+  # streams esperan su turno.
   detector:
-    handler: src/detector.handler
+    handler: src/motor.handler
     name: ${self:custom.prefijo}-detector
+    reservedConcurrency: 2
+    memorySize: 512
+    timeout: 300   # el paso más largo (confirmar/cerrar con cientos de usuarios); Step Functions lo acota por paso
     environment:
-      MAQUINA_COLECTIVO: !Ref MaquinaIncidenteColectivo
+      # ARN determinista (no !Ref): la máquina referencia a esta función → un !Ref crearía una dependencia circular.
+      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
+      COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
     events:
       - stream:
           type: dynamodb
           arn: ${cf:${self:custom.base}.TablaIncidenciasStreamArn}
           startingPosition: LATEST
           batchSize: 20
-          maximumRetryAttempts: 3
+          maximumRetryAttempts: 10   # D14: con tope de concurrencia el stream puede tener que esperar
           bisectBatchOnFunctionError: true
           destinations:
             onFailure:
@@ -58,7 +68,7 @@ functions:
           arn: ${cf:${self:custom.base}.TablaAntenasStreamArn}
           startingPosition: LATEST
           batchSize: 20
-          maximumRetryAttempts: 3
+          maximumRetryAttempts: 10   # D14: con tope de concurrencia el stream puede tener que esperar
           bisectBatchOnFunctionError: true
           destinations:
             onFailure:
@@ -71,45 +81,11 @@ functions:
             - eventName: [INSERT]   # primera lectura de la antena (aún no hay OldImage)
               dynamodb: { NewImage: { estado: { S: [CAIDA, INHABILITADA] } } }
 
-  # Barrido de reconciliación (H08): red de seguridad si un evento del stream se perdió o llegó fuera de orden.
-  # Reevalúa cada zona y arranca la Step Function de colectivos "zombi". Sin costo fijo (≈8.600 invocaciones/mes).
-  reconciliador:
-    handler: src/detector.reconciliar
-    name: ${self:custom.prefijo}-reconciliador
-    timeout: 60
-    environment:
-      MAQUINA_COLECTIVO: !Ref MaquinaIncidenteColectivo
-    events:
+      # Barrido de reconciliación (H08): red de seguridad si un evento del stream se perdió o llegó fuera de orden.
+      # Reevalúa cada zona y arranca la Step Function de colectivos "zombi". Sin costo fijo (≈8.600 invocaciones/mes).
       - schedule:
           rate: rate(5 minutes)
           enabled: true
-
-  # Pasos de la Step Function
-  # (los timeouts de las Lambdas de lote/cierre son mayores que el estándar de 30 s: procesan cientos de usuarios)
-  prepararNotificacion: { handler: src/pasos.preparar_notificacion }
-  notificarLote: { handler: src/pasos.notificar_lote, timeout: 120 }
-  verificarInfraestructura: { handler: src/pasos.verificar_infraestructura }
-  priorizar: { handler: src/pasos.priorizar }
-  resumir: { handler: src/pasos.resumir, timeout: 45 }   # IA (Gemini ≤ 8 s) + clima (Azure Maps ≤ 5 s); el estado de la máquina permite 60 s
-  confirmar: { handler: src/pasos.confirmar, timeout: 300 }
-  reverificar: { handler: src/pasos.reverificar }
-  restablecer: { handler: src/pasos.restablecer }
-  cerrar: { handler: src/pasos.cerrar, timeout: 300 }
-  sinResolver: { handler: src/pasos.sin_resolver }
-  manejarFallo: { handler: src/pasos.manejar_fallo }
-
-  # Escenarios de demo (E5)
-  escenarioPreparar: { handler: src/escenario.preparar }
-  escenarioOleada:
-    handler: src/escenario.aplicar_oleada
-    environment:
-      COLA_REPORTES_URL: ${cf:${self:custom.base}.ColaReportesUrl}
-  escenarioFinalizar: { handler: src/escenario.finalizar }
-
-  # Recurrencia (E6)
-  recurrenciaContar: { handler: src/recurrencia.contar, timeout: 60 }
-  recurrenciaMarcar: { handler: src/recurrencia.marcar }
-  recurrenciaResumen: { handler: src/recurrencia.resumen }
 
 stepFunctions:
   validate: true

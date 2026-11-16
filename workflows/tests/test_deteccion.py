@@ -201,7 +201,7 @@ def test_carrera_9_10_con_GSI_rancio_el_ultimo_en_confirmar_ve_a_los_diez(aws, m
     """El GSI es eventualmente consistente: aquí devuelve SIEMPRE vacío. Solo la ventana atómica puede revelar al 10.º.
     Diez detectores en paralelo, uno por usuario: exactamente UN colectivo con los diez, una sola Step Function."""
     import comun_colectivos as cc, detector
-    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h: [])
+    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h, s=False: [])
     its = [_reporte(i) for i in range(10)]
     en_paralelo([lambda it=it: detector.nueva_incidencia(it) for it in its])
     (col,) = colectivos()
@@ -212,7 +212,7 @@ def test_carrera_9_10_con_GSI_rancio_el_ultimo_en_confirmar_ve_a_los_diez(aws, m
 @pytest.mark.parametrize("ronda", range(3))
 def test_nueve_en_paralelo_no_crean_colectivo(aws, monkeypatch, hilos_agresivos, ronda):
     import comun_colectivos as cc, detector
-    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h: [])
+    monkeypatch.setattr(cc, "incidencias_ventana_zona", lambda z, h, s=False: [])
     its = [_reporte(i) for i in range(9)]
     en_paralelo([lambda it=it: detector.nueva_incidencia(it) for it in its])
     assert colectivos() == [] and aws.llamadas == []
@@ -344,7 +344,7 @@ def test_claves_de_dedup_candado_y_ventana_no_colisionan_con_ningun_usuario():
 # ======================= Infraestructura (revisión del IaC) =======================
 def test_stream_de_antenas_solo_dispara_en_la_transicion_a_falla():
     funciones = cargar_yaml("workflows/serverless.yml")["functions"]
-    antenas = [e["stream"] for e in funciones["detector"]["events"] if "TablaAntenasStreamArn" in e["stream"]["arn"]][0]
+    antenas = [e["stream"] for e in funciones["detector"]["events"] if "stream" in e and "TablaAntenasStreamArn" in e["stream"]["arn"]][0]
     patrones = antenas["filterPatterns"]
     transicion = [p for p in patrones if "OldImage" in p.get("dynamodb", {})][0]["dynamodb"]
     assert transicion["NewImage"]["estado"]["S"] == ["CAIDA", "INHABILITADA"]
@@ -353,9 +353,10 @@ def test_stream_de_antenas_solo_dispara_en_la_transicion_a_falla():
 
 
 def test_hay_barrido_de_reconciliacion_cada_5_minutos_sin_costo_fijo():
-    f = cargar_yaml("workflows/serverless.yml")["functions"]["reconciliador"]
-    assert f["handler"] == "src/detector.reconciliar"
-    assert f["events"][0]["schedule"]["rate"] == "rate(5 minutes)"
+    # D14: el barrido vive en el motor único (src/motor.py → detector.reconciliar cuando no hay Records ni acción).
+    f = cargar_yaml("workflows/serverless.yml")["functions"]["detector"]
+    assert f["handler"] == "src/motor.handler"
+    assert [e["schedule"]["rate"] for e in f["events"] if "schedule" in e] == ["rate(5 minutes)"]
 
 
 def test_colas_con_maxReceiveCount_5_y_alarma_en_cada_dlq():

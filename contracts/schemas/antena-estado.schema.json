@@ -42,6 +42,10 @@
       "format": "date-time",
       "description": "Desde cuándo está en el estado actual"
     },
+    "simulada": {
+      "type": "boolean",
+      "description": "La lectura actual viene de una falla forzada del simulador (no es un dato operativo). Ausente o false = operativo"
+    },
     "estructural": {
       "type": [
         "object",

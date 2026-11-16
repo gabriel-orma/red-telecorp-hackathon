@@ -1,6 +1,6 @@
 # Stack API: un único HTTP API (HTTPS) para el frontend y los datos.
 #   /api/*  → endpoints JSON
-#   /*      → frontend (S3 privado servido por Lambda; CloudFront bloqueado en Learner Lab, ver D1)
+#   /*      → frontend (S3 de solo lectura vía integración HTTP, sin Lambda; CloudFront bloqueado en Learner Lab)
 # Mismo origen para web y API: sin CORS ni URLs que inyectar en el build.
 service: telecorp-api
 frameworkVersion: "3"
@@ -49,185 +49,75 @@ package:
   patterns: ["!**", "src/**"]
 
 functions:
-  antenas:
-    handler: src/antenas.listar_antenas
-    events:
-      - httpApi: GET /api/antenas
-  zonas:
-    handler: src/antenas.listar_zonas
-    events:
-      - httpApi: GET /api/zonas
-  ubicarZona:
-    handler: src/antenas.ubicar_zona
-    events:
-      - httpApi: GET /api/zonas/ubicar
-  metricasAntena:
-    handler: src/antenas.metricas_antena
-    events:
-      - httpApi: GET /api/antenas/{antenaId}/metricas
-  simuladorObtener:
-    handler: src/simulador.obtener
-    environment: &simulador
+  # PRESUPUESTO DE CONCURRENCIA (decisión D14): AWS Academy desactiva la cuenta si hay más de 10 Lambdas ejecutándose a
+  # la vez. Cada función lleva `reservedConcurrency` (tope duro de AWS) y el total de TODOS los stacks es 7
+  # (prueba: tests/test_presupuesto_concurrencia.py). No agregar funciones sin tope.
+
+  # Router único: todas las rutas HTTP y WebSocket (src/router.py elige el handler según routeKey).
+  api:
+    handler: src/router.handler
+    name: ${self:custom.prefijo}-api
+    reservedConcurrency: 2
+    memorySize: 512
+    timeout: 30
+    environment:
       PROGRAMACION_SIMULADOR: ${cf:${self:custom.antenas}.ProgramacionSimuladorNombre}
       FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
-    events:
-      - httpApi: { method: GET, path: /api/simulador, authorizer: { name: cognito } }   # solo operadores (grupo, ver acceso.py)
-  simuladorActualizar:
-    handler: src/simulador.actualizar
-    environment: *simulador
-    events:
-      - httpApi: { method: PUT, path: /api/simulador, authorizer: { name: cognito } }   # solo operadores
-  # ---------- Incidencias (E2) ----------
-  crearReporte:
-    handler: src/incidencias.crear_reporte
-    events:
-      - httpApi: { method: POST, path: /api/reportes, authorizer: { name: cognito } }
-  misReportes:
-    handler: src/incidencias.mis_reportes
-    events:
-      - httpApi: { method: GET, path: /api/mis-reportes, authorizer: { name: cognito } }
-  # ---------- Estado público (E3.5) ----------
-  estadoRed:
-    handler: src/estado.estado
-    memorySize: 512
-    events:
-      - httpApi: GET /api/estado
-  config:
-    handler: src/estado.config
-    environment:
       WS_URL: !Sub "wss://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}"
       USER_POOL_ID: ${cf:${self:custom.base}.UserPoolId}
       USER_POOL_CLIENT_ID: ${cf:${self:custom.base}.UserPoolClientId}
-    events:
-      - httpApi: GET /api/config
-  registrarReporte:
-    handler: src/incidencias.registrar
-    timeout: 30
-    events:
-      - sqs:
-          arn: ${cf:${self:custom.base}.ColaReportesArn}
-          batchSize: 10   # sin ventana de agrupación: cada reporte se registra apenas llega
-          functionResponseType: ReportBatchItemFailures
-  listarIncidencias:
-    handler: src/incidencias.listar
-    events:
-      - httpApi: GET /api/incidencias
-  obtenerIncidencia:
-    handler: src/incidencias.obtener
-    events:
-      - httpApi: GET /api/incidencias/{incidenciaId}
-  # ---------- Rutas de OPERADOR: autorizador JWT + grupo `operadores` comprobado en el handler (src/acceso.py) ----------
-  listarIncidenciasOperador:
-    handler: src/incidencias.listar_operador
-    events:
-      - httpApi: { method: GET, path: /api/operador/incidencias, authorizer: { name: cognito } }
-  obtenerIncidenciaOperador:
-    handler: src/incidencias.obtener_operador
-    events:
-      - httpApi: { method: GET, path: "/api/operador/incidencias/{incidenciaId}", authorizer: { name: cognito } }
-  cambiarEstadoIncidencia:
-    handler: src/incidencias.cambiar_estado
-    events:
-      - httpApi: { method: PATCH, path: "/api/incidencias/{incidenciaId}/estado", authorizer: { name: cognito } }
-  # ---------- Incidentes colectivos (E3) ----------
-  listarColectivos:
-    handler: src/colectivos.listar
-    events:
-      - httpApi: GET /api/colectivos
-  obtenerColectivo:
-    handler: src/colectivos.obtener
-    events:
-      - httpApi: { method: GET, path: "/api/colectivos/{colectivoId}", authorizer: { name: cognito } }
-  reanudarColectivos:
-    handler: src/colectivos.reanudar
-    timeout: 30
-    environment:
+      # Nombres deterministas: el stack workflows se despliega después del api.
       MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
+      MAQUINA_RECURRENCIA: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-recurrencia
+      MAQUINA_ESCENARIO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-escenario
     events:
+      - httpApi: { method: GET, path: "/api/antenas" }
+      - httpApi: { method: GET, path: "/api/zonas" }
+      - httpApi: { method: GET, path: "/api/zonas/ubicar" }
+      - httpApi: { method: GET, path: "/api/antenas/{antenaId}/metricas" }
+      - httpApi: { method: GET, path: "/api/simulador", authorizer: { name: cognito } }
+      - httpApi: { method: PUT, path: "/api/simulador", authorizer: { name: cognito } }
+      - httpApi: { method: POST, path: "/api/reportes", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/mis-reportes", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/estado" }
+      - httpApi: { method: GET, path: "/api/config" }
+      - httpApi: { method: GET, path: "/api/incidencias" }
+      - httpApi: { method: GET, path: "/api/incidencias/{incidenciaId}" }
+      - httpApi: { method: GET, path: "/api/operador/incidencias", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/operador/incidencias/{incidenciaId}", authorizer: { name: cognito } }
+      - httpApi: { method: PATCH, path: "/api/incidencias/{incidenciaId}/estado", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/colectivos" }
+      - httpApi: { method: GET, path: "/api/colectivos/{colectivoId}", authorizer: { name: cognito } }
       - httpApi: { method: POST, path: "/api/colectivos/reanudar", authorizer: { name: cognito } }
-  restablecerColectivo:
-    handler: src/colectivos.restablecer
-    events:
       - httpApi: { method: POST, path: "/api/colectivos/{colectivoId}/restablecer", authorizer: { name: cognito } }
-  # ---------- Tiempo real (E7): WebSocket + difusor ----------
-  wsConectar:
-    handler: src/tiempo_real.conectar
-    events:
+      - httpApi: { method: GET, path: "/api/analitica" }
+      - httpApi: { method: POST, path: "/api/recurrencia", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/nubes", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/linea-tiempo", authorizer: { name: cognito } }
+      - httpApi: { method: GET, path: "/api/escenarios" }
+      - httpApi: { method: POST, path: "/api/escenarios", authorizer: { name: cognito } }
+      - httpApi: { method: POST, path: "/api/escenarios/reiniciar", authorizer: { name: cognito } }
       - websocket: $connect
-  wsDesconectar:
-    handler: src/tiempo_real.desconectar
-    events:
       - websocket: $disconnect
-  wsMensaje:
-    handler: src/tiempo_real.mensaje
-    events:
       - websocket: $default
-  difusor:
-    handler: src/tiempo_real.difundir
+
+  # Segundo plano: registrar reportes (SQS) y avisar a los paneles (3 streams). 1 a la vez: la cola y los streams
+  # guardan lo que llegue mientras tanto (nada se pierde; solo espera).
+  segundoPlano:
+    handler: src/segundo_plano.handler
+    name: ${self:custom.prefijo}-segundo-plano
+    reservedConcurrency: 1
     timeout: 30
     environment:
       WS_ENDPOINT: !Sub "https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}"
     events:
-      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaAntenasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
-      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaColectivosStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
-      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaIncidenciasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 1, maximumRetryAttempts: 1 }
-  # ---------- Analítica operativa (E6) ----------
-  analitica:
-    handler: src/analitica.analitica
-    memorySize: 512
-    timeout: 25
-    events:
-      - httpApi: GET /api/analitica
-  ejecutarRecurrencia:
-    handler: src/analitica.ejecutar_recurrencia
-    environment:
-      MAQUINA_RECURRENCIA: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-recurrencia
-    events:
-      - httpApi: { method: POST, path: "/api/recurrencia", authorizer: { name: cognito } }
-  # ---------- Nubes conectadas (2.ª nube: Azure) ----------
-  nubes:
-    handler: src/nubes.obtener
-    timeout: 20
-    environment:
-      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
-    events:
-      - httpApi: { method: GET, path: "/api/nubes", authorizer: { name: cognito } }   # solo operadores (grupo, ver acceso.py)
-  # ---------- Línea de tiempo estilo editor de video ----------
-  lineaTiempo:
-    handler: src/linea_tiempo.linea_tiempo
-    memorySize: 512
-    timeout: 20
-    events:
-      - httpApi: { method: GET, path: /api/linea-tiempo, authorizer: { name: cognito } }   # solo operadores
-  # ---------- Escenarios de demo (E5) ----------
-  escenarioObtener:
-    handler: src/escenarios.obtener
-    events:
-      - httpApi: GET /api/escenarios
-  escenarioLanzar:
-    handler: src/escenarios.lanzar
-    environment:
-      # Nombre determinista: el stack workflows se despliega después del api.
-      MAQUINA_ESCENARIO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-escenario
-    events:
-      - httpApi: { method: POST, path: "/api/escenarios", authorizer: { name: cognito } }
-  escenarioReiniciar:
-    handler: src/escenarios.reiniciar
-    timeout: 30
-    environment:
-      FUNCION_SIMULADOR: ${cf:${self:custom.antenas}.SimuladorFuncion}
-      MAQUINA_COLECTIVO: arn:aws:states:${aws:region}:${aws:accountId}:stateMachine:${self:custom.prefijo}-incidente-colectivo
-    events:
-      - httpApi: { method: POST, path: "/api/escenarios/reiniciar", authorizer: { name: cognito } }
-
-  web:
-    handler: src/web.handler
-    memorySize: 512
-    environment:
-      BUCKET_FRONTEND: !Ref BucketFrontend
-    events:
-      - httpApi: GET /
-      - httpApi: GET /{proxy+}
+      - sqs:
+          arn: ${cf:${self:custom.base}.ColaReportesArn}
+          batchSize: 10
+          functionResponseType: ReportBatchItemFailures
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaAntenasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 5, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaColectivosStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 2, maximumRetryAttempts: 1 }
+      - stream: { type: dynamodb, arn: "${cf:${self:custom.base}.TablaIncidenciasStreamArn}", startingPosition: LATEST, batchSize: 100, maximumBatchingWindowInSeconds: 2, maximumRetryAttempts: 1 }
 
 resources:
   Resources:
@@ -235,16 +125,68 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         VersioningConfiguration: { Status: Enabled }
+        # Lectura pública SOLO por política (GetObject); sin ACL públicas ni listado del bucket.
         PublicAccessBlockConfiguration:
           BlockPublicAcls: true
-          BlockPublicPolicy: true
           IgnorePublicAcls: true
-          RestrictPublicBuckets: true
+          BlockPublicPolicy: false
+          RestrictPublicBuckets: false
         LifecycleConfiguration:
           Rules:
             - Id: limpiar-versiones-viejas
               Status: Enabled
               NoncurrentVersionExpiration: { NoncurrentDays: 7 }
+    PoliticaBucketFrontend:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref BucketFrontend
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: LecturaPublicaDelFrontend
+              Effect: Allow
+              Principal: "*"
+              Action: s3:GetObject
+              Resource: !Sub "${BucketFrontend.Arn}/*"
+
+    # El frontend llega por el MISMO HTTP API (HTTPS, mismo origen que /api) pero sin Lambda: integración HTTP directa a
+    # S3. Antes lo servía una Lambda: abrir la app pedía ~12 archivos a la vez = 12 Lambdas (decisión D14).
+    IntegracionFrontendIndex:
+      Type: AWS::ApiGatewayV2::Integration
+      Properties:
+        ApiId: !Ref HttpApi
+        IntegrationType: HTTP_PROXY
+        IntegrationMethod: GET
+        IntegrationUri: !Sub "https://${BucketFrontend.RegionalDomainName}/index.html"
+        PayloadFormatVersion: "1.0"
+    IntegracionFrontendAssets:
+      Type: AWS::ApiGatewayV2::Integration
+      Properties:
+        ApiId: !Ref HttpApi
+        IntegrationType: HTTP_PROXY
+        IntegrationMethod: GET
+        IntegrationUri: !Sub "https://${BucketFrontend.RegionalDomainName}/assets/{proxy}"
+        PayloadFormatVersion: "1.0"
+    IntegracionFrontendFavicon:
+      Type: AWS::ApiGatewayV2::Integration
+      Properties:
+        ApiId: !Ref HttpApi
+        IntegrationType: HTTP_PROXY
+        IntegrationMethod: GET
+        IntegrationUri: !Sub "https://${BucketFrontend.RegionalDomainName}/favicon.svg"
+        PayloadFormatVersion: "1.0"
+    RutaFrontendRaiz:
+      Type: AWS::ApiGatewayV2::Route
+      Properties: { ApiId: !Ref HttpApi, RouteKey: "GET /", Target: !Sub "integrations/${IntegracionFrontendIndex}" }
+    RutaFrontendSpa:   # cualquier ruta de la SPA (/mapa, /portal/...) → index.html; las rutas /api/* son más específicas
+      Type: AWS::ApiGatewayV2::Route
+      Properties: { ApiId: !Ref HttpApi, RouteKey: "GET /{proxy+}", Target: !Sub "integrations/${IntegracionFrontendIndex}" }
+    RutaFrontendAssets:
+      Type: AWS::ApiGatewayV2::Route
+      Properties: { ApiId: !Ref HttpApi, RouteKey: "GET /assets/{proxy+}", Target: !Sub "integrations/${IntegracionFrontendAssets}" }
+    RutaFrontendFavicon:
+      Type: AWS::ApiGatewayV2::Route
+      Properties: { ApiId: !Ref HttpApi, RouteKey: "GET /favicon.svg", Target: !Sub "integrations/${IntegracionFrontendFavicon}" }
   Outputs:
     BucketFrontendNombre: { Value: !Ref BucketFrontend }
     Url: { Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com" }

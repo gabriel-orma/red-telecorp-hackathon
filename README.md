@@ -21,7 +21,13 @@ Despliega todo: base → antenas → api → workflows → frontend. La primera 
 bash scripts/deploy.sh dev-tualias
 ```
 
+> ⚠️ **AWS Academy desactiva la cuenta si hay más de 10 Lambdas ejecutándose a la vez.** Toda la app está limitada a 7 (decisión [D14](docs/decisiones/2026-11-15-presupuesto-concurrencia.md)) y `deploy.sh` se detiene si las pruebas del presupuesto fallan. No despliegues versiones viejas ni crees Lambdas a mano en la cuenta: lee las reglas de uso en D14.
+
 Al terminar imprime la URL HTTPS del centro de control. Para desplegar solo una parte: `bash scripts/deploy.sh dev-tualias frontend` (o `api`, `antenas`, `base`).
+
+**Tercera nube (Cloudflare):** el estado público se publica cada 5 min en un Worker de Cloudflare, que lo sigue sirviendo aunque AWS caiga. Es opcional y gratis; ver [`docs/despliegue-cloudflare.md`](docs/despliegue-cloudflare.md) (`npx wrangler@4.154.0 login` y luego `bash scripts/cloudflare.sh dev-tualias`).
+
+**IA en Google Cloud (Gemini):** clave gratis en https://aistudio.google.com/apikey (cualquier cuenta de Google, sin tarjeta); se valida y se guarda en Secrets Manager con `bash scripts/gemini-secreto.sh dev-tualias`.
 
 **Segunda nube (Azure):** el correo de los avisos y el clima de la zona salen por Azure. Sin sus claves el sistema funciona igual (avisos por la app y SNS, análisis sin clima), pero para la demo completa crea los recursos y entrega sus claves a Secrets Manager siguiendo [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
 

@@ -5,14 +5,21 @@ StartAt: Preparar
 States:
   Preparar:
     Type: Task
-    Resource: { "Fn::GetAtt": [escenarioPreparar, Arn] }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
     Parameters:
+      "accion": escenarioPreparar
       "tipo.$": "$.tipo"
       "zonaId.$": "$.zonaId"
       "ejecucionArn.$": "$$.Execution.Id"
     ResultPath: $.plan
     Retry: &reintentos
-      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException]
+      - ErrorEquals: [Lambda.TooManyRequestsException]   # D14: el motor está ocupado (tope de concurrencia) → esperar, no fallar
+        IntervalSeconds: 2
+        MaxAttempts: 40
+        BackoffRate: 1.5
+        MaxDelaySeconds: 15
+        JitterStrategy: FULL
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException]
         IntervalSeconds: 2
         MaxAttempts: 3
         BackoffRate: 2
@@ -37,7 +44,8 @@ States:
           Next: AplicarOleada
         AplicarOleada:
           Type: Task
-          Resource: { "Fn::GetAtt": [escenarioOleada, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "escenarioOleada", "datos.$": "$" }
           Retry: *reintentos
           End: true
     ResultPath: null
@@ -46,7 +54,8 @@ States:
 
   Finalizar:
     Type: Task
-    Resource: { "Fn::GetAtt": [escenarioFinalizar, Arn] }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "escenarioFinalizar", "datos.$": "$" }
     ResultPath: $.resultado
     Retry: *reintentos
     End: true

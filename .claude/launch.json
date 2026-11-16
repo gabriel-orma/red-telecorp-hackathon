@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev", "--", "--port", "5173", "--strictPort"],
+      "env": { "VITE_API_PROXY": "https://8xps8xwo11.execute-api.us-east-1.amazonaws.com" },
+      "port": 5173
+    }
+  ]
+}

@@ -1,12 +1,14 @@
 """Estado en vivo de las nubes conectadas. Alimenta el panel «Nubes conectadas» del centro de control.
 
-GET /api/nubes   (SOLO operadores)  → {aws: {...}, azure: {acsEmail, maps}, ia: {gemini}, generadoEn}
+GET /api/nubes   (SOLO operadores)  → {aws: {...}, azure: {acsEmail, maps}, cloudflare: {espejo}, ia: {gemini}, generadoEn}
 
 Cada servicio se informa con lo que de verdad se midió, nunca con un valor fijo:
   · AWS   → una operación real y barata por servicio (DynamoDB, SQS, Step Functions) con su latencia.
   · Azure → el tablero que escriben las llamadas reales (envío de correo, clima). Si no hay una llamada reciente se hace
             UNA sonda (ACS: consulta de una operación inexistente, NO envía correo; Maps: clima de una zona), como mucho
             una cada 5 minutos por servicio (cupo atómico), para que abrir el panel no consuma la cuota ni cueste dinero.
+  · Cloudflare → el tablero que escribe la publicación del estado (cada 5 min); si no hay una reciente, UNA sonda
+            `GET /salud` del Worker (lee KV, no escribe), con el mismo cupo de una cada 5 minutos.
   · IA    → solo si hay un modelo configurado; no se llama al modelo desde aquí (cuenta cupo): se informa su último uso real.
 Los secretos nunca se devuelven. Ningún fallo de una nube rompe la respuesta: ese servicio se marca `ERROR`.
 """
@@ -17,7 +19,7 @@ import time
 import boto3
 
 from telecorp import db, http, util, zonas
-from telecorp.nube2 import azure_acs, azure_maps, estado, ia, secretos
+from telecorp.nube2 import azure_acs, azure_maps, cloudflare, estado, ia, secretos
 
 _sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 import acceso  # noqa: E402
@@ -100,11 +102,12 @@ def _servicio(clave_tablero: str, configurado: bool, sonda) -> dict:
     return _desde_tablero(fila, ignorar_vigencia=True) or {"estado": "ERROR", "detalle": "sin respuesta de la nube"}
 
 
-def _gemini(modelo: str | None, fila: dict | None) -> dict:
+def _gemini(modelo: str | None, fila: dict | None, desactivada: bool = False) -> dict:
     """Gemini NO se sondea desde aquí (cada llamada gasta cupo gratuito): se informa su último uso REAL. Si nunca se usó o no hay
     datos, se dice «sin datos»: no se afirma que funcione sin haberlo llamado."""
     if not modelo:
-        return {"estado": "SIN_CONFIGURAR"}
+        # con clave pero apagada: se dice (no es lo mismo que «sin configurar»); el análisis usa reglas y la interfaz lo rotula
+        return {"estado": "SIN_CONFIGURAR", "detalle": "desactivada (habilitada = false): el análisis usa reglas"} if desactivada else {"estado": "SIN_CONFIGURAR"}
     ultimo = _desde_tablero(fila, ignorar_vigencia=True)
     if ultimo:
         return {**ultimo, "detalle": ultimo.get("detalle") or f"modelo {modelo}"}
@@ -116,12 +119,15 @@ def obtener(event, context):
     azure = secretos.leer("azure") or {}
     acs_ok = all(azure.get(k) for k in ("acsEndpoint", "acsKey", "acsSender"))
     maps_ok = bool(azure.get("mapsKey"))
-    modelo = ia.modelo_configurado()
+    modelo = ia.modelo_configurado()                       # None si no hay clave o está apagada
+    cfg_ia = ia._config()
+    desactivada = bool(cfg_ia and not ia.gemini_habilitado(cfg_ia))
     gemini = estado.leer_tablero().get("gcp-gemini")
     return http.ok({
         "aws": _aws(),
         "azure": {"acsEmail": _servicio("azure-acs", acs_ok, _sonda_acs),
                   "maps": _servicio("azure-maps", maps_ok, _sonda_maps)},
-        "ia": {"gemini": _gemini(modelo, gemini)},
+        "cloudflare": {"espejo": _servicio("cloudflare-workers", cloudflare.configurado(), cloudflare.sondear)},
+        "ia": {"gemini": _gemini(modelo, gemini, desactivada)},
         "generadoEn": util.ahora_iso(),
     })

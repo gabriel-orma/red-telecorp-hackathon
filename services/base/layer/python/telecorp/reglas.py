@@ -173,7 +173,8 @@ def construir_reporte(cuerpo: dict, perfil: dict, zona_gps: str | None, ahora_is
         "avisarPorEmail": perfil.get("avisosEmail") == "1",
     }
     if ubic:
-        reporte["ubicacion"] = {"lat": float(ubic["lat"]), "lng": float(ubic["lng"])}
+        # Privacidad: ≈ 110 m bastan para ubicar la zona; el cliente ya la redondea y el servidor lo garantiza aunque no lo haga.
+        reporte["ubicacion"] = {"lat": round(float(ubic["lat"]), 3), "lng": round(float(ubic["lng"]), 3)}
     return {k: v for k, v in reporte.items() if v is not None}
 
 
@@ -189,10 +190,23 @@ def deteccion_anticipada_min(primera_falla_iso, primer_reporte_iso):
     return round((b - a).total_seconds() / 60, 1)
 
 
-def contar_fallas(eventos: list, desde_iso: str) -> int:
-    """Veces que una antena ENTRÓ en falla (caída o inhabilitada) desde `desde_iso`, según su historial."""
+def es_simulado(entidad: dict | None) -> bool:
+    """¿El dato nace de una simulación (escenario de demo, fallas forzadas del simulador, vecinos ficticios)?
+
+    Vale para incidencias (`reporte.simulado`), colectivos, antenas (`simulada`) y eventos de historial (`simulado`).
+    Es la ÚNICA definición: detector, estadísticas, analítica y recurrencia la comparten, así lo simulado nunca se mezcla
+    con lo operativo (ni lo infla ni lo oculta). El usuario no puede enviarla: `construir_reporte` no la admite."""
+    e = entidad or {}
+    return bool(e.get("simulado") or e.get("simulada") or (e.get("reporte") or {}).get("simulado"))
+
+
+def contar_fallas(eventos: list, desde_iso: str, simulados: bool = False) -> int:
+    """Veces que una antena ENTRÓ en falla (caída o inhabilitada) desde `desde_iso`, según su historial.
+
+    Solo cuenta un universo de datos: los operativos (por defecto) o los simulados (`simulados=True`)."""
     return sum(1 for e in eventos
                if e.get("tipoEvento") == "CAMBIO_ESTADO" and e.get("ocurridoEn", "") >= desde_iso
+               and es_simulado(e) == simulados
                and entra_en_falla(e.get("estadoAnterior"), e.get("estadoNuevo")))
 
 

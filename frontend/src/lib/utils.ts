@@ -18,5 +18,8 @@ export function haceCuanto(iso: string | null | undefined, ahora = Date.now()): 
   return `hace ${Math.round(m / 60)} h`;
 }
 
+/** Privacidad: la ubicación del usuario se redondea a 3 decimales (≈ 110 m). Basta para ubicar su zona (radio ≥ 1 km) y evita enviar su posición exacta. */
+export const aproximarCoordenada = (n: number) => Math.round(n * 1000) / 1000;
+
 export const horaLima = (d = new Date()) =>
   d.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour12: false });

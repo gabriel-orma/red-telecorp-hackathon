@@ -20,14 +20,16 @@ const minutos = (m: number | null) => m === null ? "—" : m >= 60 ? `${(m / 60)
 /** Analítica operativa (E6): zonas, antenas, tipos, duración, detección anticipada y recurrencia. */
 export function Analitica() {
   const [dias, setDias] = useState(7);
-  const datos = usePolling<Datos>(useCallback(() => apiAnalitica.obtener(dias), [dias]), 60_000);
+  // Lo operativo y lo simulado NO se mezclan nunca: el panel muestra uno u otro (por defecto, lo operativo).
+  const [simulados, setSimulados] = useState(false);
+  const datos = usePolling<Datos>(useCallback(() => apiAnalitica.obtener(dias, simulados), [dias, simulados]), 60_000);
   const [ejecutando, setEjecutando] = useState(false);
-  const d = datos.datos?.dias === dias ? datos.datos : null;
+  const d = datos.datos?.dias === dias && (datos.datos.datos === "SIMULADOS") === simulados ? datos.datos : null;
 
   const recurrencia = async () => {
     setEjecutando(true);
     try {
-      await apiAnalitica.recurrencia();
+      await apiAnalitica.recurrencia(simulados);
       toast.custom(() => <div className="tema-neu neu-chico px-4 py-3 text-sm">Análisis de recurrencia en curso (Step Functions)…</div>, { duration: 4000 });
       setTimeout(datos.refrescar, 8000);
     } finally { setEjecutando(false); }
@@ -38,19 +40,33 @@ export function Analitica() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="neu-hundido flex p-1">
           {RANGOS.map((r) => (
-            <button key={r} onClick={() => setDias(r)}
+            <button key={r} onClick={() => setDias(r)} aria-pressed={dias === r}
               className={cn("rounded-xl px-4 py-1.5 text-xs font-medium transition-colors", dias === r ? "degradado text-white" : "text-tenue hover:text-texto")}>
               {r === 1 ? "24 h" : `${r} días`}
             </button>
           ))}
         </div>
+        <div className="neu-hundido flex p-1" role="group" aria-label="Universo de datos">
+          {([[false, "Operativos"], [true, "Simulación"]] as const).map(([valor, texto]) => (
+            <button key={texto} onClick={() => setSimulados(valor)} aria-pressed={simulados === valor}
+              className={cn("rounded-xl px-4 py-1.5 text-xs font-medium transition-colors", simulados === valor ? "degradado text-white" : "text-tenue hover:text-texto")}>
+              {texto}
+            </button>
+          ))}
+        </div>
         {datos.datos && <span className="text-xs text-tenue">Actualizado {haceCuanto(datos.datos.generadoEn)}</span>}
+        {datos.error && <span role="alert" className="text-xs text-caida">No se pudo actualizar la analítica; se muestra el último dato recibido.</span>}
       </div>
+      {simulados && (
+        <p role="status" className="rounded-xl bg-acento/10 px-4 py-2 text-xs text-tenue ring-1 ring-acento/30">
+          Mostrando <b className="text-texto">solo datos de simulación</b> (escenarios de demo y fallas forzadas). Los datos operativos no se mezclan con estos.
+        </p>
+      )}
 
       {!d ? <div className="grid h-64 place-items-center"><Loader2 className="size-6 animate-spin text-tenue" /></div> : (<>
         {/* KPIs */}
         <section className="grid grid-cols-2 gap-5 lg:grid-cols-4">
-          <Kpi icono={Siren} etiqueta="Incidentes colectivos" valor={d.kpis.incidentes} pie={`${d.kpis.abiertos} abiertos`} />
+          <Kpi icono={Siren} etiqueta="Incidentes colectivos" valor={d.kpis.incidentes} pie={`${d.kpis.abiertos} abiertos${d.kpis.requierenAtencion ? ` · ${d.kpis.requierenAtencion} requieren atención` : ""}`} />
           <Kpi icono={Users} etiqueta="Usuarios afectados" valor={d.kpis.afectadosTotales} pie={`${d.kpis.reportes} reportes en total`} />
           <Kpi icono={Timer} etiqueta="Duración promedio" texto={minutos(d.kpis.duracionPromedioMin)} pie="de los incidentes cerrados" />
           <Kpi icono={Radar} etiqueta="Detectados primero por la red" valor={d.kpis.detectadosPrimeroPorLaRed}
@@ -128,7 +144,7 @@ export function Analitica() {
                   const max = d.antenas[0].fallas || 1;
                   return (
                     <li key={a.antenaId}>
-                      <button onClick={() => navegar(`/?antena=${a.antenaId}`)} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-panel-2">
+                      <button onClick={() => navegar(`/mapa?antena=${a.antenaId}`)} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-panel-2">
                         <RadioTower className="size-4 shrink-0" style={{ color: a.estructural ? COLOR_NEU.CAIDA : "#8b8b97" }} />
                         <span className="w-24 shrink-0">
                           <span className="cifra block text-sm font-semibold">{a.antenaId}</span>

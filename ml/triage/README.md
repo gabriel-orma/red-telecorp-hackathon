@@ -52,6 +52,9 @@ Por clase (F1): SIN_INTERNET 0,94 · INTERNET_LENTO 0,96 · SIN_LLAMADAS 0,90 ·
 
 Gemini **sigue disponible** para el *análisis del incidente* (agregados, sin datos personales) y, si se activa expresamente, para el triage del texto libre. Para el triage de texto, el modelo local es la opción por defecto.
 
+## Comparación con embeddings preentrenados (conservamos el modelo actual)
+Se midieron `paraphrase-multilingual-MiniLM-L12-v2` y `multilingual-e5-small` (embeddings + regresión logística) contra este clasificador en una **prueba nueva y a ciegas** (280 textos de un autor distinto): ninguno mejora el F1 macro (0,947 contra 0,875 y 0,911), ambos cometen más falsos positivos del conteo de colectivos y ninguno cabe en los 250 MB de una capa de Lambda. Protocolo, tablas, costos y límites: [`comparacion/README.md`](comparacion/README.md).
+
 ## Reentrenar
 ```bash
 pip install scikit-learn

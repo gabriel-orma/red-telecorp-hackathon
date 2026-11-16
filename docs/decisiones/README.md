@@ -27,6 +27,9 @@ Un archivo por decisión: `AAAA-MM-DD-<slug>.md`, con este formato:
 | D10 | Estadísticas del estado público | ✅ aceptada | Contadores agregados de 15 min → [2026-11-14-estadisticas-agregadas](2026-11-14-estadisticas-agregadas.md) |
 | D11 | Sistema de diseño | ✅ aceptada | Neumórfico oscuro + Sonner, NumberFlow, cmdk → [2026-11-14-diseno-neumorfico](2026-11-14-diseno-neumorfico.md) |
 | D12 | IA del triage de reportes | ✅ aceptada (pendiente de OK del equipo) | ML local (TF-IDF + regresión logística) por defecto; Gemini opcional → [2026-11-14-ia-ml-local](2026-11-14-ia-ml-local.md) |
+| D13 | Datos simulados vs operativos | ✅ aceptada (pendiente de OK del equipo) | Universos separados: ventana, candado y contadores propios; analítica y recurrencia por universo → [2026-11-15-separacion-simulado-operativo](2026-11-15-separacion-simulado-operativo.md) |
+| D14 | Presupuesto de concurrencia | ✅ aceptada | Máximo 7 Lambdas a la vez (AWS Academy desactiva la cuenta con más de 10): router único, motor único, topes por función → [2026-11-15-presupuesto-concurrencia](2026-11-15-presupuesto-concurrencia.md) |
+| D15 | Tercera nube | ✅ aceptada (pendiente de OK del equipo) | **Cloudflare Workers + KV**: espejo del estado público, sigue en línea aunque AWS caiga; sin Lambdas nuevas → [2026-11-15-tercera-nube-cloudflare](2026-11-15-tercera-nube-cloudflare.md) |
 
 Las decisiones **abiertas no las resuelve un agente solo**: van por un issue `decision`. Mientras tanto, no construyas nada que dependa de ellas. Si no queda otra, deja un `TODO(D2)` o `TODO(D7)`.
 

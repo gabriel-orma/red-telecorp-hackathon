@@ -132,7 +132,7 @@ export function LineaTiempoNeu({ antenas, zonas, colectivosActivos, enVivo: apiV
     <ShellNeu titulo="Línea de tiempo" enVivo={apiViva} colectivosActivos={colectivosActivos} onBuscar={() => setBuscar(true)}
       acciones={esOperador ? <ControlEscenario zonas={zonas} onCambio={refrescarRed} /> : undefined}>
       <PaletaComandos abierta={buscar} onAbrir={() => setBuscar(true)} onCerrar={() => setBuscar(false)} zonas={zonas} antenas={antenas}
-        onZona={(z) => navegar(`/?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/?antena=${a.antenaId}`)} />
+        onZona={(z) => navegar(`/mapa?zona=${z.zonaId}`)} onAntena={(a) => navegar(`/mapa?antena=${a.antenaId}`)} />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         {/* Monitor: el mapa en el instante del cabezal */}

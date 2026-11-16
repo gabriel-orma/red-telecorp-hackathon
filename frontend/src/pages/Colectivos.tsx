@@ -11,6 +11,7 @@ import { Anticipacion } from "./MapaNeu";
 import { Reproduccion } from "../components/neu/Reproduccion";
 import { ChipEstado, Historial } from "../components/LineaTiempo";
 import { TarjetaIA } from "../components/neu/TarjetaIA";
+import { ChipSimulado } from "../components/neu/Piezas";
 
 const ORIGEN = { REPORTES_USUARIOS: "Reportes de usuarios", METRICAS_ANTENA: "Detección proactiva (antena)", AMBOS: "Usuarios + antenas" };
 
@@ -27,7 +28,7 @@ export function Colectivos({ abiertos }: { abiertos: Colectivo[] | null }) {
           <h1 className="text-sm font-semibold">Incidentes colectivos</h1>
           <div className="flex rounded-lg bg-fondo p-0.5 text-[11px] ring-1 ring-borde">
             {[false, true].map((t) => (
-              <button key={String(t)} onClick={() => setVerTodos(t)}
+              <button key={String(t)} onClick={() => setVerTodos(t)} aria-pressed={verTodos === t}
                 className={cn("rounded-md px-2 py-1", verTodos === t ? "bg-panel-2 text-texto" : "text-tenue")}>
                 {t ? "Últimos 7 días" : "Activos"}
               </button>
@@ -50,7 +51,7 @@ export function Colectivos({ abiertos }: { abiertos: Colectivo[] | null }) {
                   c.incidenteColectivoId === seleccion ? "border-acento/60 bg-panel-2" : "border-borde")}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-sm font-semibold">{c.zona.nombre}</span>
-                  <ChipPrioridad c={c} />
+                  <span className="flex shrink-0 items-center gap-1.5">{c.simulado && <ChipSimulado />}<ChipPrioridad c={c} /></span>
                 </div>
                 <div className="mt-0.5 flex items-center gap-2 text-[11px] text-tenue">
                   <span style={{ color: ESTADO_COLECTIVO[c.estado].color }}>{ESTADO_COLECTIVO[c.estado].etiqueta}</span>
@@ -81,19 +82,22 @@ function ChipPrioridad({ c }: { c: Colectivo }) {
 function Detalle({ id }: { id: string }) {
   const det = usePolling<DetalleColectivo>(useCallback(() => apiColectivos.obtener(id), [id]), 3000);
   const [enviando, setEnviando] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+  const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const d = det.datos;
   if (!d) return <section className="panel grid flex-1 place-items-center"><Loader2 className="size-5 animate-spin text-tenue" /></section>;
   const c = d.colectivo;
   const abierto = c.estado === "EN_EVALUACION" || c.estado === "INCIDENCIA_CONFIRMADA";
+  // En atención manual el flujo automático se detuvo: el operador puede retomarlo y cerrarlo (409 si la zona tiene otro abierto).
+  const requiereAtencion = c.estado === "REQUIERE_ATENCION";
   const consola = c.ejecucionArn
     ? `https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/v2/executions/details/${c.ejecucionArn}`
     : null;
 
   const restablecer = async () => {
-    setEnviando(true);
-    try { const r = await apiColectivos.restablecer(id); setAviso(r.mensaje); await det.refrescar(); }
-    catch (e) { setAviso(e instanceof Error ? e.message : String(e)); }
+    setEnviando(true); setConfirmando(false);
+    try { const r = await apiColectivos.restablecer(id); setAviso({ texto: r.mensaje, error: false }); await det.refrescar(); }
+    catch (e) { setAviso({ texto: e instanceof Error ? e.message : String(e), error: true }); }
     finally { setEnviando(false); }
   };
 
@@ -109,8 +113,19 @@ function Detalle({ id }: { id: string }) {
               <h2 className="text-xl font-semibold">{c.zona.nombre}</h2>
               <div className="text-xs text-tenue">{TIPO_ZONA[c.zona.tipo]?.etiqueta} · {numero(c.zona.clientesEstimados)} clientes · {ORIGEN[c.origen]}</div>
             </div>
-            <ChipPrioridad c={c} />
+            <span className="flex shrink-0 items-center gap-1.5">{c.simulado && <ChipSimulado />}<ChipPrioridad c={c} /></span>
           </div>
+          {c.simulado && (
+            <p className="mt-2 rounded-lg bg-acento/10 px-3 py-2 text-[11px] text-tenue ring-1 ring-acento/25">
+              Incidente de <b className="text-texto">simulación</b> (escenario de demo o falla forzada). No cuenta en la analítica operativa
+              ni en el estado público.
+            </p>
+          )}
+          {requiereAtencion && (
+            <p role="status" className="mt-2 rounded-lg bg-[#f97316]/10 px-3 py-2 text-[11px] text-tenue ring-1 ring-[#f97316]/30">
+              El flujo automático se detuvo (el motivo está en el historial). Si el servicio ya volvió, retómalo: se avisará a los afectados y se cerrará.
+            </p>
+          )}
           <div className="mt-3 text-lg font-semibold" style={{ color: ESTADO_COLECTIVO[c.estado].color }}>{ESTADO_COLECTIVO[c.estado].etiqueta}</div>
           <div className="text-xs text-tenue">{c.origenDetalle} · detectado {haceCuanto(c.detectadoEn)}
             {c.duracionMinutos !== undefined && ` · duró ${c.duracionMinutos} min`}</div>
@@ -124,19 +139,26 @@ function Detalle({ id }: { id: string }) {
           <Anticipacion minutos={c.deteccionAnticipadaMin} proactivo={c.origen === "METRICAS_ANTENA"} grande />
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {abierto && (
-              <button onClick={restablecer} disabled={enviando || c.restablecimientoSolicitado}
+            {(abierto || requiereAtencion) && !confirmando && (
+              <button onClick={() => setConfirmando(true)} disabled={enviando || (abierto && c.restablecimientoSolicitado)}
                 className="flex items-center gap-1.5 rounded-lg bg-normal/15 px-3 py-2 text-xs font-medium text-normal ring-1 ring-normal/40 hover:bg-normal/25 disabled:opacity-50">
                 {enviando ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                {c.restablecimientoSolicitado ? "Restablecimiento solicitado…" : "Marcar servicio restablecido"}
+                {requiereAtencion ? "Retomar y marcar restablecido" : c.restablecimientoSolicitado ? "Restablecimiento solicitado…" : "Marcar servicio restablecido"}
               </button>
+            )}
+            {confirmando && (
+              <div role="group" aria-label="Confirmar restablecimiento" className="flex flex-wrap items-center gap-2 rounded-lg bg-fondo/70 px-3 py-2 ring-1 ring-borde">
+                <span className="text-[11px] text-texto">Se avisará a los {c.afectados} afectados que el servicio se restableció y el incidente se cerrará. ¿Confirmas?</span>
+                <button onClick={restablecer} autoFocus className="rounded-md bg-normal/20 px-2.5 py-1 text-[11px] font-semibold text-normal ring-1 ring-normal/40">Sí, confirmar</button>
+                <button onClick={() => setConfirmando(false)} className="rounded-md px-2.5 py-1 text-[11px] text-tenue ring-1 ring-borde">Cancelar</button>
+              </div>
             )}
             {consola && (
               <a href={consola} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-tenue hover:text-acento">
                 Ver ejecución en Step Functions <ExternalLink className="size-3" />
               </a>
             )}
-            {aviso && <span className="text-[11px] text-tenue">{aviso}</span>}
+            {aviso && <span role={aviso.error ? "alert" : "status"} className={cn("text-[11px]", aviso.error ? "text-caida" : "text-tenue")}>{aviso.texto}</span>}
           </div>
         </div>
 

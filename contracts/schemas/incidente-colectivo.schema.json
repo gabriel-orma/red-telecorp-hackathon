@@ -126,6 +126,14 @@
       "type": "string",
       "description": "ARN de la ejecución de Step Functions"
     },
+    "simulado": {
+      "type": "boolean",
+      "description": "true si nació de datos simulados (escenario de demo, falla forzada, vecinos ficticios). Tiene su propia ventana y su propio candado por zona y no cuenta en la analítica ni en el estado público operativos. Ausente = operativo"
+    },
+    "estadoAntesDeAtencion": {
+      "type": "string",
+      "description": "Estado en que estaba cuando pasó a REQUIERE_ATENCION; el operador lo retoma desde ahí"
+    },
     "restablecimientoSolicitado": {
       "type": "boolean",
       "description": "El operador marcó el servicio como restablecido"

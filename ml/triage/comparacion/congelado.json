@@ -1,0 +1,213 @@
+{
+ "creado": "2026-11-15 10:54:57",
+ "nota": "Escrito ANTES de abrir la prueba nueva. `medir` aborta si los ajustes recalculados no coinciden.",
+ "semilla": 20261114,
+ "datos": {
+  "entrenamiento": {
+   "n": 770,
+   "sha256": "6451fd01839d970a2bd2ef4be5680a3e96e42d5db2952dc23c6175c452dbf698"
+  },
+  "validacion_ya_vista": {
+   "n": 245,
+   "repetidos_quitados": 0,
+   "sha256": "709813c65edb5759a0709e57ac48e96b4c7ea844e5c03f5f902dd611db7fa4a8"
+  },
+  "prueba_antigua_ya_vista": {
+   "n": 245,
+   "repetidos_quitados": 0,
+   "sha256": "59f717d5dd12b1a7e84782ed96648b7bc7cc8d37a788cea2e3878c49f20201cb"
+  }
+ },
+ "versiones": {
+  "python": "3.13.2",
+  "scikit-learn": "1.9.1",
+  "numpy": "2.5.4",
+  "so": "Windows-11-10.0.26300-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel",
+  "torch": "2.15.0+cpu",
+  "sentence_transformers": "6.3.0",
+  "onnxruntime": "1.32.0",
+  "tokenizers": "0.23.3",
+  "huggingface_hub": "2.4.0"
+ },
+ "regla_de_decision_fijada": {
+  "i": "F1 macro del candidato supera al de la línea base por >= 0,03 y el IC bootstrap pareado (1000) de la diferencia excluye 0",
+  "ii": "falsos positivos del conteo binario <= los de la línea base Y precisión de servicio >= la de la línea base",
+  "iii": "viable en Lambda: paquete (código+dependencias+modelo) <= 250 MB descomprimidos, memoria estimada <= 1024 MB, arranque en frío <= 5 s (proxy), sin GPU ni pago",
+  "iv": "licencia permisiva (Apache-2.0/MIT)",
+  "lectura": "(i) y (ii) se evalúan con los embeddings fp32 (lo congelado); (iii) se juzga con la forma realizable más pequeña (ONNX int8), cuyas métricas se reportan aparte como comprobación de implementabilidad. Si no se cumple TODO: conservar el modelo actual."
+ },
+ "variantes": [
+  "int8"
+ ],
+ "modelos": {
+  "base": {
+   "C": 10.0,
+   "f1_macro_cv_por_C": {
+    "0.3": 0.8835,
+    "1.0": 0.9019,
+    "3.0": 0.9137,
+    "10.0": 0.9228,
+    "30.0": 0.9216
+   },
+   "umbral": 0.5,
+   "conteo_cv_con_umbral": {
+    "umbral": 0.5,
+    "suman": 586,
+    "precision_servicio": 0.9932,
+    "precision_clase_exacta": 0.9505,
+    "cobertura": 0.8818
+   },
+   "huella_coeficientes": "1277444ccb1ebd7351656821",
+   "n_iter": 35
+  },
+  "minilm_int8": {
+   "hf": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+   "rev": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+   "prefijo": "",
+   "max_len": 128,
+   "licencia": "apache-2.0",
+   "variante": "int8",
+   "C": 3.0,
+   "f1_macro_cv_por_C": {
+    "0.1": 0.8467,
+    "0.3": 0.8706,
+    "1.0": 0.8878,
+    "3.0": 0.8971,
+    "10.0": 0.8932,
+    "30.0": 0.892,
+    "100.0": 0.8893,
+    "300.0": 0.8879,
+    "1000.0": 0.8894
+   },
+   "umbral": 0.5,
+   "conteo_cv_con_umbral": {
+    "umbral": 0.5,
+    "suman": 566,
+    "precision_servicio": 0.9841,
+    "precision_clase_exacta": 0.9488,
+    "cobertura": 0.8439
+   },
+   "huella_coeficientes": "576c489cd6027fe927e1df6c",
+   "n_iter": 34,
+   "embeddings_npz_sha256": "4537e4c76e05e093715e5020",
+   "tokens": {
+    "versiones": {
+     "onnxruntime": "1.32.0"
+    }
+   }
+  },
+  "e5small_int8": {
+   "hf": "intfloat/multilingual-e5-small",
+   "rev": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+   "prefijo": "query: ",
+   "max_len": 128,
+   "licencia": "mit",
+   "variante": "int8",
+   "C": 100.0,
+   "f1_macro_cv_por_C": {
+    "0.1": 0.8667,
+    "0.3": 0.875,
+    "1.0": 0.8901,
+    "3.0": 0.9046,
+    "10.0": 0.9152,
+    "30.0": 0.9154,
+    "100.0": 0.9206,
+    "300.0": 0.9194,
+    "1000.0": 0.9167
+   },
+   "umbral": 0.5,
+   "conteo_cv_con_umbral": {
+    "umbral": 0.5,
+    "suman": 630,
+    "precision_servicio": 0.9873,
+    "precision_clase_exacta": 0.9413,
+    "cobertura": 0.9424
+   },
+   "huella_coeficientes": "dd12d506c51e4f2138c79eba",
+   "n_iter": 82,
+   "embeddings_npz_sha256": "54f4ddd857285ba1501ffa86",
+   "tokens": {
+    "versiones": {
+     "onnxruntime": "1.32.0"
+    }
+   }
+  }
+ },
+ "chequeo_linea_base": {
+  "C_base_igual_a_produccion": true,
+  "umbral_base_igual_a_produccion": true
+ },
+ "referencia_ya_vista": {
+  "validacion_ya_vista": {
+   "base": {
+    "exactitud": 0.9061,
+    "f1_macro": 0.9058,
+    "conteo": {
+     "umbral": 0.5,
+     "suman": 171,
+     "precision_servicio": 1.0,
+     "precision_clase_exacta": 0.9766,
+     "cobertura": 0.8143
+    }
+   },
+   "minilm_int8": {
+    "exactitud": 0.8612,
+    "f1_macro": 0.8598,
+    "conteo": {
+     "umbral": 0.5,
+     "suman": 178,
+     "precision_servicio": 0.9888,
+     "precision_clase_exacta": 0.9101,
+     "cobertura": 0.8381
+    }
+   },
+   "e5small_int8": {
+    "exactitud": 0.902,
+    "f1_macro": 0.9008,
+    "conteo": {
+     "umbral": 0.5,
+     "suman": 195,
+     "precision_servicio": 1.0,
+     "precision_clase_exacta": 0.9282,
+     "cobertura": 0.9286
+    }
+   }
+  },
+  "prueba_antigua_ya_vista": {
+   "base": {
+    "exactitud": 0.9347,
+    "f1_macro": 0.9349,
+    "conteo": {
+     "umbral": 0.5,
+     "suman": 179,
+     "precision_servicio": 0.9944,
+     "precision_clase_exacta": 0.9721,
+     "cobertura": 0.8476
+    }
+   },
+   "minilm_int8": {
+    "exactitud": 0.8653,
+    "f1_macro": 0.8655,
+    "conteo": {
+     "umbral": 0.5,
+     "suman": 166,
+     "precision_servicio": 0.988,
+     "precision_clase_exacta": 0.9458,
+     "cobertura": 0.781
+    }
+   },
+   "e5small_int8": {
+    "exactitud": 0.9061,
+    "f1_macro": 0.9057,
+    "conteo": {
+     "umbral": 0.5,
+     "suman": 181,
+     "precision_servicio": 0.9945,
+     "precision_clase_exacta": 0.9448,
+     "cobertura": 0.8571
+    }
+   }
+  }
+ }
+}

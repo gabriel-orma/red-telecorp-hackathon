@@ -2,6 +2,7 @@
 // El servidor solo avisa QUÉ cambió ({tipo: "antenas" | "colectivos" | "incidencias"}); el panel vuelve a pedir esos datos.
 // Si la conexión se cae, se reintenta con espera creciente y, mientras tanto, el polling sigue funcionando.
 import { useEffect, useRef, useState } from "react";
+import { fetchApi } from "./limitador";
 
 export type TipoAviso = "antenas" | "colectivos" | "incidencias";
 type Oyente = (tipo: TipoAviso) => void;
@@ -21,12 +22,15 @@ function avisarEstado(c: boolean) {
 
 async function conectar() {
   let url: string | undefined;
-  try { url = (await fetch("/api/config").then((r) => r.json())).wsUrl; } catch { /* sin API: reintentar */ }
+  try { url = (await fetchApi("/api/config").then((r) => r.json())).wsUrl; } catch { /* sin API: reintentar */ }
   if (!url) return reintentar();
   socket = new WebSocket(url);
   socket.onopen = () => {
+    const eraReconexion = intentos > 0;
     intentos = 0;
     avisarEstado(true);
+    // Tras una caída, los avisos perdidos no se recuperan: se pide refrescar los tres tipos de dato.
+    if (eraReconexion) ((["antenas", "colectivos", "incidencias"] as const).forEach((tipo) => oyentes.forEach((f) => f(tipo))));
     ping = setInterval(() => socket?.readyState === WebSocket.OPEN && socket.send(JSON.stringify({ accion: "ping" })), 4 * 60_000);
   };
   socket.onmessage = (e) => {

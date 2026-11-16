@@ -33,12 +33,18 @@ States:
   # 1. Aviso a todos los afectados: "estamos evaluando" (por lotes)
   PrepararAvisoEvaluacion:
     Type: Task
-    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "EN_EVALUACION", "paso": "NOTIFICAR_EVALUACION" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "prepararNotificacion", "colectivoId.$": "$.colectivoId", "estado": "EN_EVALUACION", "paso": "NOTIFICAR_EVALUACION" }
     ResultPath: $.aviso
     TimeoutSeconds: 60
     Retry: &reintentos
-      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException, States.TaskFailed, States.Timeout]
+      - ErrorEquals: [Lambda.TooManyRequestsException]   # D14: el motor está ocupado (tope de concurrencia) → esperar, no fallar
+        IntervalSeconds: 2
+        MaxAttempts: 40
+        BackoffRate: 1.5
+        MaxDelaySeconds: 15
+        JitterStrategy: FULL
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, States.TaskFailed, States.Timeout]
         IntervalSeconds: 2
         MaxAttempts: 3
         BackoffRate: 2
@@ -48,14 +54,15 @@ States:
   NotificarEvaluacion:
     Type: Map
     ItemsPath: $.aviso.lotes
-    MaxConcurrency: 5
+    MaxConcurrency: 1
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
       StartAt: AvisarLoteEvaluacion
       States:
         AvisarLoteEvaluacion:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "notificarLote", "datos.$": "$" }
           TimeoutSeconds: 150
           Retry: *reintentos
           Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
@@ -73,8 +80,8 @@ States:
   # 2. Verificación de la infraestructura (correlación con las antenas de la zona, incluye SATURADA)
   VerificarInfraestructura:
     Type: Task
-    Resource: { "Fn::GetAtt": [verificarInfraestructura, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "verificarInfraestructura", "colectivoId.$": "$.colectivoId" }
     ResultPath: $.verificacion
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -85,8 +92,8 @@ States:
   # 3. Prioridad: afectados × criticidad de la zona (+ antenas en falla)
   Priorizar:
     Type: Task
-    Resource: { "Fn::GetAtt": [priorizar, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "priorizar", "colectivoId.$": "$.colectivoId" }
     ResultPath: $.prioridad
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -96,8 +103,8 @@ States:
   # 4. Resumen para el operador. HOOK 2.ª NUBE (IA): si falla, el flujo sigue
   Resumir:
     Type: Task
-    Resource: { "Fn::GetAtt": [resumir, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "resumir", "colectivoId.$": "$.colectivoId" }
     ResultPath: $.resumen
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -117,8 +124,8 @@ States:
   # 5a. Con falla: incidencia confirmada en la zona + aviso a todos
   Confirmar:
     Type: Task
-    Resource: { "Fn::GetAtt": [confirmar, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "confirmar", "colectivoId.$": "$.colectivoId" }
     ResultPath: null
     TimeoutSeconds: 330
     Retry: *reintentos
@@ -126,8 +133,8 @@ States:
     Next: PrepararAvisoConfirmada
   PrepararAvisoConfirmada:
     Type: Task
-    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "prepararNotificacion", "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
     ResultPath: $.aviso
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -137,14 +144,15 @@ States:
   NotificarConfirmada:
     Type: Map
     ItemsPath: $.aviso.lotes
-    MaxConcurrency: 5
+    MaxConcurrency: 1
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
       StartAt: AvisarLoteConfirmada
       States:
         AvisarLoteConfirmada:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "notificarLote", "datos.$": "$" }
           TimeoutSeconds: 150
           Retry: *reintentos
           Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
@@ -162,8 +170,8 @@ States:
   # 5b. Sin falla en la red: aviso honesto ("seguimos evaluando"); el colectivo sigue EN_EVALUACION y se monitorea
   PrepararAvisoSinFalla:
     Type: Task
-    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "SIN_FALLA_RED", "paso": "NOTIFICAR_SIN_FALLA" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "prepararNotificacion", "colectivoId.$": "$.colectivoId", "estado": "SIN_FALLA_RED", "paso": "NOTIFICAR_SIN_FALLA" }
     ResultPath: $.aviso
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -173,14 +181,15 @@ States:
   NotificarSinFalla:
     Type: Map
     ItemsPath: $.aviso.lotes
-    MaxConcurrency: 5
+    MaxConcurrency: 1
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
       StartAt: AvisarLoteSinFalla
       States:
         AvisarLoteSinFalla:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "notificarLote", "datos.$": "$" }
           TimeoutSeconds: 150
           Retry: *reintentos
           Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
@@ -224,12 +233,18 @@ States:
     Next: Reverificar
   Reverificar:
     Type: Task
-    Resource: { "Fn::GetAtt": [reverificar, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "iteracion.$": "$.monitoreo.iteracion", "afectados.$": "$.prioridad.afectados" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "reverificar", "colectivoId.$": "$.colectivoId", "iteracion.$": "$.monitoreo.iteracion", "afectados.$": "$.prioridad.afectados" }
     ResultPath: $.monitoreo
     TimeoutSeconds: 60
     Retry:   # reintentos más pacientes: una vuelta fallida por un parpadeo de DynamoDB no debe matar el incidente
-      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, Lambda.TooManyRequestsException, States.TaskFailed, States.Timeout]
+      - ErrorEquals: [Lambda.TooManyRequestsException]   # D14: el motor está ocupado (tope de concurrencia) → esperar, no fallar
+        IntervalSeconds: 2
+        MaxAttempts: 40
+        BackoffRate: 1.5
+        MaxDelaySeconds: 15
+        JitterStrategy: FULL
+      - ErrorEquals: [Lambda.ServiceException, Lambda.AWSLambdaException, Lambda.SdkClientException, States.TaskFailed, States.Timeout]
         IntervalSeconds: 5
         MaxAttempts: 5
         BackoffRate: 2
@@ -251,8 +266,8 @@ States:
   # La falla apareció después de verificar (la red estaba bien): ahora sí se confirma y se avisa
   EscalarConfirmar:
     Type: Task
-    Resource: { "Fn::GetAtt": [confirmar, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "confirmar", "colectivoId.$": "$.colectivoId" }
     ResultPath: null
     TimeoutSeconds: 330
     Retry: *reintentos
@@ -260,8 +275,8 @@ States:
     Next: PrepararAvisoEscalada
   PrepararAvisoEscalada:
     Type: Task
-    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "prepararNotificacion", "colectivoId.$": "$.colectivoId", "estado": "INCIDENCIA_CONFIRMADA", "paso": "NOTIFICAR_CONFIRMADA" }
     ResultPath: $.aviso
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -271,14 +286,15 @@ States:
   NotificarEscalada:
     Type: Map
     ItemsPath: $.aviso.lotes
-    MaxConcurrency: 5
+    MaxConcurrency: 1
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
       StartAt: AvisarLoteEscalada
       States:
         AvisarLoteEscalada:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "notificarLote", "datos.$": "$" }
           TimeoutSeconds: 150
           Retry: *reintentos
           Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
@@ -296,8 +312,8 @@ States:
   # Monitoreo agotado: atención manual (el colectivo deja de bloquear la zona) y la ejecución termina en Fail
   SinResolver:
     Type: Task
-    Resource: { "Fn::GetAtt": [sinResolver, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "sinResolver", "colectivoId.$": "$.colectivoId" }
     ResultPath: null
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -312,8 +328,8 @@ States:
   # 8. Restablecido → aviso a todos → cierre (incidencias solucionadas, duración registrada) → réplica a la 2.ª nube
   Restablecer:
     Type: Task
-    Resource: { "Fn::GetAtt": [restablecer, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "restablecer", "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
     ResultPath: null
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -321,8 +337,8 @@ States:
     Next: PrepararAvisoRestablecido
   PrepararAvisoRestablecido:
     Type: Task
-    Resource: { "Fn::GetAtt": [prepararNotificacion, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "estado": "SERVICIO_RESTABLECIDO", "paso": "NOTIFICAR_RESTABLECIDO" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "prepararNotificacion", "colectivoId.$": "$.colectivoId", "estado": "SERVICIO_RESTABLECIDO", "paso": "NOTIFICAR_RESTABLECIDO" }
     ResultPath: $.aviso
     TimeoutSeconds: 60
     Retry: *reintentos
@@ -332,14 +348,15 @@ States:
   NotificarRestablecido:
     Type: Map
     ItemsPath: $.aviso.lotes
-    MaxConcurrency: 5
+    MaxConcurrency: 1
     ItemProcessor:
       ProcessorConfig: { Mode: INLINE }
       StartAt: AvisarLoteRestablecido
       States:
         AvisarLoteRestablecido:
           Type: Task
-          Resource: { "Fn::GetAtt": [notificarLote, Arn] }
+          Resource: { "Fn::GetAtt": [detector, Arn] }
+          Parameters: { "accion": "notificarLote", "datos.$": "$" }
           TimeoutSeconds: 150
           Retry: *reintentos
           Catch:   # si un lote no se pudo completar tras los reintentos, los demás siguen
@@ -355,8 +372,8 @@ States:
     Next: Cerrar
   Cerrar:
     Type: Task
-    Resource: { "Fn::GetAtt": [cerrar, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "cerrar", "colectivoId.$": "$.colectivoId", "via.$": "$.monitoreo.via" }
     ResultPath: $.cierre
     TimeoutSeconds: 330
     Retry: *reintentos
@@ -366,8 +383,8 @@ States:
   # Fin controlado ante un error irrecuperable: deja el colectivo en REQUIERE_ATENCION, libera la zona y falla
   ManejarFallo:
     Type: Task
-    Resource: { "Fn::GetAtt": [manejarFallo, Arn] }
-    Parameters: { "colectivoId.$": "$.colectivoId", "error.$": "$.error" }
+    Resource: { "Fn::GetAtt": [detector, Arn] }
+    Parameters: { "accion": "manejarFallo", "colectivoId.$": "$.colectivoId", "error.$": "$.error" }
     ResultPath: null
     TimeoutSeconds: 60
     Retry: *reintentos

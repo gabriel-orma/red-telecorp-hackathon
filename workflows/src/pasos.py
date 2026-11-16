@@ -164,13 +164,27 @@ def _refrescar_analisis(col: dict) -> bool:
         return False
 
 
+def _simulacion_activa() -> bool:
+    """¿Hay un escenario de demo en curso o fallas forzadas en el simulador? Entonces los datos son simulados."""
+    for parametro, campo in (("escenario", "activo"), ("simulador", "fallas")):
+        try:                                   # cada parámetro por separado: que falte uno no debe ocultar el otro
+            if config.leer(parametro, usar_cache=False).get(campo):
+                return True
+        except Exception:  # noqa: BLE001
+            continue
+    return False
+
+
 def _contexto_analisis(col: dict, con_clima: bool = True) -> dict:
     """Solo agregados (R3): conteos, estados de antenas, zona, clima. Sin ids de usuarios, correos ni descripciones."""
     zona = zonas.zona(col["zonaId"]) or {}
     centro = zona.get("centro") or {}
     tipos: dict = {}
+    simulados = total = 0
     for inc in db.obtener_varios("incidencias", "incidenciaId", col.get("incidencias", [])[:300]):
         tipos[inc.get("tipo", "OTRO")] = tipos.get(inc.get("tipo", "OTRO"), 0) + 1
+        total += 1
+        simulados += bool((inc.get("reporte") or {}).get("simulado"))
     clima = None
     if con_clima and centro.get("lat") is not None:
         try:
@@ -188,6 +202,8 @@ def _contexto_analisis(col: dict, con_clima: bool = True) -> dict:
         "duracionMin": round((ahora - util.parse_iso(col["detectadoEn"])).total_seconds() / 60, 1),
         "deteccionAnticipadaMin": reglas.deteccion_anticipada_min(col.get("primeraFallaEn"), col.get("primerReporteEn")),
         "clima": clima, "horaLocal": (ahora + timedelta(hours=-5)).strftime("%H:%M"),   # Lima (UTC-5)
+        # No se envía al modelo (`_contexto_para_prompt` elige sus campos): solo decide si se gasta cuota de la IA.
+        "simulacion": bool(total and simulados * 2 >= total) or _simulacion_activa(),
     }
 
 
@@ -277,7 +293,8 @@ def _repriorizar(col: dict) -> None:
                         detalle=f"Re-priorizado: {previa} → {prioridad} (puntaje {puntaje})")
     if prioridad == "CRITICA" and previa != "CRITICA" and os.environ.get("TOPICO_ALERTAS"):
         boto3.client("sns").publish(
-            TopicArn=os.environ["TOPICO_ALERTAS"], Subject="Red TeleCorp - Incidente escalado a CRITICO",
+            TopicArn=os.environ["TOPICO_ALERTAS"],
+            Subject=("[SIMULACION] " if reglas.es_simulado(col) else "") + "Red TeleCorp - Incidente escalado a CRITICO",
             Message=f"{col['incidenteColectivoId']} en {(zonas.zona(col['zonaId']) or {}).get('nombre')}: "
                     f"{len(col.get('usuariosAfectados', []))} afectados, {len(col.get('antenasEnFalla', []))} antenas en falla.")
 
@@ -319,7 +336,7 @@ def cerrar(event, context):
                   duracionMinutos=minutos)
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "CAMBIO_ESTADO", "STEP_FUNCTION", detalle=f"Duración: {minutos} min",
                         estado_anterior=col["estado"], estado_nuevo="CERRADO")
-    cc.liberar_lock(col["zonaId"], cid)
+    cc.liberar_lock(col["zonaId"], cid, reglas.es_simulado(col))
     return {"duracionMinutos": minutos}
 
 
@@ -345,11 +362,12 @@ def _atencion_manual(cid: str, detalle: str, causa: str = "") -> None:
     if col.get("estado") in ("CERRADO", "REQUIERE_ATENCION"):
         return  # idempotente (reintentos del propio manejador)
     ahora = util.ahora_iso()
-    cc.actualizar(cid, estado="REQUIERE_ATENCION", pasoActual="ATENCION_MANUAL", actualizadoEn=ahora)
+    cc.actualizar(cid, estado="REQUIERE_ATENCION", pasoActual="ATENCION_MANUAL", actualizadoEn=ahora,
+                  estadoAntesDeAtencion=col["estado"])
     historial.registrar(cid, "INCIDENTE_COLECTIVO", "CAMBIO_ESTADO", "STEP_FUNCTION",
                         detalle=detalle + (f" · {causa}" if causa else ""),
                         estado_anterior=col["estado"], estado_nuevo="REQUIERE_ATENCION")
-    cc.liberar_lock(col["zonaId"], cid)
+    cc.liberar_lock(col["zonaId"], cid, reglas.es_simulado(col))
 
 
 def _mover_incidencias(col: dict, desde: set, hacia: str, detalle: str, liberar: bool = False, antes=None) -> None:
