@@ -42,3 +42,9 @@
 - Nueva decisión [D16](../decisiones/2026-11-15-cuatro-nubes.md): **AWS + Cloudflare + Google Cloud (Gemini) activas** en `dev-gabriel`; **Azure con código listo pero no desplegada** en la cuenta de la demo (no se pudo activar Azure for Students con la cuenta de Gabriel; la integración se había verificado en `dev-rodrigo` el 14-nov).
 - Actualizados D2 (apunta a D16), el índice de decisiones, `arquitectura.md` (cabecera, tablas de nubes y de rúbrica, inventario del secreto `ia`), `README.md` y el diagrama draw.io (Gemini como Google Cloud con flecha continua; Azure «opcional» con flecha punteada).
 - **Pendiente:** `docs/arquitectura.svg` (imagen exportada) sigue mostrando la versión AWS + Azure; regenerarla desde el `.drawio`. `AGENTS.md` aún dice «2.ª nube por definir»: cambiarlo requiere OK del equipo (issue `decision`).
+
+## Repo listo para la entrega (15-nov, noche)
+- **Corrección:** el commit de D16 no llegó a #49 (el push se cortó por tiempo); entra ahora en este PR.
+- Diagrama exportado con draw.io desktop: `docs/arquitectura.png` (se muestra en `arquitectura.md` y el README) y `docs/arquitectura.svg`, ambos desde el `.drawio`. Cajas de las nubes externas sin superposiciones.
+- Textos al día: cabecera de `arquitectura.md`, `AGENTS.md` (ya no dice «2.ª nube por definir»), roadmap E4 resuelta, enlace al diagrama en el README.
+- Revisión de entrega: **ningún informe** (sin PDF/DOCX/PPTX ni documentos tipo informe), sin secretos ni archivos de más de 5 MB en git. Entregables: video ≤ 5 min + repo + diagrama.

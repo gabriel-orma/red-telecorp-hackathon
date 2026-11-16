@@ -24,7 +24,7 @@ Hackathon de Cloud Computing (UTEC). Cliente ficticio: **Red TeleCorp**, una tel
 Detalle completo: [`docs/reto.md`](docs/reto.md). Arquitectura: [`docs/arquitectura.md`](docs/arquitectura.md).
 
 ### Restricciones de la rúbrica (no negociables)
-- **2 nubes o más** (Vercel **no** cuenta). AWS es la nube principal. La segunda está **por definir** (decisión D2).
+- **2 nubes o más** (Vercel **no** cuenta). AWS es la nube principal. Las demás son **Cloudflare, Google Cloud (Gemini) y Azure (opcional, no desplegada en la demo)** (decisión D16).
 
 ### Stack decidido (ver [`docs/decisiones/`](docs/decisiones/README.md))
 - **AWS Academy Learner Lab** en **`us-east-1`**. No se pueden crear roles IAM: **todo usa `LabRole`**.
@@ -32,7 +32,7 @@ Detalle completo: [`docs/reto.md`](docs/reto.md). Arquitectura: [`docs/arquitect
 - **Python** para todas las Lambdas.
 - **DynamoDB con tablas separadas** (incidencias, historial, métricas, incidentes colectivos).
 - **Frontend**: React + Vite + Tailwind + shadcn/ui + MapLibre, en S3 + CloudFront (D5).
-- Aún abiertas: segunda nube (D2), fórmula de prioridad y umbral de recurrencia (D7). No las asumas.
+- Aún abierta: fórmula de prioridad y umbral de recurrencia (D7; hay valores provisionales en SSM). No la asumas.
 - **Orden de trabajo**: [`docs/roadmap.md`](docs/roadmap.md), por entregas. No se empieza una entrega hasta que el equipo apruebe la anterior.
 - **Todo serverless**: nada de EC2, VMs ni contenedores encendidos 24/7.
 - **Step Functions** para automatizar flujos.
@@ -158,7 +158,7 @@ Cuando necesites algo que **está fuera de tu zona de archivos** o te bloquea, a
   - Detalles y servicios posiblemente restringidos (SES, SNS SMS…): [decisión D1](docs/decisiones/2026-11-13-aws-academy-us-east-1.md).
 - **Cada persona despliega en su propio stage** (`dev-<alias>`) en su propia cuenta. Solo existe un stage compartido, `demo`: se despliega desde `main` en una única cuenta, que está documentada en la decisión D1.
 - **Nombres**: tablas, colas y buckets se nombran explícitamente `telecorp-<stage>-<recurso>` (ej.: `telecorp-dev-gabo-incidencias`). Las Lambdas usan el nombre por defecto de Serverless (`telecorp-<dominio>-<stage>-<función>`).
-- **Región AWS**: `us-east-1`, fija. La 2.ª nube está por definir (D2).
+- **Región AWS**: `us-east-1`, fija. Las otras nubes están en D16 (Cloudflare, Google Cloud y Azure opcional).
 - **Secretos** (API keys de Gemini, credenciales de GCP, etc.) en **AWS Secrets Manager / SSM Parameter Store**, leídos en tiempo de ejecución. En local, `.env` (ignorado por git), siguiendo `.env.example`.
 - **Infraestructura como código**: todo recurso se crea con **Serverless Framework**, un `serverless.yml` por servicio. Un recurso compartido lo crea **un solo** servicio y lo exporta como `Output`; los demás lo leen con `${cf:...}`. Nada de clics en la consola que no queden en código, salvo pasos documentados en el README del módulo.
 - **Cuidado con el costo**: nada de recursos con costo por hora sin una decisión (NAT Gateway, Kinesis con shards, RDS, OpenSearch, etc.). Destruye tus stages de prueba al terminar.

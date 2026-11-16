@@ -104,7 +104,13 @@ Un stack de humo que confirma qué servicios funcionan con `LabRole` antes de co
 - **PWA** instalable + notificaciones push.
 - Multiidioma (ES/EN).
 
-## E4: Segunda nube + IA (requiere D2) ⬜ — **movida al final** (decisión del equipo, 2026-11-14)
+## E4: Segunda nube + IA ✅ — resuelta con D2, D12, D15 y D16
+> **Resultado final ([D16](decisiones/2026-11-15-cuatro-nubes.md)):**
+> - **Activas:** AWS, Cloudflare (espejo del estado) y Google Cloud (Gemini).
+> - **Opcional:** Azure (correo y clima), no desplegada en la cuenta de la demo.
+> - **IA:** ML propio en la Lambda (D12) + Gemini.
+>
+> Lo que sigue es el plan original, como historia.
 > **Orden actualizado:** primero la app completa en AWS (E5–E8) y al final se "traduce" a la 2.ª nube. Mientras tanto, cada función de IA queda detrás de un enchufe con implementación provisional, el histórico se exporta a S3 y la API key ya tiene su secreto. **Conseguir la cuenta de la 2.ª nube desde ya.**
 > **Sin 2 nubes no se corrige el proyecto**, y la IA vale 3 puntos. Por eso va antes que lo vistoso. Si D2 no está decidida a tiempo, se intercambia con E5.
 - Servicio en la 2.ª nube, invocado por HTTPS con la API key en **Secrets Manager**:

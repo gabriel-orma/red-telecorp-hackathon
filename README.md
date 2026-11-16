@@ -4,6 +4,7 @@ Plataforma **serverless y multinube**: AWS, Cloudflare, Google Cloud (Gemini) y 
 
 - El reto y la rúbrica: [`docs/reto.md`](docs/reto.md)
 - La arquitectura: [`docs/arquitectura.md`](docs/arquitectura.md)
+- **Diagrama de arquitectura:** [`docs/arquitectura.png`](docs/arquitectura.png). La fuente editable en draw.io es [`docs/arquitectura/arquitectura-red-telecorp.drawio`](docs/arquitectura/arquitectura-red-telecorp.drawio).
 - Avance por dolor del cliente: [`docs/mapa-dolores.md`](docs/mapa-dolores.md)
 - **Roadmap por entregas**: [`docs/roadmap.md`](docs/roadmap.md)
 

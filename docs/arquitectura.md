@@ -1,6 +1,10 @@
 # Arquitectura
 
-> **Estado: implementado y verificado en AWS + Azure** (stage `dev-rodrigo`, 14-nov-2026). Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
+> **Estado: implementado y desplegado.**
+> - **Demo:** `dev-gabriel`, 15-nov-2026, con AWS + Cloudflare + Google Cloud.
+> - **Azure:** verificada en `dev-rodrigo` el 14-nov-2026.
+>
+> Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
 >
 > **Ya decidido:** AWS Academy Learner Lab (`LabRole`), `us-east-1`, Serverless Framework, Python y DynamoDB con tablas separadas.
 > **Nubes ([D16](decisiones/2026-11-15-cuatro-nubes.md)):**
@@ -13,9 +17,11 @@
 
 ## Vista general
 
-![Arquitectura implementada (AWS + Azure)](arquitectura.svg)
+![Arquitectura de Red TeleCorp: AWS, Cloudflare, Google Cloud y Azure (opcional)](arquitectura.png)
 
-*Diagrama fiel a los recursos desplegados (stage `dev-rodrigo`). Se regenera con la lista de recursos del inventario de abajo; el SVG se puede abrir en el navegador para verlo a pantalla completa.*
+*Diagrama fiel a los recursos desplegados en la demo (`dev-gabriel`).*
+- **Fuente editable:** [`arquitectura/arquitectura-red-telecorp.drawio`](arquitectura/arquitectura-red-telecorp.drawio), que se abre en app.diagrams.net y se genera con `python scripts/generar-diagrama.py`.
+- **Exportaciones:** [`arquitectura.svg`](arquitectura.svg) (vectorial) y `arquitectura.png`.
 
 **Qué hace cada nube (y por qué la integración es real):**
 
