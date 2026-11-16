@@ -39,3 +39,8 @@ services/base/layer/python/telecorp/zonas.json
 
 # Credenciales de demo generadas por scripts (nunca al repo)
 *.local
+
+# Cloudflare (D15): configuración generada por cuenta
+edge/estado/wrangler.*.toml
+!edge/estado/wrangler.plantilla.toml
+.wrangler/

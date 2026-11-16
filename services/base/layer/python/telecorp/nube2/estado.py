@@ -16,7 +16,7 @@ from botocore.exceptions import ClientError
 from telecorp import db, util
 
 TTL_TABLERO_DIAS = 30
-SERVICIOS = ("azure-acs", "azure-maps", "gcp-bigquery", "gcp-gemini")
+SERVICIOS = ("azure-acs", "azure-maps", "gcp-bigquery", "gcp-gemini", "cloudflare-workers")
 
 
 def _t():

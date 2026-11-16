@@ -1,0 +1,9 @@
+{
+  "name": "telecorp-estado-espejo",
+  "private": true,
+  "type": "module",
+  "description": "Espejo del estado público en Cloudflare Workers + KV (D15)",
+  "scripts": {
+    "test": "node --test test/worker.test.mjs"
+  }
+}

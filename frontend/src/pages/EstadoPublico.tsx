@@ -96,6 +96,12 @@ export function EstadoPublico() {
           No pudimos actualizar el estado{estado.ultimaCarga ? ` (último dato: ${haceCuanto(new Date(estado.ultimaCarga).toISOString())})` : ""}. Reintentando…
         </p>
       )}
+      {d?.respaldo && (
+        <p role="status" className="mt-3 rounded-xl bg-acento/10 px-4 py-2 text-xs text-tenue ring-1 ring-acento/30">
+          La plataforma principal no respondió: mostramos la <b className="text-texto">copia de respaldo</b> publicada{" "}
+          {haceCuanto(d.respaldo.publicadoEn)} (Cloudflare).
+        </p>
+      )}
       {!!d?.simulacion?.colectivosAbiertos && (
         <p role="status" className="mt-3 rounded-xl bg-acento/10 px-4 py-2 text-xs text-tenue ring-1 ring-acento/30">
           Hay una <b className="text-texto">simulación en curso</b> ({d.simulacion.colectivosAbiertos} incidente{d.simulacion.colectivosAbiertos === 1 ? "" : "s"} simulado{d.simulacion.colectivosAbiertos === 1 ? "" : "s"}).

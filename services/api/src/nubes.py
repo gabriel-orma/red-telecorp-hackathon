@@ -1,12 +1,14 @@
 """Estado en vivo de las nubes conectadas. Alimenta el panel «Nubes conectadas» del centro de control.
 
-GET /api/nubes   (SOLO operadores)  → {aws: {...}, azure: {acsEmail, maps}, ia: {gemini}, generadoEn}
+GET /api/nubes   (SOLO operadores)  → {aws: {...}, azure: {acsEmail, maps}, cloudflare: {espejo}, ia: {gemini}, generadoEn}
 
 Cada servicio se informa con lo que de verdad se midió, nunca con un valor fijo:
   · AWS   → una operación real y barata por servicio (DynamoDB, SQS, Step Functions) con su latencia.
   · Azure → el tablero que escriben las llamadas reales (envío de correo, clima). Si no hay una llamada reciente se hace
             UNA sonda (ACS: consulta de una operación inexistente, NO envía correo; Maps: clima de una zona), como mucho
             una cada 5 minutos por servicio (cupo atómico), para que abrir el panel no consuma la cuota ni cueste dinero.
+  · Cloudflare → el tablero que escribe la publicación del estado (cada 5 min); si no hay una reciente, UNA sonda
+            `GET /salud` del Worker (lee KV, no escribe), con el mismo cupo de una cada 5 minutos.
   · IA    → solo si hay un modelo configurado; no se llama al modelo desde aquí (cuenta cupo): se informa su último uso real.
 Los secretos nunca se devuelven. Ningún fallo de una nube rompe la respuesta: ese servicio se marca `ERROR`.
 """
@@ -17,7 +19,7 @@ import time
 import boto3
 
 from telecorp import db, http, util, zonas
-from telecorp.nube2 import azure_acs, azure_maps, estado, ia, secretos
+from telecorp.nube2 import azure_acs, azure_maps, cloudflare, estado, ia, secretos
 
 _sys.path.insert(0, os.path.dirname(__file__))  # el handler se carga como src/<modulo>: permitir imports hermanos
 import acceso  # noqa: E402
@@ -125,6 +127,7 @@ def obtener(event, context):
         "aws": _aws(),
         "azure": {"acsEmail": _servicio("azure-acs", acs_ok, _sonda_acs),
                   "maps": _servicio("azure-maps", maps_ok, _sonda_maps)},
+        "cloudflare": {"espejo": _servicio("cloudflare-workers", cloudflare.configurado(), cloudflare.sondear)},
         "ia": {"gemini": _gemini(modelo, gemini, desactivada)},
         "generadoEn": util.ahora_iso(),
     })

@@ -62,11 +62,11 @@ caja(20, 20, ANCHO - 40, 56, "Red TeleCorp · Arquitectura serverless en AWS Aca
      "presupuesto de concurrencia: 7 de 10 Lambdas", "#232F3E", "#232F3E", 16, "#FFFFFF", alinear="center")
 celda("Despliegue: Serverless Framework v3 (IaC) · 4 stacks: base, antenas, api, workflows · scripts/deploy.sh · Rol: LabRole · "
       "5 Lambdas con tope (reservedConcurrency) · 3 Step Functions · 8 tablas DynamoDB · 2 colas SQS (+ DLQ) · Cognito · S3 · "
-      "SNS · SSM · Secrets Manager · 2.ª nube: Azure",
+      "SNS · SSM · Secrets Manager · 2.ª nube: Azure · 3.ª nube: Cloudflare (Workers + KV)",
       "text;html=1;align=center;fontSize=11;fontColor=#545B64;", 20, 78, ANCHO - 40, 22)
 
 cols = [(150, 230, "Entrada"), (390, 520, "Procesamiento (Lambda / SQS)"), (920, 250, "Datos"),
-        (1180, 520, "Orquestación y eventos"), (1710, 170, "Salidas / 2.ª nube"), (1890, 290, "Concurrencia (D14)")]
+        (1180, 520, "Orquestación y eventos"), (1710, 170, "Salidas / otras nubes"), (1890, 290, "Concurrencia (D14)")]
 for x, w, t in cols:
     celda(t, "text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#232F3E;", x, 104, w, 20)
 
@@ -76,7 +76,7 @@ CARRILES = [
     ("3 · Métricas de las antenas", 530, 190),
     ("4 · Detección e incidente colectivo", 730, 240),
     ("5 · Tiempo real (WebSocket)", 980, 170),
-    ("6 · Demo y tareas programadas", 1160, 200),
+    ("6 · Demo, tareas programadas y espejo en Cloudflare", 1160, 200),
 ]
 for titulo, y, h in CARRILES:
     caja(20, y, ANCHO - 40, h, titulo, "#FFFFFF", "#D5DBDB", 11)
@@ -95,7 +95,8 @@ flecha(apih, s3, "sin Lambda")
 flecha(apih, api, "/api/*")
 flecha(api, t_all, "Query/Scan")
 nota1 = ("<b>Tope 2.</b> Las 26 rutas comparten la misma función: si llegan más pedidos, API Gateway responde «ocupado» "
-         "y el navegador reintenta. El frontend (index, JS, CSS, fuentes) <b>no usa Lambda</b>: va de S3 por el HTTP API.")
+         "y el navegador reintenta. El frontend (index, JS, CSS, fuentes) <b>no usa Lambda</b>: va de S3 por el HTTP API. "
+         "Si /api/estado no responde, la página pública lee la copia de <b>Cloudflare</b> (carril 6).")
 
 # ---------------- Carril 2: reporte de un ciudadano ----------------
 ciu = icono(60, 375, "users", "#232F3E", "Ciudadano\n(portal móvil)")
@@ -161,15 +162,17 @@ nota5 = ("Los avisos comparten el tope 1 de segundo plano (si se atrasan, el pan
 # ---------------- Carril 6: demo y tareas programadas ----------------
 sfe = icono(1200, 1205, "step_functions", C["integ"], "SFN escenario\nMap ×1 + Wait")
 sfr = icono(1400, 1205, "step_functions", C["integ"], "SFN recurrencia\nMap ×1 (cron 06:00)")
-mot2 = lam_tope(1580, 1205, "λ detector (misma)\npasos del escenario\ny de la recurrencia", 2, repetida=True)
+mot2 = lam_tope(1580, 1205, "λ detector (misma)\nescenario · recurrencia\n+ barrido 5 min", 2, repetida=True)
 ssm = icono(960, 1205, "systems_manager", C["mgmt"], "SSM Parameter Store\nreglas · simulador · escenario")
-secm = icono(1060, 1205, "secrets_manager", C["sec"], "Secrets Manager\nAzure · IA")
+secm = icono(1060, 1205, "secrets_manager", C["sec"], "Secrets Manager\nAzure · IA · Cloudflare")
 flecha(sfe, mot2)
 flecha(sfr, mot2)
 flecha(mot2, sqsr, "reportes simulados", guion=True)
+cf = externo(1720, 1205, "Cloudflare Workers + KV\nespejo del estado público", "#F38020", "#C2620A")
+flecha(mot2, cf, "PUT /publicar\n(token, ≤ 1 cada 4 min)")
 nota6 = ("<b>Total de la cuenta: api 2 + segundoPlano 1 + simulador 1 + detector 2 + preRegistro 1 = 7 de 10.</b> "
          "Quedan 3 para las Lambdas propias del laboratorio. Una prueba automática falla si una función no tiene tope "
-         "o si la suma pasa de 7.")
+         "o si la suma pasa de 7. <b>Cloudflare</b> (D15) recibe el estado desde el barrido que ya existía: 0 Lambdas nuevas.")
 
 for (titulo, y, h), texto in zip(CARRILES, [nota1, nota2, nota3, nota4, nota5, nota6]):
     i = f"n{next(_id)}"

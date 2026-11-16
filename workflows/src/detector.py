@@ -22,6 +22,7 @@ import os
 from boto3.dynamodb.types import TypeDeserializer
 
 from telecorp import config, reglas, util, zonas
+from telecorp.nube2 import cloudflare
 import comun_colectivos as cc  # noqa: E402
 
 _des = TypeDeserializer()
@@ -111,7 +112,9 @@ def reconciliar(event, context) -> dict:
             if nuevo:
                 creados.append(nuevo)
     print(f"reconciliar: {len(creados)} colectivos creados, {len(curados)} curados")
-    return {"creados": creados, "curados": curados}
+    # Tercera nube (D15): el mismo barrido publica el estado público en Cloudflare (sin Lambda nueva, D14). Nunca lanza.
+    espejo = cloudflare.publicar()
+    return {"creados": creados, "curados": curados, "espejo": espejo}
 
 
 def handler(event, context):

@@ -1,0 +1,27 @@
+# 2026-11-15 22:30 · Gabriel · Tercera nube: Cloudflare Workers + KV (D15)
+
+## Qué cambió
+- **Tercera nube: Cloudflare** ([D15](../decisiones/2026-11-15-tercera-nube-cloudflare.md), issue #48). El estado público se publica en un Worker y sigue en línea aunque AWS caiga.
+- **Worker** (`edge/estado/`):
+  - `PUT /publicar` (con token), `GET /api/estado` (mismo contrato que AWS, más `respaldo`), `GET /salud`, y `GET /` con una página de estado propia;
+  - 7 pruebas con `node --test`.
+- **AWS:**
+  - El cálculo del estado público pasó a la layer (`telecorp/estado_red.py`), con `calcular_todo()` (global y todas las zonas en una sola lectura). `services/api/src/estado.py` lo usa sin cambiar el contrato.
+  - `telecorp/nube2/cloudflare.py`: `publicar()` (cupo de una cada 4 min, disyuntor, tablero) y `sondear()`.
+  - `workflows/src/detector.py`: el barrido (cada 5 min) llama a `cloudflare.publicar()`. **Sin Lambdas nuevas** (D14: siguen siendo 7). El motor tiene ahora `TABLA_ESTADISTICAS`.
+  - `GET /api/nubes` informa `cloudflare.espejo`.
+- **Frontend:**
+  - `apiPortal.estado` usa la copia de Cloudflare si AWS no responde, y la página pública lo avisa;
+  - la página Nubes tiene una tarjeta de Cloudflare;
+  - `VITE_ESPEJO_URL` se fija al compilar (`deploy.sh` la lee del secreto).
+- **Scripts:** `scripts/cloudflare.sh <stage>` despliega el Worker y el KV, carga el token y crea el secreto `telecorp/<stage>/cloudflare`.
+- **Docs:** D15, `docs/despliegue-cloudflare.md`, arquitectura (nubes e inventario), mapa de dolores (12–15 al día) y README.
+
+## Cómo probar
+- `python -m pytest -o addopts="" -p no:cacheprovider -q` → 451 pasan (incluye `workflows/tests/test_cloudflare.py`).
+- `node --test edge/estado/test/worker.test.mjs` → 7 pasan.
+- En la nube: ver [`docs/despliegue-cloudflare.md`](../despliegue-cloudflare.md), sección "Comprobar que funciona".
+
+## Pendiente
+- Crear la cuenta de Cloudflare, hacer `wrangler login` y correr `scripts/cloudflare.sh dev-gabriel` (lo hace el humano: el inicio de sesión es suyo).
+- Azure sigue sin secreto en la cuenta de `dev-gabriel` (faltan los datos de Rodrigo).

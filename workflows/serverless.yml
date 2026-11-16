@@ -27,6 +27,7 @@ provider:
     TABLA_ANTENAS: ${cf:${self:custom.base}.TablaAntenasNombre}
     TABLA_COLECTIVOS: ${cf:${self:custom.base}.TablaColectivosNombre}
     TABLA_DEDUP: ${cf:${self:custom.base}.TablaDedupNombre}
+    TABLA_ESTADISTICAS: ${cf:${self:custom.base}.TablaEstadisticasNombre}   # estado público → espejo en Cloudflare (D15)
     TOPICO_AVISOS: ${cf:${self:custom.base}.TopicoAvisosArn}
     TOPICO_ALERTAS: ${cf:${self:custom.base}.TopicoAlertasOperadorArn}
 

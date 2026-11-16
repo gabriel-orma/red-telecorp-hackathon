@@ -4,6 +4,7 @@
 >
 > **Ya decidido:** AWS Academy Learner Lab (`LabRole`), `us-east-1`, Serverless Framework, Python y DynamoDB con tablas separadas.
 > **Segunda nube: Microsoft Azure** (Communication Services para el correo y Maps para el clima), ver [`decisiones/2026-11-14-segunda-nube-azure.md`](decisiones/2026-11-14-segunda-nube-azure.md). GCP quedó descartado.
+> **Tercera nube: Cloudflare** (Workers + KV, espejo del estado público que sigue en línea aunque AWS caiga), ver [`decisiones/2026-11-15-tercera-nube-cloudflare.md`](decisiones/2026-11-15-tercera-nube-cloudflare.md).
 
 ## Vista general
 
@@ -18,6 +19,7 @@
 | AWS | API Gateway, Lambda, SQS, DynamoDB, Step Functions, Cognito, EventBridge, Secrets Manager/SSM, S3 | Ingesta, detección, orquestación, datos, autenticación y secretos |
 | Azure | **Communication Services** | Cada aviso del flujo (`EN_EVALUACION`, `INCIDENCIA_CONFIRMADA`, `SERVICIO_RESTABLECIDO`) sale por correo desde una Lambda de AWS, autenticado con firma HMAC-SHA256, **solo a destinatarios autorizados** (lista `destinatarios` del secreto: las cuentas se auto-verifican, así que sin lista no se envía a nadie). El historial guarda el id de operación de ACS y se puede consultar su entrega (`Succeeded`) |
 | Azure | **Maps** | El análisis del incidente incluye el clima actual del centro de la zona (lluvia, viento, temperatura): una causa plausible de caída que el operador necesita ver |
+| Cloudflare | **Workers + KV** | El barrido del motor publica cada 5 min el estado público (global y por zona) en un Worker. La página pública lo usa como respaldo si AWS no responde, y el Worker sirve su propia página de estado desde el borde. Token en Secrets Manager; sin Lambdas nuevas (D14) |
 | **ML local** | Clasificador de reportes (TF-IDF + regresión logística) | Un reporte `OTRO` lo clasifica un modelo **entrenado por nosotros** que corre dentro de la Lambda de registro (sin numpy ni scikit-learn, 0,2 ms, el texto no sale de AWS). Exactitud 0,935 medida en una prueba redactada a ciegas (datos sintéticos: ver `ml/triage/README.md` para límites). Un reporte `OTRO` solo suma al conteo del colectivo si el modelo lo clasifica como falla con confianza ≥ 0,5 |
 | API externa | Gemini (opcional) | Redacta hipótesis y recomendaciones **solo sobre datos agregados** (conteos, estados de antenas, tipo de zona, clima). **El texto libre de los usuarios no se envía** (el triage por IA existe pero viene apagado: flag `triageTexto` del secreto `ia`). Si Gemini no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas (sin IA)» con el motivo, nunca «IA» |
 
@@ -30,6 +32,7 @@
 | DynamoDB Streams → detector | Reacción en tiempo casi real sin polling |
 | Step Functions | Flujos con estados, esperas y reintentos (incidente colectivo, recurrencia) |
 | Azure: Communication Services + Maps | 2.ª nube con rol real y verificable: los avisos salen por Azure y el análisis usa su clima. La suscripción de estudiante solo permite recursos de ubicación `global` (política «Allowed locations»), que bastan para estos dos servicios |
+| Cloudflare: Workers + KV | 3.ª nube con rol de **alta disponibilidad**: el estado de la red sigue visible para los clientes aunque AWS caiga o esté en su tope de concurrencia. Plan gratuito, sin tarjeta |
 | Secrets Manager / SSM | Requisito explícito de la rúbrica |
 | EventBridge Scheduler | Simulador y tareas periódicas sin servidores encendidos |
 
@@ -89,6 +92,8 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Secreto de Azure | AWS Secrets Manager | `telecorp/<stage>/azure` | manual | `{acsEndpoint, acsKey, acsSender, mapsKey}`; lo leen las Lambdas con `LabRole`. Se crea con `az` (no está en el repo) |
 | Azure Communication Services + Email Service + dominio administrado | Azure | `tccomm*`, `tcemail*` (grupo `rg-telecorp-probe2`, ubicación `global`) | manual | Correo transaccional. Límite del dominio administrado: 5/min y 10/h (el código respeta 5/min y 8/h) |
 | Azure Maps (Gen2) | Azure | `tcmaps*` (ubicación `global`) | manual | Clima actual (`weather/currentConditions`) |
+| Secreto de Cloudflare | AWS Secrets Manager | `telecorp/<stage>/cloudflare` | `scripts/cloudflare.sh` | `{url, token}` del Worker espejo (D15) |
+| Worker espejo del estado + KV | Cloudflare Workers + KV | `telecorp-estado-<stage>`, KV `telecorp-<stage>-estado` | `edge/estado` (wrangler) | D15: `PUT /publicar` (token), `GET /api/estado`, `GET /salud`, `GET /`. ≤ 1 escritura de KV cada 4 min |
 | Ruta `nubes` | ruta del router `api` | `GET /api/nubes` | api | `GET /api/nubes` (solo operadores): mide en vivo AWS y Azure; sondas con cupo de 1 cada 5 min por servicio |
 | Contadores, cupos y disyuntores de las integraciones | AWS DynamoDB | `telecorp-<stage>-dedup` (`NUBE#`, `LIMITE#`, `DISYUNTOR#`) | base | Sin tablas nuevas |
 | Modelo de ML del triage | AWS Lambda (layer común) | `telecorp/ml/triage_modelo.json` (329 KB) | base | Entrenado fuera de la nube con `ml/triage/entrenar.py`; solo se ejecuta aquí |

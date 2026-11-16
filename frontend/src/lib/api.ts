@@ -231,6 +231,28 @@ export interface EstadoRed {
                 afectados: number; detectadoEn: string; antenasEnFalla: number }[];
   /** Incidentes de simulación abiertos: NO cuentan en este panel (que solo refleja reportes e incidentes reales). */
   simulacion?: { colectivosAbiertos: number };
+  /** Presente si el dato viene del espejo de Cloudflare (D15) porque AWS no respondió. */
+  respaldo?: { fuente: "cloudflare"; publicadoEn: string; edadS: number };
+}
+
+/** URL del espejo del estado en Cloudflare (D15), fijada al compilar por scripts/deploy.sh. Vacía → sin respaldo. */
+export const ESPEJO_URL = (import.meta.env.VITE_ESPEJO_URL as string | undefined)?.replace(/\/$/, "") || "";
+
+/** Estado público: primero AWS; si no responde (caído u ocupado), la copia que AWS publicó en Cloudflare. */
+async function estadoConRespaldo(zonaId?: string): Promise<EstadoRed> {
+  const consulta = zonaId ? `?zonaId=${encodeURIComponent(zonaId)}` : "";
+  try {
+    return await pedir<EstadoRed>(`/estado${consulta}`);
+  } catch (errorAws) {
+    if (!ESPEJO_URL) throw errorAws;
+    try {
+      const r = await fetch(`${ESPEJO_URL}/api/estado${consulta}`);
+      if (!r.ok) throw errorAws;
+      return (await r.json()) as EstadoRed;
+    } catch {
+      throw errorAws;
+    }
+  }
 }
 
 export interface MiReporte {
@@ -243,7 +265,7 @@ async function conToken<T>(ruta: string, token: string, init?: RequestInit): Pro
 }
 
 export const apiPortal = {
-  estado: (zonaId?: string) => pedir<EstadoRed>(`/estado${zonaId ? `?zonaId=${zonaId}` : ""}`),
+  estado: (zonaId?: string) => estadoConRespaldo(zonaId),
   reportar: (token: string, cuerpo: { tipo: TipoProblema; descripcion: string; ubicacion?: { lat: number; lng: number } }) =>
     conToken<{ incidenciaId: string; duplicado: boolean; zonaId?: string; ubicacionFuente?: "GPS" | "CUENTA"; mensaje?: string }>(
       "/reportes", token, { method: "POST", body: JSON.stringify({
@@ -326,6 +348,8 @@ export interface ServicioNube { estado: EstadoNube; ultimaLlamada?: string | nul
 export interface Nubes {
   aws?: Record<string, ServicioNube>;
   azure?: { acsEmail?: ServicioNube; maps?: ServicioNube };
+  /** Tercera nube (D15): espejo del estado público en Cloudflare Workers + KV. */
+  cloudflare?: { espejo?: ServicioNube };
   /** Inferencia de IA por API externa (Gemini): NO cuenta como nube adicional. */
   ia?: { gemini?: ServicioNube };
 }

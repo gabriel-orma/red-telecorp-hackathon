@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle, CheckCircle2, CircleDashed, Cloud, CloudOff, Database, HelpCircle, Inbox, Loader2, Mail,
-  MapPinned, Sparkles, Workflow, Zap, type LucideIcon,
+  Globe2, MapPinned, Sparkles, Workflow, Zap, type LucideIcon,
 } from "lucide-react";
 import { apiNubes, type EstadoNube, type Nubes as DatosNubes, type ServicioNube } from "../lib/api";
 import { usePolling } from "../hooks/usePolling";
@@ -10,7 +10,7 @@ import { cn, haceCuanto } from "../lib/utils";
 import { Cifra } from "../components/neu/Piezas";
 
 interface Servicio { clave: string; nombre: string; detalle: string; icono: LucideIcon }
-interface Proveedor { id: "aws" | "azure" | "ia"; nombre: string; rol: string; servicios: Servicio[] }
+interface Proveedor { id: "aws" | "azure" | "cloudflare" | "ia"; nombre: string; rol: string; servicios: Servicio[] }
 
 const PROVEEDORES: Proveedor[] = [
   { id: "aws", nombre: "Amazon Web Services", rol: "Núcleo: ingesta, datos, automatización y API", servicios: [
@@ -22,6 +22,9 @@ const PROVEEDORES: Proveedor[] = [
   { id: "azure", nombre: "Microsoft Azure", rol: "Avisos por correo y contexto geoespacial", servicios: [
     { clave: "acsEmail", nombre: "Communication Services · correo", detalle: "Avisos a los afectados", icono: Mail },
     { clave: "maps", nombre: "Azure Maps", detalle: "Clima actual de la zona del incidente", icono: MapPinned },
+  ] },
+  { id: "cloudflare", nombre: "Cloudflare", rol: "Estado público en el borde: sigue en línea aunque AWS no responda", servicios: [
+    { clave: "espejo", nombre: "Workers + KV · espejo del estado", detalle: "AWS publica el estado cada 5 min; respaldo de la página pública", icono: Globe2 },
   ] },
   { id: "ia", nombre: "IA generativa (API externa)", rol: "Análisis del incidente; no cuenta como nube adicional", servicios: [
     { clave: "gemini", nombre: "Gemini API", detalle: "Hipótesis de causa y recomendaciones; si no responde, reglas deterministas", icono: Sparkles },
@@ -64,7 +67,7 @@ export function Nubes() {
   };
   const fila = (p: Proveedor["id"], clave: string): { fila: Fila; derivada: boolean } => {
     if (p === "aws") return aws(clave);
-    const grupo = p === "azure" ? nubes.datos?.azure : nubes.datos?.ia;
+    const grupo = p === "azure" ? nubes.datos?.azure : p === "cloudflare" ? nubes.datos?.cloudflare : nubes.datos?.ia;
     return { fila: (grupo as Record<string, ServicioNube | undefined> | undefined)?.[clave], derivada: false };
   };
 
@@ -109,7 +112,7 @@ export function Nubes() {
       </section>
 
       {cargando ? <div className="grid h-40 place-items-center"><Loader2 className="size-6 animate-spin text-tenue motion-reduce:animate-none" /></div> : (
-        <div className="grid gap-5 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2">
           {estados.map(({ p, estado }, i) => {
             const e = ESTADOS[estado];
             return (

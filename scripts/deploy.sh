@@ -55,7 +55,13 @@ fi
 URL="$(salida "telecorp-api-$STAGE" Url)"
 if quiere frontend && [ -f frontend/package.json ]; then
   paso "Compilando frontend"
-  (cd frontend && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
+  # Respaldo del estado público en Cloudflare (D15): la URL del Worker (no es secreta) sale del secreto de la integración.
+  PY=python3; "$PY" -c "import json" 2>/dev/null || PY=python
+  SECRETO_CF="$(aws secretsmanager get-secret-value --secret-id "telecorp/$STAGE/cloudflare" --query SecretString --output text 2>/dev/null || true)"
+  ESPEJO="$(SECRETO_CF="$SECRETO_CF" "$PY" -c "import json,os; print(json.loads(os.environ['SECRETO_CF'] or '{}').get('url',''))" 2>/dev/null || true)"
+  unset SECRETO_CF
+  [ -n "$ESPEJO" ] && echo "Respaldo del estado público: $ESPEJO" || echo "Sin espejo de Cloudflare (opcional: bash scripts/cloudflare.sh $STAGE)"
+  (cd frontend && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && VITE_ESPEJO_URL="$ESPEJO" npm run build)
   BUCKET="$(salida "telecorp-api-$STAGE" BucketFrontendNombre)"
   paso "Publicando frontend en s3://$BUCKET"
   # Sin Lambda (D14): el HTTP API entrega lo que guarda S3, así que el tipo, la caché y la compresión se fijan al subir.
