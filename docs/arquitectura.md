@@ -3,8 +3,13 @@
 > **Estado: implementado y verificado en AWS + Azure** (stage `dev-rodrigo`, 14-nov-2026). Para cambiar algo de aquí, abre un issue `decision` y registra el resultado en `docs/decisiones/`.
 >
 > **Ya decidido:** AWS Academy Learner Lab (`LabRole`), `us-east-1`, Serverless Framework, Python y DynamoDB con tablas separadas.
-> **Segunda nube: Microsoft Azure** (Communication Services para el correo y Maps para el clima), ver [`decisiones/2026-11-14-segunda-nube-azure.md`](decisiones/2026-11-14-segunda-nube-azure.md). GCP quedó descartado.
-> **Tercera nube: Cloudflare** (Workers + KV, espejo del estado público que sigue en línea aunque AWS caiga), ver [`decisiones/2026-11-15-tercera-nube-cloudflare.md`](decisiones/2026-11-15-tercera-nube-cloudflare.md).
+> **Nubes ([D16](decisiones/2026-11-15-cuatro-nubes.md)):**
+> - **AWS:** plataforma principal.
+> - **Cloudflare:** Workers + KV, espejo del estado público ([D15](decisiones/2026-11-15-tercera-nube-cloudflare.md)).
+> - **Google Cloud:** Gemini API.
+> - **Microsoft Azure:** Communication Services y Maps ([D2](decisiones/2026-11-14-segunda-nube-azure.md)).
+>
+> En la cuenta de la demo (`dev-gabriel`) están **activas AWS, Cloudflare y Google**. **Azure no se pudo desplegar ahí**: su código está listo y se verificó en `dev-rodrigo` el 14-nov, y sin claves el sistema funciona igual.
 
 ## Vista general
 
@@ -21,7 +26,7 @@
 | Azure | **Maps** | El análisis del incidente incluye el clima actual del centro de la zona (lluvia, viento, temperatura): una causa plausible de caída que el operador necesita ver |
 | Cloudflare | **Workers + KV** | El barrido del motor publica cada 5 min el estado público (global y por zona) en un Worker. La página pública lo usa como respaldo si AWS no responde, y el Worker sirve su propia página de estado desde el borde. Token en Secrets Manager; sin Lambdas nuevas (D14) |
 | **ML local** | Clasificador de reportes (TF-IDF + regresión logística) | Un reporte `OTRO` lo clasifica un modelo **entrenado por nosotros** que corre dentro de la Lambda de registro (sin numpy ni scikit-learn, 0,2 ms, el texto no sale de AWS). Exactitud 0,935 medida en una prueba redactada a ciegas (datos sintéticos: ver `ml/triage/README.md` para límites). Un reporte `OTRO` solo suma al conteo del colectivo si el modelo lo clasifica como falla con confianza ≥ 0,5 |
-| API externa | Gemini (opcional) | Redacta hipótesis y recomendaciones **solo sobre datos agregados** (conteos, estados de antenas, tipo de zona, clima). **El texto libre de los usuarios no se envía** (el triage por IA existe pero viene apagado: flag `triageTexto` del secreto `ia`). Si Gemini no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas (sin IA)» con el motivo, nunca «IA» |
+| Google Cloud | **Gemini API** | Redacta hipótesis y recomendaciones **solo sobre datos agregados** (conteos, estados de antenas, tipo de zona, clima). **El texto libre de los usuarios no se envía** (el triage por IA existe pero viene apagado: flag `triageTexto` del secreto `ia`). Si Gemini no está disponible, el análisis lo genera una plantilla de reglas y la interfaz lo rotula «Reglas (sin IA)» con el motivo, nunca «IA» |
 
 ## Por qué así (relación con la rúbrica)
 
@@ -33,6 +38,8 @@
 | Step Functions | Flujos con estados, esperas y reintentos (incidente colectivo, recurrencia) |
 | Azure: Communication Services + Maps | 2.ª nube con rol real y verificable: los avisos salen por Azure y el análisis usa su clima. La suscripción de estudiante solo permite recursos de ubicación `global` (política «Allowed locations»), que bastan para estos dos servicios |
 | Cloudflare: Workers + KV | 3.ª nube con rol de **alta disponibilidad**: el estado de la red sigue visible para los clientes aunque AWS caiga o esté en su tope de concurrencia. Plan gratuito, sin tarjeta |
+| Google Cloud: Gemini API | IA generativa sobre datos agregados; la clave de AI Studio pertenece a un proyecto de Google Cloud. Plan gratuito, con topes de llamadas en el secreto (D12, D16) |
+| Azure opcional (D16) | No se pudo activar en la cuenta de la demo. El sistema degrada sin errores: avisos por la app y SNS, y análisis sin clima |
 | Secrets Manager / SSM | Requisito explícito de la rúbrica |
 | EventBridge Scheduler | Simulador y tareas periódicas sin servidores encendidos |
 
@@ -64,7 +71,7 @@ Ver [`docs/decisiones/README.md`](decisiones/README.md). **Nadie las resuelve so
 | Tabla `dedup` (TTL 24 h) | AWS DynamoDB | `telecorp-<stage>-dedup` | base | Clave condicional `usuario#zona` (E2) |
 | Colas `reportes`, `metricas` + DLQ | AWS SQS | `telecorp-<stage>-{reportes,metricas}[-dlq]` | base | Visibilidad 60 s, 20 recepciones → DLQ (14 d). D14: absorben las esperas por el tope de concurrencia |
 | Parámetro del simulador | AWS SSM | `/telecorp/<stage>/simulador` | base | Fallas forzadas |
-| Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base | `{geminiApiKey, modelo}`; sin él, el análisis usa reglas |
+| Secreto de IA | AWS Secrets Manager | `telecorp/<stage>/ia` | base + `scripts/gemini-secreto.sh` | `{geminiApiKey, habilitada, modelo?}`; sin él, el análisis usa reglas. El script valida la clave con Google antes de guardarla |
 | Layer Python común | AWS Lambda | `telecorp-<stage>-comun` | base | `telecorp.*` |
 | Simulador + clasificador (una Lambda, **tope 1**) | AWS Lambda + EventBridge Scheduler + SQS | `telecorp-<stage>-simulador` | antenas | D14. Programación apagada por defecto; encola 4 lecturas/min con `DelaySeconds`; al procesarlas aplica las fallas vigentes |
 | HTTP API | AWS API Gateway v2 | `telecorp-<stage>-api` | api | `/api/*` → Lambda `api`; `/`, `/assets/*`, rutas de la SPA → S3 por integración `HTTP_PROXY` (sin Lambda, D14) |

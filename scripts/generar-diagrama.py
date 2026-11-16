@@ -62,7 +62,7 @@ caja(20, 20, ANCHO - 40, 56, "Red TeleCorp · Arquitectura serverless en AWS Aca
      "presupuesto de concurrencia: 7 de 10 Lambdas", "#232F3E", "#232F3E", 16, "#FFFFFF", alinear="center")
 celda("Despliegue: Serverless Framework v3 (IaC) · 4 stacks: base, antenas, api, workflows · scripts/deploy.sh · Rol: LabRole · "
       "5 Lambdas con tope (reservedConcurrency) · 3 Step Functions · 8 tablas DynamoDB · 2 colas SQS (+ DLQ) · Cognito · S3 · "
-      "SNS · SSM · Secrets Manager · 2.ª nube: Azure · 3.ª nube: Cloudflare (Workers + KV)",
+      "SNS · SSM · Secrets Manager · otras nubes (D16): Cloudflare Workers + KV y Google Cloud Gemini (activas) · Azure (opcional, no desplegada en la demo)",
       "text;html=1;align=center;fontSize=11;fontColor=#545B64;", 20, 78, ANCHO - 40, 22)
 
 cols = [(150, 230, "Entrada"), (390, 520, "Procesamiento (Lambda / SQS)"), (920, 250, "Datos"),
@@ -132,17 +132,17 @@ mot = lam_tope(1200, 790, "λ detector · motor único\nstreams + barrido 5 min\
 sfc = icono(1400, 790, "step_functions", C["integ"], "SFN incidente-colectivo\nMap ×1 · reintento si\nel motor está ocupado")
 ml = icono(960, 790, "lambda", C["lambda"], "Capa: modelo ML\npropio (0,3 MB)")
 sns = icono(1720, 745, "sns", C["integ"], "SNS avisos +\nalertas NOC")
-acs = externo(1720, 805, "Azure Communication\nServices (correo)")
-maps = externo(1720, 862, "Azure Maps (clima)")
-gem = externo(1720, 917, "Gemini API (opcional,\napagado)", "#5F6368", "#3C4043")
+acs = externo(1720, 805, "Azure Communication\nServices · opcional")
+maps = externo(1720, 862, "Azure Maps · opcional")
+gem = externo(1720, 917, "Google Cloud\nGemini API", "#4285F4", "#1A5DC8")
 flecha(tinc, mot, "stream INSERT")
 flecha(tant, mot, "stream: transición a falla")
 flecha(mot, sfc, "StartExecution")
 flecha(sfc, mot, "cada paso: {accion}", guion=True)
 flecha(mot, sns)
-flecha(mot, acs)
-flecha(mot, maps)
-flecha(mot, gem, guion=True)
+flecha(mot, acs, guion=True)   # D16: Azure no está desplegada en la cuenta de la demo
+flecha(mot, maps, guion=True)
+flecha(mot, gem)
 flecha(seg, ml, "triage de «OTRO»", guion=True)
 nota4 = ("<b>Tope 2.</b> Detector, barrido y los 17 pasos de las 3 Step Functions son UNA función. Cada tarea reintenta "
          "<i>Lambda.TooManyRequestsException</i> (hasta 40 veces con espera creciente) antes que cualquier otro error: "
@@ -164,7 +164,7 @@ sfe = icono(1200, 1205, "step_functions", C["integ"], "SFN escenario\nMap ×1 + 
 sfr = icono(1400, 1205, "step_functions", C["integ"], "SFN recurrencia\nMap ×1 (cron 06:00)")
 mot2 = lam_tope(1580, 1205, "λ detector (misma)\nescenario · recurrencia\n+ barrido 5 min", 2, repetida=True)
 ssm = icono(960, 1205, "systems_manager", C["mgmt"], "SSM Parameter Store\nreglas · simulador · escenario")
-secm = icono(1060, 1205, "secrets_manager", C["sec"], "Secrets Manager\nAzure · IA · Cloudflare")
+secm = icono(1060, 1205, "secrets_manager", C["sec"], "Secrets Manager\nCloudflare · Gemini · Azure")
 flecha(sfe, mot2)
 flecha(sfr, mot2)
 flecha(mot2, sqsr, "reportes simulados", guion=True)

@@ -1,6 +1,6 @@
 # Red TeleCorp: gestión inteligente de incidencias
 
-Plataforma **serverless y multinube (AWS + segunda nube por definir)** para Red TeleCorp: monitoreo de antenas, portal de incidencias para usuarios, detección de incidentes colectivos, notificaciones, priorización y analítica histórica.
+Plataforma **serverless y multinube**: AWS, Cloudflare, Google Cloud (Gemini) y Azure ([D16](docs/decisiones/2026-11-15-cuatro-nubes.md)). En la demo están activas las tres primeras; Azure tiene el código listo, pero no se pudo desplegar en la cuenta de la demo. para Red TeleCorp: monitoreo de antenas, portal de incidencias para usuarios, detección de incidentes colectivos, notificaciones, priorización y analítica histórica.
 
 - El reto y la rúbrica: [`docs/reto.md`](docs/reto.md)
 - La arquitectura: [`docs/arquitectura.md`](docs/arquitectura.md)
@@ -29,7 +29,7 @@ Al terminar imprime la URL HTTPS del centro de control. Para desplegar solo una 
 
 **IA en Google Cloud (Gemini):** clave gratis en https://aistudio.google.com/apikey (cualquier cuenta de Google, sin tarjeta); se valida y se guarda en Secrets Manager con `bash scripts/gemini-secreto.sh dev-tualias`.
 
-**Segunda nube (Azure):** el correo de los avisos y el clima de la zona salen por Azure. Sin sus claves el sistema funciona igual (avisos por la app y SNS, análisis sin clima), pero para la demo completa crea los recursos y entrega sus claves a Secrets Manager siguiendo [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
+**Azure (opcional, no desplegada en la demo):** el correo de los avisos y el clima de la zona salen por Azure. Sin sus claves el sistema funciona igual (avisos por la app y SNS, análisis sin clima), pero para la demo completa crea los recursos y entrega sus claves a Secrets Manager siguiendo [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
 
 Elimina todo cuando no lo uses, para no gastar el presupuesto del lab:
 ```bash

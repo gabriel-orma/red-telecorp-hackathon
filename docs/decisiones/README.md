@@ -16,7 +16,7 @@ Un archivo por decisión: `AAAA-MM-DD-<slug>.md`, con este formato:
 | # | Tema | Estado | Decisión |
 |---|---|---|---|
 | D1 | Cuentas AWS | ✅ aceptada | AWS Academy Learner Lab → [2026-11-13-aws-academy-us-east-1](2026-11-13-aws-academy-us-east-1.md) |
-| D2 | Segunda nube | ✅ aceptada (pendiente de OK del equipo) | **Azure** (Communication Services + Maps); GCP descartado → [2026-11-14-segunda-nube-azure](2026-11-14-segunda-nube-azure.md) |
+| D2 | Segunda nube | 🔄 actualizada por D16 | **Azure** (Communication Services + Maps); GCP descartado → [2026-11-14-segunda-nube-azure](2026-11-14-segunda-nube-azure.md) |
 | D3 | IaC | ✅ aceptada | Serverless Framework → [2026-11-13-serverless-framework](2026-11-13-serverless-framework.md) |
 | D4 | Runtime de las Lambdas | ✅ aceptada | Python → [2026-11-13-python-lambdas](2026-11-13-python-lambdas.md) |
 | D5 | Frontend | ✅ aceptada | React + Vite + Tailwind + shadcn/ui + MapLibre, en S3 + CloudFront → [2026-11-14-frontend](2026-11-14-frontend.md) |
@@ -30,6 +30,7 @@ Un archivo por decisión: `AAAA-MM-DD-<slug>.md`, con este formato:
 | D13 | Datos simulados vs operativos | ✅ aceptada (pendiente de OK del equipo) | Universos separados: ventana, candado y contadores propios; analítica y recurrencia por universo → [2026-11-15-separacion-simulado-operativo](2026-11-15-separacion-simulado-operativo.md) |
 | D14 | Presupuesto de concurrencia | ✅ aceptada | Máximo 7 Lambdas a la vez (AWS Academy desactiva la cuenta con más de 10): router único, motor único, topes por función → [2026-11-15-presupuesto-concurrencia](2026-11-15-presupuesto-concurrencia.md) |
 | D15 | Tercera nube | ✅ aceptada (pendiente de OK del equipo) | **Cloudflare Workers + KV**: espejo del estado público, sigue en línea aunque AWS caiga; sin Lambdas nuevas → [2026-11-15-tercera-nube-cloudflare](2026-11-15-tercera-nube-cloudflare.md) |
+| D16 | Nubes de la solución | ✅ aceptada (pendiente de OK del equipo) | **4 proveedores**: AWS, Cloudflare y Google Cloud (Gemini) activos; Azure con código listo pero **no desplegado** en la cuenta de la demo → [2026-11-15-cuatro-nubes](2026-11-15-cuatro-nubes.md) |
 
 Las decisiones **abiertas no las resuelve un agente solo**: van por un issue `decision`. Mientras tanto, no construyas nada que dependa de ellas. Si no queda otra, deja un `TODO(D2)` o `TODO(D7)`.
 
