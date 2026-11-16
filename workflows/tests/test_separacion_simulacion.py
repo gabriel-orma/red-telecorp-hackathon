@@ -361,3 +361,10 @@ def test_las_funciones_que_arrancan_step_functions_declaran_su_maquina():
     entorno = funciones["api"].get("environment") or {}
     for variable in ("MAQUINA_COLECTIVO", "MAQUINA_ESCENARIO", "MAQUINA_RECURRENCIA"):
         assert variable in entorno, variable
+
+
+def test_el_servidor_redondea_la_ubicacion_del_reporte_aunque_el_cliente_no_lo_haga():
+    """Privacidad: aunque un cliente envíe la posición exacta, lo que se guarda tiene 3 decimales (≈ 110 m)."""
+    r = reglas.construir_reporte({"tipo": "SIN_INTERNET", "descripcion": "x", "ubicacion": {"lat": -12.0964871, "lng": -77.0310422}},
+                                 {"dni": "70000001", "zonaId": "ZONA-05"}, "ZONA-01", util.ahora_iso())
+    assert r["ubicacion"] == {"lat": -12.096, "lng": -77.031}

@@ -173,7 +173,8 @@ def construir_reporte(cuerpo: dict, perfil: dict, zona_gps: str | None, ahora_is
         "avisarPorEmail": perfil.get("avisosEmail") == "1",
     }
     if ubic:
-        reporte["ubicacion"] = {"lat": float(ubic["lat"]), "lng": float(ubic["lng"])}
+        # Privacidad: ≈ 110 m bastan para ubicar la zona; el cliente ya la redondea y el servidor lo garantiza aunque no lo haga.
+        reporte["ubicacion"] = {"lat": round(float(ubic["lat"]), 3), "lng": round(float(ubic["lng"]), 3)}
     return {k: v for k, v in reporte.items() if v is not None}
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MapaML, MapLayerMouseEvent, MapMouseEvent } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import type { Antena, Colectivo, EstadoAntena, Incidencia, Zona } from "../lib/api";
@@ -105,6 +105,8 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
   const pendiente = useRef<(() => void) | null>(null);
   const onSel = useRef(onSeleccionar);
   onSel.current = onSeleccionar;
+  // Si el proveedor del mapa base no responde, `load` nunca ocurre: se avisa en lugar de dejar un mapa vacío y mudo.
+  const [falloMapa, setFalloMapa] = useState(false);
 
   // Nombres de zona solo con zoom suficiente (de lejos se amontonan).
   const actualizarEtiquetas = () => {
@@ -129,7 +131,9 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
     mapa.current = m;
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 
+    m.on("error", () => { if (!listo.current) setFalloMapa(true); });
     m.on("load", () => {
+      setFalloMapa(false);
       m.addSource("zonas", { type: "geojson", data: geoZonas([]) });
       m.addSource("antenas", { type: "geojson", data: geoAntenas([], null) });
       m.addSource("reportes", { type: "geojson", data: geoReportes([], []) });
@@ -230,7 +234,8 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
       m.on("mouseenter", "antenas-punto", () => (m.getCanvas().style.cursor = "pointer"));
       m.on("mouseleave", "antenas-punto", () => (m.getCanvas().style.cursor = ""));
 
-      // Pulso de las antenas en falla: radio y opacidad animados.
+      // Pulso de las antenas en falla: radio y opacidad animados (con «reducir movimiento» queda un cuadro fijo).
+      const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       let frame = 0;
       const animar = (t: number) => {
         const fase = (t % 1600) / 1600;
@@ -253,10 +258,10 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
           m.setPaintProperty("antenas-pulso", "circle-radius", 8 + fase * 26);
           m.setPaintProperty("antenas-pulso", "circle-opacity", 0.55 * (1 - fase) * visible);
         }
-        frame = requestAnimationFrame(animar);
+        frame = reducido ? (window.setTimeout(() => animar(800), 1500) as unknown as number) : requestAnimationFrame(animar);
       };
       frame = requestAnimationFrame(animar);
-      m.once("remove", () => cancelAnimationFrame(frame));
+      m.once("remove", () => { cancelAnimationFrame(frame); clearTimeout(frame); });
 
       m.on("zoom", actualizarEtiquetas);
 
@@ -333,6 +338,11 @@ export function MapaRed({ antenas, zonas, colectivos, reportes, seleccion, onSel
   return (
     <div className="absolute inset-0">
       <div ref={contenedor} className="h-full w-full" />
+      {falloMapa && (
+        <div role="alert" className="absolute left-1/2 top-4 z-10 max-w-[90%] -translate-x-1/2 rounded-xl bg-fondo/95 px-4 py-2 text-xs text-saturada ring-1 ring-saturada/40">
+          No se pudo cargar el mapa base (sin conexión con el proveedor de mapas). Los paneles siguen mostrando antenas, incidentes y reportes.
+        </div>
+      )}
     </div>
   );
 }
