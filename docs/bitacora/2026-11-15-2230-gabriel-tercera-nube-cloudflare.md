@@ -31,3 +31,9 @@
 - **Problema encontrado:** Cloudflare rechazaba las publicaciones con «error code: 1010» (bloquea el User-Agent por defecto de Python, `Python-urllib/…`), así que el disyuntor se abría. Las pruebas no lo veían porque simulan el HTTP.
 - **Arreglo:** `nube2/cloudflare.py` envía `User-Agent: telecorp-aws-detector/1.0` en `publicar()` y `sondear()`; la prueba lo exige. Tras redesplegar, el barrido publica (`/salud` con `publicadoEn`).
 - Concurrencia reservada sin cambios: 5 Lambdas, 2+1+1+2+1 = 7 (D14).
+
+## Gemini (Google Cloud) activado en `dev-gabriel`
+- El secreto `telecorp/dev-gabriel/ia` solo tenía el marcador `PENDIENTE-D2`, así que Gemini no funcionaba aunque el código existía.
+- Nuevo `scripts/gemini-secreto.sh <stage>`: pide la clave de Google AI Studio, la comprueba con Google (listar modelos, gratis) y la guarda como `{geminiApiKey, habilitada: true}`, conservando los demás campos. No la imprime (solo enmascarada).
+- Verificado: clave válida y `gemini-3.5-flash-lite` responde (HTTP 200).
+- Nubes activas en `dev-gabriel`: **AWS + Cloudflare (D15) + Google Gemini**. Azure (D2) sigue en el código pero sin claves en esta cuenta: falta decidir en equipo si queda como opcional.

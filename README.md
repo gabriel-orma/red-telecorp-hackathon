@@ -27,6 +27,8 @@ Al terminar imprime la URL HTTPS del centro de control. Para desplegar solo una 
 
 **Tercera nube (Cloudflare):** el estado público se publica cada 5 min en un Worker de Cloudflare, que lo sigue sirviendo aunque AWS caiga. Es opcional y gratis; ver [`docs/despliegue-cloudflare.md`](docs/despliegue-cloudflare.md) (`npx wrangler@4.154.0 login` y luego `bash scripts/cloudflare.sh dev-tualias`).
 
+**IA en Google Cloud (Gemini):** clave gratis en https://aistudio.google.com/apikey (cualquier cuenta de Google, sin tarjeta); se valida y se guarda en Secrets Manager con `bash scripts/gemini-secreto.sh dev-tualias`.
+
 **Segunda nube (Azure):** el correo de los avisos y el clima de la zona salen por Azure. Sin sus claves el sistema funciona igual (avisos por la app y SNS, análisis sin clima), pero para la demo completa crea los recursos y entrega sus claves a Secrets Manager siguiendo [`docs/despliegue-azure.md`](docs/despliegue-azure.md).
 
 Elimina todo cuando no lo uses, para no gastar el presupuesto del lab:
