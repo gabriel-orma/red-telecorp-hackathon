@@ -39,6 +39,8 @@ def test_publica_el_estado_global_y_de_cada_zona_con_token(worker):
     metodo, url, cabeceras, cuerpo = worker.llamadas[0]
     assert (metodo, url) == ("PUT", f"{URL}/publicar")
     assert cabeceras["Authorization"] == "Bearer tok-123"
+    # Cloudflare bloquea el User-Agent por defecto de Python (error 1010): siempre se envía uno propio.
+    assert not cabeceras["User-Agent"].startswith("Python-urllib")
     assert cuerpo["version"] == 1 and "GLOBAL" in cuerpo["estados"] and "ZONA-05" in cuerpo["estados"]
     assert cuerpo["estados"]["ZONA-05"]["alcance"] == "ZONA-05"
     assert estado.leer_tablero()["cloudflare-workers"]["estado"] == "OK"

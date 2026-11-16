@@ -25,3 +25,9 @@
 ## Pendiente
 - Crear la cuenta de Cloudflare, hacer `wrangler login` y correr `scripts/cloudflare.sh dev-gabriel` (lo hace el humano: el inicio de sesión es suyo).
 - Azure sigue sin secreto en la cuenta de `dev-gabriel` (faltan los datos de Rodrigo).
+
+## Despliegue en `dev-gabriel` (15-nov, noche)
+- Worker en `https://telecorp-estado-dev-gabriel.<subdominio>.workers.dev`, KV `telecorp-dev-gabriel-estado`, secreto `telecorp/dev-gabriel/cloudflare` creado por `scripts/cloudflare.sh`.
+- **Problema encontrado:** Cloudflare rechazaba las publicaciones con «error code: 1010» (bloquea el User-Agent por defecto de Python, `Python-urllib/…`), así que el disyuntor se abría. Las pruebas no lo veían porque simulan el HTTP.
+- **Arreglo:** `nube2/cloudflare.py` envía `User-Agent: telecorp-aws-detector/1.0` en `publicar()` y `sondear()`; la prueba lo exige. Tras redesplegar, el barrido publica (`/salud` con `publicadoEn`).
+- Concurrencia reservada sin cambios: 5 Lambdas, 2+1+1+2+1 = 7 (D14).

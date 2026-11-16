@@ -20,6 +20,9 @@ from telecorp.nube2 import estado, http_cliente, secretos
 SERVICIO = "cloudflare-workers"
 INTERVALO_MIN_S = 240          # ≤ 360 escrituras/día aunque el barrido corra más seguido
 TIMEOUT_S = 8
+# Cloudflare rechaza con «error 1010» el User-Agent por defecto de Python (`Python-urllib/…`) antes de llegar al
+# Worker: toda llamada se identifica con uno propio.
+CABECERAS = {"User-Agent": "telecorp-aws-detector/1.0"}
 
 
 def _config() -> dict | None:
@@ -55,7 +58,7 @@ def publicar() -> dict:
         return {"publicado": False, "motivo": "CALCULO"}
     inicio = time.time()
     try:
-        status, _, resp = http_cliente.pedir("PUT", f"{cfg['url']}/publicar", {"Authorization": f"Bearer {cfg['token']}"},
+        status, _, resp = http_cliente.pedir("PUT", f"{cfg['url']}/publicar", {**CABECERAS, "Authorization": f"Bearer {cfg['token']}"},
                                              cuerpo, timeout=TIMEOUT_S)
     except http_cliente.ErrorNube as e:
         estado.registrar_fallo(SERVICIO)
@@ -78,7 +81,7 @@ def sondear() -> None:
         return
     inicio = time.time()
     try:
-        status, _, resp = http_cliente.pedir("GET", f"{cfg['url']}/salud", timeout=TIMEOUT_S)
+        status, _, resp = http_cliente.pedir("GET", f"{cfg['url']}/salud", CABECERAS, timeout=TIMEOUT_S)
     except http_cliente.ErrorNube as e:
         estado.anotar(SERVICIO, False, error=e.codigo)
         return
